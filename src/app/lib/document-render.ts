@@ -405,6 +405,8 @@ const isoDate = (d: unknown): string => {
 };
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const safeColor = (v: unknown, fallback: string): string => (typeof v === "string" && HEX.test(v) ? v : fallback);
+/** A cover prints a host — `https://` is plumbing, and it pushed the C.R. onto its own line. */
+const plainHost = (v: unknown): string => String(v ?? "").trim().replace(/^https?:\/\//i, "").replace(/\/+$/, "");
 const safeUrl = (v: unknown): string => {
   const s = String(v ?? "").trim();
   return /^(https?:\/\/|data:image\/)/i.test(s) ? s : "";
@@ -796,7 +798,12 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 .edoc.idn .cards3 .cd .k{font-family:var(--font-latin);font-size:7.5px;letter-spacing:.12em;color:rgba(255,255,255,.72);margin-bottom:1.2mm;text-transform:none}
 .edoc.idn .cards3 .cd .v{font-size:10pt;font-weight:700;color:#fff;line-height:1.45;overflow-wrap:anywhere}
 .edoc.idn .cards3 .cd .s{font-size:8pt;color:rgba(255,255,255,.78);margin-top:.8mm;overflow-wrap:anywhere}
-.edoc.idn .ic .strip.cards3{margin-bottom:6mm;border-top:0;padding-top:0}
+/* THE COVER STRIP IS A RULE, NOT THREE BOXES (CEO 2026-09-21 · «مو مثل الستاندر
+   المطلوب»). The reference cover sets العميل · المقاول · التاريخ as three bare
+   columns under one hairline. Outlined cards belong to the CLOSING page, which
+   keeps them. */
+.edoc.idn .ic .strip.cards3{margin-bottom:6mm;border-top:.5pt solid rgba(255,255,255,.28);padding-top:5mm}
+.edoc.idn .ic .strip.cards3 .cd{border:0;border-radius:0;padding:0}
 .edoc.idn .cl .sub{font-size:16px;color:rgba(255,255,255,.88);margin:-2mm 0 4mm;line-height:1.5}
 .edoc.idn .cl .facts.cards3{display:grid;border-top:0;padding-top:0;margin-top:10mm;width:100%;max-width:none;gap:4mm}
 .edoc.idn .cl .facts.cards3 .cd{text-align:start}
@@ -1371,8 +1378,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
       // bottom strip · 3 outlined cards (reference cover): owner/client · contractor (site · C.R.) · date + validity
       const validDays = issue && end ? Math.round((Date.parse(end) - Date.parse(issue)) / 86_400_000) : 0;
       const strip = `<div class="strip cards3">
-    <div class="cd"><div class="k">${isQuote ? t("الجهة المالكة / العميل", "Owner / Client") : t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.city ? bdi(contact.city) : "", contact?.code ? esc(contact.code) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
-    <div class="cd"><div class="k">${isQuote ? t("المقاول", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.website ? num(org.website) : "", org.crNumber ? `${regIdLabel(org)} ${num(org.crNumber)}` : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div class="cd"><div class="k">${t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.city ? bdi(contact.city) : "", contact?.country ? bdi(contact.country) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div class="cd"><div class="k">${isQuote ? t("المقاول", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.website ? num(plainHost(org.website)) : "", org.crNumber ? `${regIdLabel(org)} ${num(org.crNumber)}` : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
     <div class="cd"><div class="k">${t("التاريخ", "Date")}</div><div class="v">${num(issue)}</div><div class="s">${validDays > 0 ? (isQuote ? t(`صلاحية العرض ${validDays} يومًا`, `Valid for ${validDays} days`) : `${esc(endLabel)} ${num(end)}`) : (end ? `${esc(endLabel)} ${num(end)}` : "&nbsp;")}</div></div>
   </div>`;
       const ownTitle = ((ar ? tpl.coverTitle : (tpl.coverTitleEn || tpl.coverTitle)) || "").trim();
