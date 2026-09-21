@@ -9,7 +9,7 @@
  * UX-5: «لصق ذكي» — pasted plain text (Word · email · notes) becomes blocks locally.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Plus, Trash2, ClipboardPaste, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Trash2, ClipboardPaste, ChevronDown, ChevronUp, Loader2, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -243,6 +243,7 @@ function isEmptyBlock(b: PageBlock): boolean {
 
 function BlockFields({ block, onChange, disabled, inputCls }: { block: PageBlock; onChange: (b: PageBlock) => void; disabled?: boolean; inputCls: string }) {
   const { t } = useLanguageSafe();
+  const [imageError, setImageError] = useState<string | null>(null);
   switch (block.type) {
     case "heading":
       return <Input value={block.text} disabled={disabled} maxLength={300} onChange={(e) => onChange({ ...block, text: e.target.value })} placeholder={t("عنوان فرعي", "Sub-heading")} className="h-9 text-sm font-semibold" dir="auto" />;
@@ -308,9 +309,38 @@ function BlockFields({ block, onChange, disabled, inputCls }: { block: PageBlock
     case "image":
       return (
         <div className="space-y-2">
-          <Input value={block.url} disabled={disabled} onChange={(e) => onChange({ ...block, url: e.target.value })} placeholder={t("رابط الصورة (https://…) — من المرفقات أو أي رابط عام", "Image URL (https://…) — from attachments or any public link")} className="h-9 text-sm" dir="ltr" />
-          <Input value={block.caption || ""} disabled={disabled} maxLength={300} onChange={(e) => onChange({ ...block, caption: e.target.value })} placeholder={t("تعليق الصورة (اختياري)", "Caption (optional)")} className="h-9 text-sm" dir="auto" />
-          {/^https?:\/\//i.test(block.url) && <img src={block.url} alt="" className="max-h-40 rounded-md border border-border object-contain" />}
+          {/* CEO 2026-09-21: a site map, a floor plan or a photo lives on the
+              person's own screen, not on a public URL. Choosing the file embeds
+              it in the document itself, so the page prints the same everywhere
+              and needs no hosting. The renderer already accepts data:image. */}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className={`inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-xs font-semibold ${disabled ? "opacity-40" : "cursor-pointer text-primary hover:border-border-strong"}`}>
+              <Upload className="h-3.5 w-3.5" strokeWidth={1.75} />
+              {t("اختر صورة من جهازك", "Choose an image")}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                className="hidden"
+                disabled={disabled}
+                data-testid="page-image-file"
+                onChange={(e) => {
+                  const f = e.target.files?.[0]; e.target.value = "";
+                  if (!f) return;
+                  // 3 MB · the image travels inside the document's own JSON
+                  if (f.size > 3 * 1024 * 1024) { setImageError(t("الصورة أكبر من 3 ميجا — صغّرها أولاً.", "Larger than 3 MB — shrink it first.")); return; }
+                  const r = new FileReader();
+                  r.onload = () => { setImageError(null); onChange({ ...block, url: String(r.result || "") }); };
+                  r.onerror = () => setImageError(t("تعذّرت قراءة الصورة.", "Could not read that image."));
+                  r.readAsDataURL(f);
+                }}
+              />
+            </label>
+            <span className="text-[11px] text-content-secondary">{t("أو الصق رابطاً عاماً", "or paste a public link")}</span>
+          </div>
+          <Input value={/^data:/i.test(block.url) ? "" : block.url} disabled={disabled} onChange={(e) => onChange({ ...block, url: e.target.value })} placeholder={/^data:/i.test(block.url) ? t("صورة مضمّنة في المستند", "Image embedded in the document") : t("رابط الصورة (https://…)", "Image URL (https://…)")} className="h-9 text-sm" dir="ltr" />
+          <Input value={block.caption || ""} disabled={disabled} maxLength={300} onChange={(e) => onChange({ ...block, caption: e.target.value })} placeholder={t("تعليق الصورة — مثال: موقع المشروع كما حدّده العميل", "Caption — e.g. project location as marked by the client")} className="h-9 text-sm" dir="auto" />
+          {imageError && <p className="text-xs text-danger">{imageError}</p>}
+          {/^(https?:\/\/|data:image\/)/i.test(block.url) && <img src={block.url} alt="" className="max-h-40 rounded-md border border-border object-contain" />}
         </div>
       );
   }

@@ -1261,7 +1261,18 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const included = doc.lines.filter((l) => l.included !== false);
   const optional = doc.lines.filter((l) => l.included === false);
   const listPrice = included.reduce((s, l) => s + l.quantity * l.unitPrice, 0);
-  const discount = Math.max(doc.discountTotal || 0, listPrice - doc.subtotal, 0);
+  /**
+   * The geometric fallback must compare like with like. On an INCLUSIVE
+   * document `listPrice` is gross and `subtotal` is net, so `listPrice −
+   * subtotal` is the discount PLUS the contained tax — it printed a 300 riyal
+   * discount as 495.65 (CEO 2026-09-21). Against the gross total it is right.
+   */
+  const inclusiveDoc = doc.taxBasis === "inclusive";
+  const discount = Math.max(
+    doc.discountTotal || 0,
+    inclusiveDoc ? listPrice - (doc.subtotal + doc.taxTotal) : listPrice - doc.subtotal,
+    0,
+  );
   const taxable = doc.subtotal;
 
   // usable mm per inner sheet (297 − 32 top − 20 bottom) · the 3-line legal footer of the
@@ -1495,7 +1506,21 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const totalsBlock = (): Block => {
     const rows: string[] = [];
-    if (themed) {
+    if (themed && inclusiveDoc) {
+      /**
+       * INCLUSIVE · the prices already contain the tax, so the page reads
+       * الإجمالي → قيمة الخصم → الضريبة (ضمن الإجمالي) → الإجمالي شامل الضريبة.
+       * The exclusive block's «الصافي» step has no meaning here: showing 1,304.35
+       * between a 1,800 list and a 1,500 total reads as a third price for the
+       * same work (CEO 2026-09-21 · «مو مضبوط»). Every row on this page is on
+       * one basis, and the tax row says it is contained rather than added.
+       */
+      rows.push(`<div class="r"><span class="lbl">${t("الإجمالي", "Total")}</span><span class="amt">${cur} ${money(listPrice)}</span></div>`);
+      if (discount > 0.005) rows.push(`<div class="r disc"><span class="lbl">${t("قيمة الخصم", "Discount")}</span><span class="amt">${cur} ${money(discount)}-</span></div>`);
+      if (orgTaxRegistered && tpl.showTaxBreakdown !== false) {
+        rows.push(`<div class="r"><span class="lbl">${taxLabel} ${t("(ضمن الإجمالي)", "(included)")}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+      }
+    } else if (themed) {
       // subtotal → [discount] → [net] → VAT → grand (the EDG order)
       rows.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${cur} ${money(discount > 0.005 ? listPrice : taxable)}</span></div>`);
       if (discount > 0.005) {
