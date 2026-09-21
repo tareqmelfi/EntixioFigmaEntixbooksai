@@ -652,8 +652,36 @@ export function ItemsTable({
    * for the moment before the catalogue arrives (and if the request fails) — it
    * keeps the grid usable but is never what a saved line carries when rates load.
    */
+  /**
+   * Every real rate is offered BOTH ways (2026-09-21).
+   *
+   * The catalogue is org data, and an org whose catalogue happened to hold
+   * «15% شامل» and a stray «0% غير شامل» could not price 15% exclusive at all —
+   * the picker read «شامل 15% · غير شامل 0% · معفى», which is not a choice
+   * between inclusive and exclusive, it is two unrelated rates. A rate's
+   * missing twin is now synthesised at the same percentage, so the operator
+   * always chooses the BASIS, never hunts for a percentage that exists.
+   */
   const taxOptions = taxRates.length
-    ? taxRates.map((r) => ({ value: r.id, label: taxRateShortLabel(r, language === "ar" ? "ar" : "en") }))
+    ? (() => {
+        const lang = language === "ar" ? "ar" : "en";
+        const out: Array<{ value: string; label: string }> = [];
+        const seen = new Set<string>();
+        for (const r of taxRates) {
+          out.push({ value: r.id, label: taxRateShortLabel(r, lang) });
+          seen.add(`${Number(r.rate)}:${r.isInclusive ? "in" : "ex"}:${r.type || ""}`);
+        }
+        for (const r of taxRates) {
+          if (r.type === "EXEMPT" || Number(r.rate) <= 0) continue;
+          const twin = `${Number(r.rate)}:${r.isInclusive ? "ex" : "in"}:${r.type || ""}`;
+          if (seen.has(twin)) continue;
+          seen.add(twin);
+          const pct = `${Number((Number(r.rate) * 100).toFixed(4))}%`;
+          const mode = lang === "ar" ? (r.isInclusive ? "غير شامل" : "شامل") : (r.isInclusive ? "excl." : "incl.");
+          out.push({ value: `rate:${Number(r.rate)}:${r.isInclusive ? "ex" : "in"}`, label: `${pct} ${mode}` });
+        }
+        return out;
+      })()
     : [
         { value: "rate:0.15:ex", label: t("15% غير شامل", "15% excluded") },
         { value: "rate:0.15:in", label: t("15% شامل", "15% included") },
