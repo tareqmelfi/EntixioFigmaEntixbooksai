@@ -343,6 +343,15 @@ export interface DocSpec {
   qrPayload?: string | null;
   /** Tax rate label · default 15% */
   taxRateLabel?: string | null;
+  /**
+   * Are the printed unit prices net of tax, or do they already contain it?
+   *
+   * CEO 2026-09-21: a quotation printed 400 where the client pays 460 — the
+   * price column showed the net figure and said nothing about which basis it
+   * used, so the line and the total read as two different prices. The basis is
+   * now stated on the price columns of every document.
+   */
+  taxBasis?: "inclusive" | "exclusive" | "mixed" | null;
   /** Per-document print language override · "ar" | "en" · null → caller/org default */
   language?: DocLang | null;
   /** Free-form pages written in the platform · printed after the main flow, before the T&C page */
@@ -1047,6 +1056,8 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .meta-strip .v{font-size:10pt;font-weight:700}
 .edoc table.items{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 5mm}
 .edoc table.items th{font-size:8pt;font-weight:700;color:var(--muted);text-align:start;padding:2.5mm 2mm;border-bottom:1.2pt solid var(--ink)}
+/* The tax basis rides under its own column header · quiet, never a second line of shouting. */
+.edoc table.items th .basis{display:block;font-weight:500;font-size:6.6pt;letter-spacing:0;opacity:.75;margin-top:.4mm}
 .edoc table.items td{padding:3mm 2mm;border-bottom:.5pt solid var(--rule);vertical-align:top;font-size:9.5pt;overflow-wrap:break-word}
 .edoc table.items th.n,.edoc table.items td.n{text-align:end}
 .edoc table.items .code{font-family:var(--font-mono);font-size:8pt;color:var(--brand);font-weight:700;direction:ltr;unicode-bidi:isolate}
@@ -1434,14 +1445,27 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const lineImg = (l: LineSpec) => safeUrl(l.imageUrl);
   const hasPics = doc.lines.some((l) => lineImg(l));
 
+  /**
+   * The price columns say which basis they are on, every time.
+   * Without it a line reading 400 and a total reading 460 look like two
+   * different prices for the same thing (CEO 2026-09-21).
+   */
+  const basisNote = doc.taxBasis === "inclusive"
+    ? `<span class="basis">${t("شامل الضريبة", "incl. tax")}</span>`
+    : doc.taxBasis === "exclusive"
+      ? `<span class="basis">${t("غير شامل الضريبة", "excl. tax")}</span>`
+      : doc.taxBasis === "mixed"
+        ? `<span class="basis">${t("حسب كل بند", "per line")}</span>`
+        : "";
+
   const itemsBlock = (): Block => {
     const span = hasPics ? 6 : 5;
     const cols = themed
       ? `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:22mm"><col><col style="width:16mm"><col style="width:28mm"><col style="width:30mm"></colgroup>`
       : `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:30mm"><col><col style="width:16mm"><col style="width:26mm"><col style="width:28mm"></colgroup>`;
     const head = themed
-      ? `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("البند", "Item")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")} (${esc(cur)})</th><th class="n">${t("السعر الإجمالي", "Total")} (${esc(cur)})</th></tr></thead>`
-      : `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("الرمز", "Code")}</th><th>${t("البند", "Item")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("السعر", "Price")} (${esc(cur)})</th><th class="n">${t("المبلغ", "Amount")} (${esc(cur)})</th></tr></thead>`;
+      ? `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("البند", "Item")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")} (${esc(cur)})${basisNote}</th><th class="n">${t("السعر الإجمالي", "Total")} (${esc(cur)})${basisNote}</th></tr></thead>`
+      : `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("الرمز", "Code")}</th><th>${t("البند", "Item")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("السعر", "Price")} (${esc(cur)})${basisNote}</th><th class="n">${t("المبلغ", "Amount")} (${esc(cur)})${basisNote}</th></tr></thead>`;
     const rows: Array<{ h: number; html: string }> = [];
     let lastSec: string | null = null;
     const multi = new Set(included.map((l) => l.sectionLabel || "")).size > 1;
@@ -2123,6 +2147,18 @@ function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] 
   });
 }
 
+
+/** Read the tax basis off the document's own lines. */
+function deriveTaxBasis(lines: any[]): "inclusive" | "exclusive" | "mixed" | null {
+  const flags = (lines || []).filter((l: any) => Number(l?.taxRate ?? 0) > 0 || l?.taxInclusive !== undefined)
+    .map((l: any) => Boolean(l?.taxInclusive));
+  if (!flags.length) return null;
+  const inclusive = flags.filter(Boolean).length;
+  if (inclusive === 0) return "exclusive";
+  if (inclusive === flags.length) return "inclusive";
+  return "mixed";
+}
+
 /** `qrPayload` · a ZATCA TLV built by the caller with zatcaTlvBase64() when the template has showQr (quotes only). */
 export function docFromQuote(q: any, qrPayload?: string | null): DocSpec {
   return {
@@ -2140,6 +2176,7 @@ export function docFromQuote(q: any, qrPayload?: string | null): DocSpec {
     subtotal: n(q.subtotal),
     discountTotal: n(q.discountTotal),
     taxTotal: n(q.taxTotal),
+    taxBasis: deriveTaxBasis(q.lines || []),
     total: n(q.total),
     paymentLinkUrl: q.paymentLinkUrl || null,
     paymentPlan: planRows(q.paymentPlan, n(q.taxTotal), n(q.total)),
@@ -2177,6 +2214,7 @@ export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
     subtotal: n(inv.subtotal),
     discountTotal: n(inv.discountTotal),
     taxTotal: n(inv.taxTotal),
+    taxBasis: deriveTaxBasis(inv.lines || []),
     total: n(inv.total),
     amountPaid: n(inv.amountPaid),
     paymentLinkUrl: inv.paymentLinkUrl || null,

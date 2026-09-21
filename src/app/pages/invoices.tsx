@@ -228,6 +228,8 @@ export function Invoices() {
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [pendingApprove, setPendingApprove] = useState<string | null>(null);
+  /** Editor-level approval confirmation · "approve" | "send" while pending. */
+  const [pendingEditorApprove, setPendingEditorApprove] = useState<"approve" | "send" | null>(null);
 
   // Split view (list ⟷ paper preview) · desktop only · read-only, never a dialog (UX-1)
   const wideViewport = useWideViewport();
@@ -849,12 +851,30 @@ export function Invoices() {
                 <Button type="button" disabled={busy} onClick={() => handleSubmit("draft")}>
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("approve")} title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
-                  {busy ? "..." : t("اعتماد", "Approve")}
-                </Button>
-                <Button type="button" disabled={busy} variant="outline" onClick={() => handleSubmit("send")} title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
-                  {busy ? "..." : t("اعتماد + إرسال", "Approve + send")}
-                </Button>
+                {/* APPROVAL IS IRREVERSIBLE (CEO 2026-09-21): approving issues the
+                    invoice and locks it for good — after that a mistake can only be
+                    corrected with a credit note. The list already asked before
+                    approving; the editor fired immediately, which is how an invoice
+                    got locked by accident. It asks here too now, and the question
+                    names the consequence instead of saying "are you sure". */}
+                {pendingEditorApprove ? (
+                  <InlineConfirm
+                    label={pendingEditorApprove === "send"
+                      ? t("اعتماد وإرسال؟ الاعتماد يقفل التعديل نهائياً", "Approve and send? Approval locks editing for good")
+                      : t("اعتماد الفاتورة؟ بعدها لا تعديل — التصحيح بإشعار دائن", "Approve? No edits afterwards — corrections need a credit note")}
+                    onConfirm={() => { const mode = pendingEditorApprove; setPendingEditorApprove(null); handleSubmit(mode); }}
+                    onCancel={() => setPendingEditorApprove(null)}
+                  />
+                ) : (
+                  <>
+                    <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("approve")} title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                      {busy ? "..." : t("اعتماد", "Approve")}
+                    </Button>
+                    <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("send")} title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
+                      {busy ? "..." : t("اعتماد + إرسال", "Approve + send")}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           }

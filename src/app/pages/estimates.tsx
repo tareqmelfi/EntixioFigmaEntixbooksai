@@ -137,6 +137,9 @@ const EMPTY_FORM = {
   currency: "SAR",
   defaultMarginPct: "15",
   taxRate: "15",
+  // Do the prices below already contain the tax? A quotation has carried this
+  // choice per line for a while; the study always added tax on top (2026-09-21).
+  taxInclusive: false,
   notes: "",
 };
 
@@ -227,6 +230,7 @@ export function Estimates() {
           currency: est.currency || "SAR",
           defaultMarginPct: est.defaultMarginPct === undefined ? "" : String(Number(est.defaultMarginPct)),
           taxRate: String(Number(est.taxRate ?? 15)),
+          taxInclusive: Boolean((est as any).taxInclusive),
           notes: est.notes || "",
         });
         setRows(rowsFromEstimate(est));
@@ -248,14 +252,25 @@ export function Estimates() {
 
   const totals = useMemo(() => {
     let cost = 0, sale = 0, tax = 0;
-    computed.forEach((c) => { cost += c.cost; sale += c.lineTotal; tax += round2(c.lineTotal * (c.taxRate / 100)); });
+    computed.forEach((c) => {
+      cost += c.cost;
+      if (form.taxInclusive) {
+        // The line price already contains the tax · net = gross / (1 + rate)
+        const lineTax = round2(c.lineTotal - c.lineTotal / (1 + c.taxRate / 100));
+        tax += lineTax;
+        sale += c.lineTotal - lineTax;
+      } else {
+        sale += c.lineTotal;
+        tax += round2(c.lineTotal * (c.taxRate / 100));
+      }
+    });
     const costTotal = round2(cost), saleSubtotal = round2(sale), taxTotal = round2(tax);
     return {
       costTotal, saleSubtotal, taxTotal,
       saleTotal: round2(saleSubtotal + taxTotal),
       marginPct: saleSubtotal > 0 ? ((saleSubtotal - costTotal) / saleSubtotal) * 100 : 0,
     };
-  }, [computed]);
+  }, [computed, form.taxInclusive]);
 
   const sectionSummary = useMemo(() => {
     const map = new Map<string, { section: string; cost: number; sale: number }>();
@@ -360,6 +375,7 @@ export function Estimates() {
         currency: form.currency,
         defaultMarginPct: num(form.defaultMarginPct),
         taxRate: num(form.taxRate),
+        taxInclusive: form.taxInclusive,
         notes: form.notes || null,
         lines,
       };
@@ -468,6 +484,7 @@ export function Estimates() {
       currency: est.currency || f.currency,
       defaultMarginPct: est.defaultMarginPct === undefined ? f.defaultMarginPct : String(Number(est.defaultMarginPct)),
       taxRate: est.taxRate === undefined ? f.taxRate : String(Number(est.taxRate)),
+      taxInclusive: (est as any).taxInclusive === undefined ? f.taxInclusive : Boolean((est as any).taxInclusive),
       notes: est.notes || f.notes,
     }));
     setItems((prev) => (prev.some((x) => x.id === est.id) ? prev.map((x) => (x.id === est.id ? est : x)) : [est, ...prev]));
@@ -742,6 +759,20 @@ export function Estimates() {
                       <Input value={form.defaultMarginPct} disabled={frozen} inputMode="decimal" dir="ltr" onChange={(e) => setForm({ ...form, defaultMarginPct: normalizeDigits(e.target.value) })} className="h-9 border-border text-sm font-english" data-testid="estimate-default-margin" />
                     </div>
                   )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-foreground/80">{t("المبالغ", "Amounts")}</Label>
+                    <Select
+                      value={form.taxInclusive ? "inclusive" : "exclusive"}
+                      onValueChange={(v) => setForm({ ...form, taxInclusive: v === "inclusive" })}
+                      disabled={frozen}
+                    >
+                      <SelectTrigger className="h-9 border-border text-sm" data-testid="estimate-tax-mode"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="exclusive">{t("غير شاملة الضريبة", "Exclusive of tax")}</SelectItem>
+                        <SelectItem value="inclusive">{t("شاملة الضريبة", "Inclusive of tax")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-foreground/80">{t("نسبة الضريبة %", "Tax rate %")}</Label>
                     <div className="flex min-w-0 items-center gap-2">
