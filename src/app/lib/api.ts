@@ -1816,6 +1816,9 @@ export const api = {
 
   // Invoices
   invoices: {
+    voidInvoiceAdmin: (id: string, body: { reason: string; expectedUpdatedAt: string }) => request<Invoice>(`/api/invoices/${id}/void-admin`, { method: 'POST', body }),
+    amendmentPolicy: (id: string) => request<{ canAmend: boolean; canVoidAdmin?: boolean; reason: string | null; country: string }>(`/api/invoices/${id}/amendment-policy`),
+    amend: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null; dueDate: string; lines: Array<{ id: string; description: string; quantity: number; unitPrice: number }> }) => request<Invoice>(`/api/invoices/${id}/amend`, { method: 'POST', body }),
     attachments: {
       list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/invoices/${id}/attachments`),
       add: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) => request<ExpenseAttachment>(`/api/invoices/${id}/attachments`, { method: 'POST', body }),
@@ -3720,6 +3723,7 @@ export interface VoucherInput {
 }
 
 export interface Invoice {
+  updatedAt?: string
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
