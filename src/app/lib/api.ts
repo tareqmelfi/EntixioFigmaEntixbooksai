@@ -858,6 +858,7 @@ export const api = {
 
   // Quotes
   quotes: {
+    overview: (after?: string) => request<{ items: import('./quote-overview').QuoteOverview[]; nextCursor: string | null }>('/api/quotes/overview', { query: { after } }),
     list: (params?: { status?: string }) =>
       request<{ items: Quote[]; total: number }>('/api/quotes', { query: params }),
     get: (id: string) => request<Quote>(`/api/quotes/${id}`),
