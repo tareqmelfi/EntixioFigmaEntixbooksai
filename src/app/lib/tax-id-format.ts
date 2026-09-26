@@ -11,8 +11,10 @@
  * Always strips non-digits first, then applies the pattern.
  */
 
+import { normalizeDigits } from "./digits";
+
 export function formatTaxId(input: string, country: string): string {
-  const digits = (input || '').replace(/\D/g, '');
+  const digits = normalizeDigits(input || '').replace(/\D/g, '');
   if (!digits) return '';
 
   switch ((country || '').toUpperCase()) {
@@ -52,7 +54,7 @@ export function formatTaxId(input: string, country: string): string {
  * but trimmed/zero-padded.
  */
 export function formatCrNumber(input: string, country: string): string {
-  const digits = (input || '').replace(/\D/g, '');
+  const digits = normalizeDigits(input || '').replace(/\D/g, '');
   if (!digits) return '';
   if ((country || '').toUpperCase() === 'SA') {
     return digits.slice(0, 10);
@@ -64,7 +66,7 @@ export function formatCrNumber(input: string, country: string): string {
  * Validate if a tax ID looks correct for the given country (loose check).
  */
 export function isValidTaxId(value: string, country: string): boolean {
-  const digits = (value || '').replace(/\D/g, '');
+  const digits = normalizeDigits(value || '').replace(/\D/g, '');
   switch ((country || '').toUpperCase()) {
     case 'US': return digits.length === 9;
     case 'SA':

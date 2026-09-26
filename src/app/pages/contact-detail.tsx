@@ -175,6 +175,7 @@ export function ContactDetail() {
         title={<span className="block break-words"><bdi dir="auto">{contact.displayName}</bdi></span>}
         actions={(
           <>
+            {(contact as any).contractorShells?.length ? (contact as any).contractorShells.map((profile: any) => <Button key={profile.id} variant="outline" asChild><Link to={`/app/contractors/${profile.id}`}>{t("ملف المقاول / الفريلانسر", "Contractor / freelancer profile")}</Link></Button>) : <Button variant="outline" asChild><Link to={`/app/contractors/new?contactId=${contact.id}`}>{t("إضافة ملف مقاول / فريلانسر", "Add contractor / freelancer profile")}</Link></Button>}
             <Button variant="outline" onClick={() => setEditOpen(true)}>{t("تعديل العميل", "Edit customer")}</Button>
             <div className="relative">
               <Button variant="outline" onClick={() => setMoreOpen((v) => !v)} aria-expanded={moreOpen} aria-haspopup="menu">
@@ -420,7 +421,7 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
             <SectionHeader title={t("الهوية الضريبية", "Tax identity")} />
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
-            <Row label={t("الرقم الضريبي", "Tax ID")} value={contact.vatNumber} mono />
+            <Row label={t("الرقم الضريبي", "Tax ID")} value={contact.taxId || contact.vatNumber} mono />
             <Row label={t("السجل التجاري", "Commercial registration")} value={contact.crNumber} mono />
             <Row label={t("رقم الهوية", "National ID")} value={(contact as any).nationalId} mono />
             <Row label="LEI" value={(contact as any).leiCode} mono />

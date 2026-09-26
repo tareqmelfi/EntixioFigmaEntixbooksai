@@ -1239,6 +1239,7 @@ export const api = {
 
   // Contractors (freelancers · مقاولون) · work logs · direct payments · project performance
   contractors: {
+    syncContacts: () => request<{ linked: number; review: Array<{ id: string; name: string; reason: string }> }>('/api/contractors/sync-contacts', { method: 'POST' }),
     list: () => request<{ items: any[]; total: number; peers: any }>('/api/contractors'),
     nextCode: () => request<{ code: string }>('/api/contractors/next-code'),
     get: (id: string) => request<any>(`/api/contractors/${id}`),
