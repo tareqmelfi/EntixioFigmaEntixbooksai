@@ -8,7 +8,8 @@
  * الصدق: باقة Lite بلا وكيل مُستضاف — تظهر لها الأسئلة الشائعة + قنوات التصعيد.
  */
 import { useEffect, useRef, useState } from "react";
-import { api, ApiError } from "../lib/api";
+import { CustomerSupportPortal } from "../components/customer-support-portal";
+import { api, ApiError, API_BASE_URL, getOrgId } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { PageHeader } from "../components/product";
 
@@ -76,7 +77,7 @@ export function HelpCenter() {
   const threadRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("https://api.entix.io/api/support/config").then((r) => r.json()).then(setCfg).catch(() => setCfg({ whatsapp: null, email: "support@entix.io" }));
+    fetch(`${API_BASE_URL}/api/support/config`).then((r) => r.json()).then(setCfg).catch(() => setCfg({ whatsapp: null, email: "support@entix.io" }));
   }, []);
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" }); }, [msgs, busy]);
 
@@ -107,8 +108,10 @@ export function HelpCenter() {
       <PageHeader
         eyebrow={t("مركز المساعدة", "Help center")}
         title={t("مركز الدعم", "Support center")}
-        description={t("الوكيل يحل أغلب الأسئلة فورًا — وإلا صعّد لنا مباشرة", "The agent solves most questions instantly — otherwise escalate to us directly")}
+        description={t("محادثاتك وطلباتك وأدلة الاستخدام في مكان واحد", "Your conversations, requests and guides in one place")}
       />
+
+      <CustomerSupportPortal key={getOrgId()} />
 
       {/* escalation — direct line first (product requirement: يرتبط فيني مباشرة) */}
       <div className="rounded-lg border border-border border-s-[3px] border-s-success bg-card p-5">
@@ -133,7 +136,8 @@ export function HelpCenter() {
         </div>
       </div>
 
-      {/* support agent */}
+      {/* Optional accounting AI is separate from human support. */}
+      <details><summary className="cursor-pointer font-semibold">{t("مساعد الاستخدام الذكي", "AI usage assistant")}</summary>
       <div className="rounded-xl border border-border bg-card">
         <div className="border-b border-border px-5 py-4">
           <div className="text-foreground" style={{ fontWeight: 700 }}>{t("اسأل وكيل الدعم", "Ask the support agent")}</div>
@@ -171,6 +175,8 @@ export function HelpCenter() {
           </form>
         </div>
       </div>
+
+      </details>
 
       {/* FAQ */}
       <div className="rounded-xl border border-border bg-card">
