@@ -12,7 +12,7 @@ import { displayLocale } from "../lib/number-display";
  * Powered by GET /api/contacts/:id/summary
  */
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ArrowRight, Building2, Mail, Phone, MapPin, FileText, ShoppingBag,
   Receipt, Banknote, Loader2, ExternalLink, AlertCircle, Plus, Send,
@@ -26,6 +26,8 @@ import { ContactWizard } from "../components/contact-wizard";
 import { ImageCropperModal } from "../components/image-cropper-modal";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
+
+import { ContactDocuments } from "../components/contact-documents";
 
 type Tab = "overview" | "operations" | "documents" | "portal" | "activity";
 
@@ -88,7 +90,9 @@ export function ContactDetail() {
   const [data, setData] = useState<ContactSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("overview");
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(params.get("tab") === "documents" ? "documents" : "overview");
+  useEffect(() => { if (params.get("tab") === "documents") setTab("documents"); }, [params]);
   // Customer logo upload · click the avatar → pick image → CROP → PATCH
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -795,25 +799,12 @@ function ExpTable({ rows }: { rows: ContactSummary["expenses"] }) {
 
 // ── Documents tab ─────────────────────────────────────────────────────────
 function DocumentsTab({ contact }: { contact: any }) {
-  const { t } = useLanguage();
   return (
     <div className="space-y-4">
       {/* HR-4 #27 — employee HR documents (iqama/passport/contract/CV…) */}
       {contact.isEmployee && <EmployeeDocumentsSection contactId={contact.id} />}
 
-      <Card className="border-border">
-        <CardContent className="py-12 text-center">
-          <Files className="h-10 w-10 text-muted mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">{t("لم يتم رفع أي مستندات لهذه الجهة", "No documents uploaded for this contact")}</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">{t("العقود · بطاقات الضريبة · السجلات التجارية · ملفات الهوية", "Contracts · tax cards · commercial registrations · ID files")}</p>
-          <Link
-            to={`/app/files/upload?contactId=${contact.id}`}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm text-primary-foreground transition hover:bg-primary/90"
-          >
-            <Plus className="h-3.5 w-3.5" /> {t("رفع مستند", "Upload document")}
-          </Link>
-        </CardContent>
-      </Card>
+      <ContactDocuments key={contact.id} contactId={contact.id} />
     </div>
   );
 }

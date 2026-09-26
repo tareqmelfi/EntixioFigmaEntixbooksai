@@ -728,6 +728,12 @@ export const api = {
 
   // Contacts
   contacts: {
+    attachments: {
+      list: (id: string) => request<{ items: Array<Omit<ExpenseAttachment, "url">> }>(`/api/contacts/${id}/attachments`),
+      get: (id: string, aid: string) => request<ExpenseAttachment>(`/api/contacts/${id}/attachments/${aid}`),
+      upload: (id: string, body: { filename: string; contentType: string; data: string }) => request<Omit<ExpenseAttachment, "url">>(`/api/contacts/${id}/attachments`, { method: "POST", body }),
+      remove: (id: string, aid: string) => request<void>(`/api/contacts/${id}/attachments/${aid}`, { method: "DELETE" }),
+    },
     smartImport: smartImportClient('contacts'),
     list: (params?: {
       type?: 'CUSTOMER' | 'SUPPLIER' | 'BOTH'
