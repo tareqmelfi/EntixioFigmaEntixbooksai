@@ -16,7 +16,7 @@ async function quotesFixture(page: Page) {
   await page.route('https://api.entix.io/api/quotes**', r => {
     const path = new URL(r.request().url()).pathname
     if (path.endsWith('/attachments')) return r.fulfill({ json: { items: [] } })
-    if (path === '/api/quotes') return r.fulfill({ json: { items: [quote, { ...quote, id: 'converted', status: 'CONVERTED' }, { ...quote, id: 'accepted', status: 'ACCEPTED' }] } })
+    if (path === '/api/quotes' || path === '/api/quotes/overview') return r.fulfill({ json: { items: [quote, { ...quote, id: 'converted', status: 'CONVERTED' }, { ...quote, id: 'accepted', status: 'ACCEPTED' }] } })
     return r.fulfill({ json: quote })
   })
 }
@@ -38,9 +38,10 @@ test('accept link never sends email, leaves draft status, and provides copy fall
 test('accepted metric retains converted quotes and draft expiry is visible', async ({ page }) => {
   await quotesFixture(page)
   await page.goto('/app/quotes')
-  const metric = page.locator('.ledger-figure').filter({ hasText: 'Includes converted quotes' }).last()
-  await expect(metric).toContainText('2')
-  await expect(page.getByTestId('quote-expired').filter({ visible: true }).first()).toBeVisible()
+  await expect(page.getByTestId('quote-metric-ACCEPTED')).toContainText('1')
+  await expect(page.getByTestId('quote-metric-CONVERTED')).toContainText('1')
+  await expect(page.getByTestId('quote-group-converted')).toBeVisible()
+  await expect(page.getByTestId('quote-date-quote-edg')).toHaveClass(/text-danger/)
 })
 
 test('full preview stays in the same tab, returning and saving preserves the quote', async ({ page, context }) => {

@@ -95,6 +95,7 @@ async function mocks(page: import('@playwright/test').Page) {
   await page.route(/googletagmanager|google-analytics|accounts\.google|content-autofill|www\.google\.com/, (r) => r.abort())
   await page.route('https://api.entix.io/api/quotes**', (r) => {
     const p = new URL(r.request().url()).pathname
+    if (p === '/api/quotes/overview') return r.fulfill({ json: { items: quotes, nextCursor: null } })
     const m = p.match(/\/api\/quotes\/([^/]+)$/)
     if (m) return r.fulfill({ json: quotes.find((q) => q.id === m[1]) || quotes[0] })
     return r.fulfill({ json: { items: quotes, total: quotes.length } })

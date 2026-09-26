@@ -69,7 +69,7 @@ async function mocks(page: Page, lang: 'ar' | 'en') {
     if (pathname === '/api/document-templates/tpl-1') return route.fulfill({ json: template })
     if (pathname === '/api/bank-accounts') return route.fulfill({ json: { items: [bank], total: 1, totalBalance: 0 } })
     if (pathname === '/api/quotes/q1') return route.fulfill({ json: quote })
-    if (pathname === '/api/quotes') return route.fulfill({ json: { items: [quote], total: 1 } })
+    if ((pathname === '/api/quotes' || pathname === '/api/quotes/overview')) return route.fulfill({ json: { items: [quote], total: 1 } })
     if (pathname === '/api/quotes/_/next-number') return route.fulfill({ json: { number: 'SP-Q-0002' } })
     if (pathname === '/api/invoices/i1') return route.fulfill({ json: invoice })
     if (pathname === '/api/invoices') return route.fulfill({ json: { items: [invoice], total: 1, page: 1, limit: 200 } })
