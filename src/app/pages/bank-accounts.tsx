@@ -154,7 +154,7 @@ export function BankAccounts() {
             <div className="ledger-table overflow-x-auto">
               <table className="w-full min-w-[980px] table-fixed text-sm">
                 <colgroup>
-                  <col style={{ width: "110px" }} />
+                  <col style={{ width: "140px" }} />
                   <col style={{ width: "100px" }} />
                   <col style={{ width: "200px" }} />{/* الرقم · mono */}
                   <col />{/* الطرف · flexible */}
@@ -183,7 +183,7 @@ export function BankAccounts() {
                         className="border-b border-border hover:bg-surface-hover cursor-pointer"
                         title={t("فتح السند", "Open voucher")}
                       >
-                        <td className="py-3 px-4 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-sm text-muted-foreground tabular-nums">{v.date ? new Date(v.date).toLocaleDateString(displayLocale("en-GB")) : "—"}</span></td>
+                        <td className="py-3 px-4 text-start"><time data-testid="bank-transaction-date" dateTime={v.date?.slice(0, 10)} dir="ltr" className="inline-block font-english whitespace-nowrap text-sm font-medium text-foreground tabular-nums">{v.date?.slice(0, 10) || "—"}</time></td>
                         <td className="py-3 px-4 text-sm">
                           <StatusBadge tone={inbound ? "success" : "warning"} icon={inbound ? <ArrowDownToLine className="h-3 w-3" strokeWidth={1.75} /> : <ArrowUpFromLine className="h-3 w-3" strokeWidth={1.75} />}>
                             {inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}

@@ -1,3 +1,4 @@
+import { reportLayoutSections, reportLayoutSettings } from "../lib/report-layout";
 import { displayDigits, displayLocale } from "../lib/number-display";
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
@@ -95,7 +96,7 @@ export function ReportDocument({
   const storedLanguageChoice = settings?.language;
   const orgCountry = (report.org as any).country || "SA";
   const explicitLanguage = storedLanguageChoice === "ar" && orgCountry !== "SA" ? undefined : storedLanguageChoice;
-  const resolved = { ...normalizeReportSettings(settings), language: explicitLanguage || appLanguage };
+  const resolved = { ...reportLayoutSettings(report, normalizeReportSettings(settings)), language: explicitLanguage || appLanguage };
   const isEn = resolved.language === "en";
   const t = (ar: string, en: string) => displayDigits(isEn ? en : ar);
   const dir = isEn ? "ltr" : "rtl";
@@ -178,7 +179,8 @@ export function ReportDocument({
 
         <EquationStrip report={report} currency={report.currency} t={t} />
 
-        {report.sections.map((section) => {
+        {!report.sections.length && <p role="status">{t("لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.", "No report data is available for the selected period.")}</p>}
+        {reportLayoutSections(report, resolved).map((section) => {
           // The note column is custom-print opt-in (showNotes); default reports
           // stay a clean two-column «البند · القيمة» sheet.
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
@@ -188,7 +190,8 @@ export function ReportDocument({
               <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{one(section.title)}</BidiText></h2>
               {section.description && <p className="mt-0.5 text-xs text-muted-foreground"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
-            <table className="document-table w-full border-collapse">
+            <table className="document-table report-readable-table w-full border-collapse">
+              <colgroup>{columns.map((column, index) => <col key={column.key} style={columns.length >= 5 ? { width: index === 0 ? "28%" : `${72 / (columns.length - 1)}%` } : undefined} />)}</colgroup>
               <thead>
                 <tr style={{ borderTop: "1.5px solid var(--report-primary)", borderBottom: "1px solid #cbd5e1" }}>
                   {columns.map((column) => (

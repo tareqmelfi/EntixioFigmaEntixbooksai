@@ -46,8 +46,9 @@ import { Label } from "../components/ui/label";
 import { ToastStack, useToasts, InlineConfirm } from "../components/side-panel";
 import { InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { useFormDraft, formatDraftTime } from "../lib/form-draft";
-import { api, ApiError, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
+import { api, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
 import { displayName } from "../lib/display-name";
+import { humanizeError } from "../lib/error-messages";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
 import { ProjectField } from "../components/project-field";
@@ -72,7 +73,7 @@ const PAGE_SIZE = 200;
 
 export function JournalEntries() {
   const { toasts, push, dismiss } = useToasts();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   // UX-206 · debit/credit increase/decrease indicator
@@ -101,6 +102,9 @@ export function JournalEntries() {
   const [editMode, setEditMode] = useState(false);
   const [attachments, setAttachments] = useState<JournalAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  selectedIdRef.current = selected?.id ?? null;
+  const [uploading, setUploading] = useState(false);
 
   const today = new Date().toISOString().slice(0, 10);
   const [form, setForm] = useState<FormState>({
@@ -122,7 +126,7 @@ export function JournalEntries() {
       setAccounts(a.items);
       api.journals.coverage().then(setCoverage).catch(() => setCoverage(null));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
+      push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
   }, [push, statusFilter]);
   useEffect(() => { refresh(); }, [refresh]);
@@ -142,7 +146,7 @@ export function JournalEntries() {
       setTotalCount(j.total ?? 0);
       setHasMore(!!j.hasMore);
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل تحميل المزيد", "Failed to load more"));
+      push("error", humanizeError(e, language, { ar: "فشل تحميل المزيد", en: "Failed to load more" }));
     } finally { setLoadingMore(false); }
   }, [items.length, statusFilter, push, t]);
 
@@ -192,7 +196,7 @@ export function JournalEntries() {
       setSelected(e);
       setAttachments(e.attachments || []);
     } catch (err: any) {
-      push("error", err instanceof ApiError ? err.message : t("فشل تحميل التفاصيل", "Failed to load details"));
+      push("error", humanizeError(err, language, { ar: "فشل تحميل التفاصيل", en: "Failed to load details" }));
     }
   };
 
@@ -231,7 +235,7 @@ export function JournalEntries() {
       setOpen(false); setEditMode(false); resetForm(); setSelected(null);
       refresh();
     } catch (err: any) {
-      push("error", err instanceof ApiError ? err.message : t("فشل الحفظ", "Failed to save"));
+      push("error", humanizeError(err, language, { ar: "فشل الحفظ", en: "Failed to save" }));
     } finally { setBusy(false); }
   };
 
@@ -243,7 +247,7 @@ export function JournalEntries() {
       setSelected(fresh);
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل الترحيل", "Failed to post"));
+      push("error", humanizeError(e, language, { ar: "فشل الترحيل", en: "Failed to post" }));
     }
   };
 
@@ -255,7 +259,7 @@ export function JournalEntries() {
       setSelected(fresh);
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل إلغاء الترحيل", "Failed to unpost"));
+      push("error", humanizeError(e, language, { ar: "فشل إلغاء الترحيل", en: "Failed to unpost" }));
     }
   };
 
@@ -268,7 +272,7 @@ export function JournalEntries() {
       refresh();
       openEdit(fresh);
     } catch (err: any) {
-      push("error", err instanceof ApiError ? err.message : t("فشل إلغاء الترحيل", "Failed to unpost"));
+      push("error", humanizeError(err, language, { ar: "فشل إلغاء الترحيل", en: "Failed to unpost" }));
     }
   };
 
@@ -279,13 +283,14 @@ export function JournalEntries() {
       if (selected?.id === id) setSelected(null);
       push("success", t("تم الحذف", "Deleted"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Failed to delete"));
+      push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Failed to delete" }));
     } finally { setPendingDelete(null); }
   };
 
-  const handleUpload = async (file: File) => {
-    if (!selected) return;
-    if (file.size > 25 * 1024 * 1024) { push("error", t(`${file.name} — الحد الأقصى للملف 25 ميجا`, `${file.name} — maximum file size is 25MB`)); return; }
+  const handleUpload = async (file: File): Promise<boolean> => {
+    if (!selected) return false;
+    const entryId = selected.id;
+    if (file.size > 25 * 1024 * 1024) { push("error", t(`${file.name} — الحد الأقصى للملف 25 ميجا`, `${file.name} — maximum file size is 25MB`)); return false; }
     try {
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
@@ -293,23 +298,32 @@ export function JournalEntries() {
         reader.onerror = () => reject(reader.error);
         reader.readAsDataURL(file);
       });
-      const newAtt = await api.journals.attachments.upload(selected.id, {
+      const newAtt = await api.journals.attachments.upload(entryId, {
         filename: file.name,
         contentType: file.type || "application/octet-stream",
         sizeBytes: file.size,
         data: base64,
       });
-      setAttachments(prev => [newAtt, ...prev]);
+      if (selectedIdRef.current === entryId) setAttachments(prev => [newAtt, ...prev]);
+      return true;
     } catch (e: any) {
-      push("error", `${file.name} — ${e instanceof ApiError ? e.message : t("فشل الرفع", "Failed to upload")}`);
+      push("error", `${file.name} — ${humanizeError(e, language, { ar: "فشل الرفع", en: "Failed to upload" })}`);
+      return false;
     }
   };
 
-  // Multi-file: each upload runs independently so one bad file never blocks the rest.
+  // Upload sequentially to avoid retaining many base64 copies of large files at once.
   const handleUploadMany = async (list: FileList | File[]) => {
+    if (uploading) return;
     const files = Array.from(list);
-    await Promise.all(files.map(handleUpload));
-    if (files.length) push("success", files.length > 1 ? t(`تم رفع ${files.length} ملفات`, `${files.length} files uploaded`) : t("تم رفع المرفق", "Attachment uploaded"));
+    setUploading(true);
+    let uploaded = 0;
+    try {
+      for (const file of files) if (await handleUpload(file)) uploaded++;
+      if (uploaded) push("success", uploaded === files.length
+        ? (uploaded > 1 ? t(`تم رفع ${uploaded} ملفات`, `${uploaded} files uploaded`) : t("تم رفع المرفق", "Attachment uploaded"))
+        : t(`تم رفع ${uploaded} من ${files.length} ملفات — أعد محاولة الملفات التي فشلت`, `${uploaded} of ${files.length} files uploaded — retry the failed files`));
+    } finally { setUploading(false); }
   };
 
   const [pendingAttachmentDelete, setPendingAttachmentDelete] = useState<string | null>(null);
@@ -321,7 +335,7 @@ export function JournalEntries() {
       setAttachments(prev => prev.filter(a => a.id !== aid));
       push("success", t("تم حذف المرفق", "Attachment deleted"));
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Failed to delete"));
+      push("error", humanizeError(e, language, { ar: "فشل الحذف", en: "Failed to delete" }));
     }
   };
 
@@ -572,11 +586,11 @@ export function JournalEntries() {
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
                   <Paperclip className="h-3.5 w-3.5" /> {t("المرفقات", "Attachments")} ({attachments.length})
                 </div>
-                <input ref={fileInputRef} type="file" hidden multiple
+                <input ref={fileInputRef} type="file" hidden multiple disabled={uploading}
                   onChange={(e) => { if (e.target.files?.length) void handleUploadMany(e.target.files); e.target.value = ""; }} />
-                <button onClick={() => fileInputRef.current?.click()}
+                <button disabled={uploading} onClick={() => fileInputRef.current?.click()}
                   className="text-xs text-primary hover:underline flex items-center gap-1">
-                  <Upload className="h-3 w-3" /> {t("رفع", "Upload")}
+                  <Upload className="h-3 w-3" /> {uploading ? t("جارٍ الرفع...", "Uploading...") : t("رفع", "Upload")}
                 </button>
               </div>
               <p className="text-[11px] text-muted-foreground/60 mb-1">{t("أي صيغة · حتى 25 ميجا للملف · اختر عدة ملفات معاً", "Any format · up to 25 MB per file · select multiple files at once")}</p>

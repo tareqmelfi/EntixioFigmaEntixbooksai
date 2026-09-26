@@ -1,3 +1,4 @@
+import { reportLayoutSections } from "../lib/report-layout";
 import { displayLocale } from "../lib/number-display";
 /**
  * Condensed bilingual report template (CEO 2026-08-25 · Z12).
@@ -121,7 +122,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
         {report.notices?.length ? (
           <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : pair.ar; }).join(" · ")}</div>
         ) : null}
-        {report.sections.map((section) => {
+        {!report.sections.length && <p role="status">{t("لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.", "No report data is available for the selected period.")}</p>}
+        {reportLayoutSections(report, resolved).map((section) => {
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
           const sectionHasCurrency = columns.some(c => c.key === "currency");
           return (
@@ -130,7 +132,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                 <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />
                 {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
-              <table className="document-table w-full border-collapse">
+              <table className="document-table report-readable-table w-full border-collapse">
+                <colgroup>{columns.map((column, index) => <col key={column.key} style={columns.length >= 5 ? { width: index === 0 ? "28%" : `${72 / (columns.length - 1)}%` } : undefined} />)}</colgroup>
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (

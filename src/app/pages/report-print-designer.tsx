@@ -1,3 +1,4 @@
+import { summarizeReport } from "../lib/report-layout";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Loader2, Palette, Save } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -65,7 +66,7 @@ export function ReportPrintDesigner() {
     };
   }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId]);
 
-  const visibleReport = useMemo(() => report && summary ? { ...report, sections: report.sections.filter(s => !/-detail$|-crosscheck$/.test(s.id)) } : report, [report, summary]);
+  const visibleReport = useMemo(() => report && summary ? summarizeReport(report) : report, [report, summary]);
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
   const selectClass = "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary";
 

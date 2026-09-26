@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Download, Loader2, Printer } from 'lucide-react';
 import type { ReportPayload, ReportPrintSettings } from '../lib/api';
 import { downloadReportPdf, paginateReport, reportPaperSize } from '../lib/report-pagination';
+import { reportLayoutSettings } from '../lib/report-layout';
 import { waitForPrintReady } from '../lib/print-image';
 import { ReportDocument } from './report-document';
 import { Button } from './ui/button';
 import { useLanguage } from './LanguageContext';
 
 /** One output engine for all report types and the live designer. */
-export function ReportOutput({ report, settings, autoPrint = false }: { report: ReportPayload; settings: ReportPrintSettings; autoPrint?: boolean }) {
+export function ReportOutput({ report, settings: requestedSettings, autoPrint = false }: { report: ReportPayload; settings: ReportPrintSettings; autoPrint?: boolean }) {
+  const settings = useMemo(() => reportLayoutSettings(report, requestedSettings), [report, requestedSettings]);
   const { t, language, numberingSystem } = useLanguage();
   const source = useRef<HTMLDivElement>(null);
   const pages = useRef<HTMLDivElement>(null);
@@ -70,6 +72,7 @@ export function ReportOutput({ report, settings, autoPrint = false }: { report: 
       </div>
     </div>
     {error && <p role="alert" className="no-print mb-4 text-sm text-danger">{error}</p>}
+    {settings.orientation !== requestedSettings.orientation && <p className="no-print mb-3 text-xs text-muted-foreground">{t('اتجاه عرضي تلقائي لقراءة الأعمدة بوضوح.', 'Landscape applied automatically to keep columns readable.')}</p>}
     <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}><ReportDocument report={report} settings={settings} mode="print" /></div>
     <div className="report-output-scroll"><div ref={pages} className="report-output-pages" data-testid="report-output-pages" data-ready={count > 0} /></div>
   </div>;

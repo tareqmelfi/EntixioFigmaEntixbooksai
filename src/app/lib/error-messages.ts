@@ -55,13 +55,25 @@ const MAP: Record<string, { ar: string; en: string }> = {
     en: 'The invoice number is locked after issuance',
   },
   already_pending: {
-    ar: 'يوجد طلب توقيع نشط لهذه الفاتورة',
-    en: 'An active signature request exists for this invoice',
+    ar: 'يوجد طلب توقيع نشط لهذا المستند',
+    en: 'An active signature request exists for this document',
   },
   short_code_already_exists: {
     ar: 'رمز العميل/المورد مستخدم مسبقاً',
     en: 'This contact code is already in use',
   },
+  // journal protections
+  accountant_required: { ar: 'تحتاج صلاحية المحاسب أو المدير لإجراء هذه العملية', en: 'An accountant or administrator role is required for this action' },
+  source_document_locked: { ar: 'هذا القيد مرتبط بمستند · صحّحه من المستند الأصلي', en: 'This entry is linked to a document · correct it from the original document' },
+  posted_locked: { ar: 'لا يمكن حذف قيد مرحّل · ألغِ ترحيله أولاً إن كان مسموحاً', en: 'A posted entry cannot be deleted · unpost it first if permitted' },
+  period_locked: { ar: 'الفترة المالية مقفلة · راجع مسؤول المحاسبة قبل تعديلها', en: 'The fiscal period is closed · contact your accounting administrator' },
+  attachments_exist: { ar: 'القيد يحتوي مرفقات · راجعها وأزلها قبل حذف المسودة', en: 'This entry has attachments · review and remove them before deleting the draft' },
+  // signature provider failures
+  signature_not_configured: { ar: 'خدمة التوقيع غير مهيأة · تواصل مع مسؤول المنصة', en: 'Signature service is not configured · contact your administrator' },
+  signature_document_inactive: { ar: 'المستند غير متاح لطلب التوقيع بحالته الحالية', en: 'This document is not available for signing in its current state' },
+  signature_provider_rejected: { ar: 'تعذر إنشاء طلب التوقيع لدى المزوّد · يمكنك إعادة المحاولة', en: 'The signing provider could not create the request · you can retry' },
+  signature_delivery_unknown: { ar: 'لم نتمكن من تأكيد إرسال طلب التوقيع · راجع حالته مع الدعم قبل إعادة الإرسال لتجنب التكرار', en: 'Signature delivery could not be confirmed · ask support to review its status before resending to avoid duplicates' },
+  provider_response_invalid: { ar: 'تعذر التحقق من رد مزوّد التوقيع · تواصل مع الدعم', en: 'Could not verify the signing provider response · contact support' },
   // purchases surfaces
   bills_list_failed: { ar: 'تعذّر تحميل فواتير الشراء', en: 'Could not load purchase bills' },
   bill_fetch_failed: { ar: 'تعذّر تحميل الفاتورة', en: 'Could not load the bill' },

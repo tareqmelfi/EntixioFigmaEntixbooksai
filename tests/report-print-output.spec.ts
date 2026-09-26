@@ -151,3 +151,75 @@ test('native print receives only report pages in an isolated iframe, never the a
   expect(printed.hasShell).toBe(false)
   expect(printed.width).toBeGreaterThan(790)
 })
+
+for (const template of ['condensed', 'classic']) {
+  test(`13-column project report keeps names and every metric readable (${template})`, async ({ page }, testInfo) => {
+    test.setTimeout(120000)
+    await setup(page, { template, orientation: 'portrait', language: 'ar' }, 3)
+    const projects = Array.from({ length: 18 }, (_, index) => ({
+      id: `project-${index}`, label: `PRJ-${index}`,
+      values: { label: `PRJ-${index} · تصميم وإعادة تأهيل المشروع المعماري الداخلي وتنفيذ الأعمال الإنشائية في حي الملك عبدالله بمدينة الرياض`,
+        ...Object.fromEntries(Array.from({ length: 12 }, (_, metric) => [`metric${metric}`, 1234567.89 + metric])) },
+    }))
+    const columns = [{ key: 'label', label: 'المشروع␟Project' }, ...Array.from({ length: 12 }, (_, metric) => ({ key: `metric${metric}`, label: `مؤشر المشروع ${metric}␟Project metric ${metric}`, kind: 'money', align: 'end' }))]
+    await page.route('https://api.entix.io/api/reports/project-profitability*', route => route.fulfill({ json: {
+      ...payload(0), id: 'project-profitability', title: 'ربحية المشاريع', englishTitle: 'Project profitability',
+      sections: [{ id: 'project-profitability', title: 'ربحية المشاريع␟Project profitability', columns, rows: projects }],
+    } }))
+    await page.goto(`/print/report/project-profitability?orgId=${visualOrgId}`)
+    const output = page.getByTestId('report-output-pages')
+    await expect(output).toHaveAttribute('data-ready', 'true')
+    const sheets = output.locator('.report-output-sheet')
+    expect(await sheets.count()).toBeGreaterThan(1)
+    await expect(output.locator('tbody tr')).toHaveCount(36)
+    // Every identity repeats in both column panels, every metric remains once per project.
+    await expect(output).toContainText('بمدينة الرياض')
+    const metrics = await sheets.evaluateAll(elements => elements.map(sheet => {
+      const box = sheet.getBoundingClientRect()
+      const body = sheet.querySelector('.report-page-body') as HTMLElement
+      return {
+        landscape: box.width > box.height,
+        fits: body.scrollHeight <= body.clientHeight + 1,
+        headers: sheet.querySelectorAll('thead').length,
+        widths: Array.from(sheet.querySelectorAll('tbody tr:first-child td:first-child'), cell => cell.getBoundingClientRect().width),
+        overflow: Array.from(sheet.querySelectorAll('tbody td')).some(cell => cell.scrollWidth > cell.clientWidth + 1),
+        numbersWrap: Array.from(sheet.querySelectorAll('.numeric-text')).some(span => getComputedStyle(span).whiteSpace !== 'nowrap'),
+      }
+    }))
+    for (const metric of metrics) {
+      expect(metric.landscape).toBe(true)
+      expect(metric.fits).toBe(true)
+      expect(metric.headers).toBeGreaterThan(0)
+      expect(metric.overflow).toBe(false)
+      for (const width of metric.widths) expect(width).toBeGreaterThan(230)
+    }
+    for (let metric = 0; metric < 12; metric++) {
+      const amount = (1234567.89 + metric).toLocaleString('en-US', { minimumFractionDigits: 2 })
+      expect(await output.locator('tbody .numeric-text').filter({ hasText: amount }).count()).toBe(18)
+    }
+    await sheets.first().screenshot({ path: testInfo.outputPath('wide-preview.png') })
+    const download = page.waitForEvent('download')
+    await page.getByTestId('report-download-pdf').click()
+    const path = testInfo.outputPath('project-profitability.pdf')
+    await (await download).saveAs(path)
+    const bytes = await readFile(path)
+    expect((bytes.toString('latin1').match(/\/Type \/Page\b/g) || []).length).toBe(await sheets.count())
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+}
+
+test('cash flow summary preserves its only detail section and empty data is explicit', async ({ page }) => {
+  await setup(page, { template: 'condensed', language: 'ar' }, 3)
+  await page.route('https://api.entix.io/api/reports/cash-flow-indirect*', route => route.fulfill({ json: {
+    ...payload(0), id: 'cash-flow-indirect', title: 'التدفقات النقدية غير المباشرة',
+    sections: [{ id: 'cash-flow-detail', title: 'التشغيل', columns: [{ key: 'label', label: 'البند' }, { key: 'amount', label: 'القيمة', kind: 'money' }], rows: [{ id: 'profit', label: 'صافي الربح', values: { label: 'صافي الربح', amount: 23456.78 } }] }],
+  } }))
+  await page.goto(`/print/report/cash-flow-indirect?orgId=${visualOrgId}&detail=summary`)
+  const output = page.getByTestId('report-output-pages')
+  await expect(output).toHaveAttribute('data-ready', 'true')
+  await expect(output).toContainText('23,456.78')
+  await page.route('https://api.entix.io/api/reports/cash-flow-indirect*', route => route.fulfill({ json: { ...payload(0), id: 'cash-flow-indirect', sections: [] } }))
+  await page.reload()
+  await expect(output).toHaveAttribute('data-ready', 'true')
+  await expect(output).toContainText('لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.')
+})
