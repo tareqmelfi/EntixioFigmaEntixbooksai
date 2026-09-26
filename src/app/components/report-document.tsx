@@ -1,4 +1,4 @@
-import { reportLayoutSections, reportLayoutSettings } from "../lib/report-layout";
+import { isCompactReportColumn, reportColumnLabel, reportLayoutSections, reportLayoutSettings } from "../lib/report-layout";
 import { displayDigits, displayLocale } from "../lib/number-display";
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
@@ -103,7 +103,7 @@ export function ReportDocument({
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 14 : resolved.fontScale === "compact" ? 11.5 : 12.5;
   // Compact-first density: large charts of accounts must fit on fewer pages.
-  const cellPadding = resolved.density === "comfortable" ? "8px 14px" : resolved.density === "compact" ? "4px 10px" : "6px 12px";
+  const cellPadding = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "2px 5px" : "3px 6px";
   const paperWidth =
     mode === "print"
       ? "100%"
@@ -191,7 +191,7 @@ export function ReportDocument({
               {section.description && <p className="mt-0.5 text-xs text-muted-foreground"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
             <table className="document-table report-readable-table w-full border-collapse">
-              <colgroup>{columns.map((column, index) => <col key={column.key} style={columns.length >= 5 ? { width: index === 0 ? "28%" : `${72 / (columns.length - 1)}%` } : undefined} />)}</colgroup>
+              <colgroup>{columns.map(column => <col key={column.key} style={isCompactReportColumn(column) ? { width: "1%" } : undefined} />)}</colgroup>
               <thead>
                 <tr style={{ borderTop: "1.5px solid var(--report-primary)", borderBottom: "1px solid #cbd5e1" }}>
                   {columns.map((column) => (
@@ -200,7 +200,7 @@ export function ReportDocument({
                       className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
                       style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
                     >
-                      {one(column.label)}
+                      {one(reportColumnLabel(column))}
                     </th>
                   ))}
                 </tr>

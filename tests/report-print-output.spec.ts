@@ -241,3 +241,42 @@ test('cash flow summary preserves its only detail section and empty data is expl
   await expect(output).toHaveAttribute('data-ready', 'true')
   await expect(output).toContainText('لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.')
 })
+
+for (const template of ['condensed', 'classic']) {
+  test(`compact report columns use spare space for full project names (${template})`, async ({ page }, testInfo) => {
+    await setup(page, { template, language: 'ar', orientation: 'landscape' }, 0)
+    const name = 'تصميم-واعادة-تعد · تصميم واعادة تعديل التصميم المعماري الداخلي'
+    const columns = [{ key: 'label', label: 'المشروع␟Project' },
+      ...['التكلفة␟Cost', 'الهامش␟Margin', 'الهامش %␟Margin %', 'الميزانية␟Budget', 'الفرق␟Variance', 'الاحتجاز␟Retention']
+        .map((label, i) => ({ key: `metric${i}`, label, kind: i === 2 ? 'number' : 'money', align: 'end' }))]
+    await page.route('https://api.entix.io/api/reports/project-profitability*', route => route.fulfill({ json: {
+      ...payload(0), id: 'project-profitability', title: 'ربحية المشاريع', englishTitle: 'Project profitability',
+      sections: [{ id: 'project-profitability', title: 'ربحية المشاريع␟Project profitability', columns,
+        rows: [name, 'PRJ-002 · ترميم سقف جبس ومعالجة أثر تسريب — مكتب شركة الفن الأبيض',
+          'PRJ-EDG-Q-2026-0013 · مشروع عرض EDG-Q-2026-0013'].map((label, i) => ({ id: `project-${i}`, label,
+          values: { label, metric0: 0, metric1: 400, metric2: 100, metric3: 90000, metric4: 31092.26, metric5: 0 } })) }],
+    } }))
+    await page.goto(`/print/report/project-profitability?orgId=${visualOrgId}`)
+    const output = page.getByTestId('report-output-pages')
+    await expect(output).toHaveAttribute('data-ready', 'true')
+    const layout = await output.locator('tbody tr').first().evaluate(row => {
+      const cells = Array.from(row.querySelectorAll('td'))
+      const label = cells[0].querySelector('bdi')!
+      const range = document.createRange(); range.selectNodeContents(label)
+      const lines = new Set(Array.from(range.getClientRects(), rect => Math.round(rect.top)))
+      return { lines: lines.size, height: row.getBoundingClientRect().height,
+        widths: cells.map(cell => cell.getBoundingClientRect().width),
+        overflow: cells.some(cell => cell.scrollWidth > cell.clientWidth + 1) }
+    })
+    expect(layout.lines).toBe(1)
+    expect(layout.height).toBeLessThan(29)
+    expect(layout.widths[0]).toBeGreaterThan(450)
+    expect(Math.max(...layout.widths.slice(1))).toBeLessThan(130)
+    expect(layout.overflow).toBe(false)
+    await expect(output).toContainText(name)
+    await output.locator('.report-output-sheet').screenshot({ path: testInfo.outputPath('compact-projects.png') })
+    const download = page.waitForEvent('download')
+    await page.getByTestId('report-download-pdf').click()
+    await (await download).saveAs(testInfo.outputPath('compact-projects.pdf'))
+  })
+}

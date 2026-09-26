@@ -1,4 +1,4 @@
-import { reportLayoutSections } from "../lib/report-layout";
+import { isCompactReportColumn, reportColumnLabel, reportLayoutSections } from "../lib/report-layout";
 import { displayLocale } from "../lib/number-display";
 /**
  * Condensed bilingual report template (CEO 2026-08-25 · Z12).
@@ -65,7 +65,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 12.5 : resolved.fontScale === "compact" ? 10.5 : 11.5;
-  const pad = resolved.density === "comfortable" ? "7px 10px" : resolved.density === "compact" ? "3px 8px" : "5px 10px";
+  const pad = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "2px 5px" : "3px 6px";
   const paperWidth = mode === "print" ? "100%" : resolved.paper === "Letter" ? (resolved.orientation === "landscape" ? "1056px" : "816px") : (resolved.orientation === "landscape" ? "1122px" : "794px");
   const paperMinHeight = mode === "print" ? undefined : resolved.paper === "Letter" ? (resolved.orientation === "landscape" ? "816px" : "1056px") : (resolved.orientation === "landscape" ? "794px" : "1123px");
 
@@ -133,12 +133,12 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                 {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
               <table className="document-table report-readable-table w-full border-collapse">
-                <colgroup>{columns.map((column, index) => <col key={column.key} style={columns.length >= 5 ? { width: index === 0 ? "28%" : `${72 / (columns.length - 1)}%` } : undefined} />)}</colgroup>
+                <colgroup>{columns.map(column => <col key={column.key} style={isCompactReportColumn(column) ? { width: "1%" } : undefined} />)}</colgroup>
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
-                        <Bi value={column.label} lang={lang} size="sm" both={bilingual} />
+                        <Bi value={reportColumnLabel(column)} lang={lang} size="sm" both={bilingual} />
                         {!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
                           <span className="report-column-currency font-english text-[9px] font-normal text-muted-foreground/80"><bdi dir="ltr">({report.currency})</bdi></span>
                         ) : null}

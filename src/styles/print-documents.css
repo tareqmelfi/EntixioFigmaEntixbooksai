@@ -128,6 +128,15 @@
 /* Keep project/account names intact and allow words to wrap, never ellipsize them. */
 .entix-report-paper .report-readable-table td { max-width: none; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
 .entix-report-paper .report-readable-table .numeric-text { white-space: nowrap; overflow-wrap: normal; }
+/* Size amounts to their contents; reserve the remaining width for full names.
+   Scoped to report tables so invoice/proposal layouts keep their own sizing. */
+.entix-report-paper .report-readable-table { table-layout: auto; }
+.entix-report-paper .report-readable-table td,
+.entix-report-paper .report-readable-table th { line-height: 1.4; }
+.entix-report-paper .report-readable-table td [lang='ar'] { line-height: inherit; }
+.entix-report-paper .report-readable-table td .report-bilingual > span:first-child { font-size: inherit; }
+.entix-report-paper .report-readable-table td .report-bilingual > span + span { margin-block-start: 0; }
+.report-output-sheet .report-page-body { padding-inline: 0; }
 .report-output-sheet .report-page-footer { flex-shrink: 0; }
 .report-output-sheet .report-page-footer footer { position: static !important; padding: 3mm 0 1mm !important; margin: 0 !important; }
 .report-output-sheet .report-page-footer .truncate { white-space: normal; overflow: visible; }

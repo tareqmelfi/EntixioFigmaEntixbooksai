@@ -1,4 +1,15 @@
-import type { ReportPayload, ReportPrintSettings, ReportSection } from './api';
+import type { ReportColumn, ReportPayload, ReportPrintSettings, ReportSection } from './api';
+
+/** Auto-layout gives descriptions the spare width instead of expanding amounts. */
+export function isCompactReportColumn(column: ReportColumn) {
+  return column.kind === 'money' || column.kind === 'number' || column.kind === 'date'
+    || column.kind === 'status' || column.key === 'currency';
+}
+
+/** Keep a percentage sign with its heading rather than using a whole extra line. */
+export function reportColumnLabel(column: ReportColumn) {
+  return column.label.replace(/ +%/g, '\u00a0%');
+}
 
 const visibleColumns = (section: ReportSection, settings: ReportPrintSettings) =>
   section.columns.filter(column => settings.showNotes || column.key !== 'note');
