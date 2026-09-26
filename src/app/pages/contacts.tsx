@@ -75,7 +75,7 @@ export function Contacts() {
   useEffect(() => {
     const editId = searchParams.get("edit");
     const isNew = searchParams.get("new");
-    if (isNew === "1" && items.length > 0 && !wizard.open) {
+    if (isNew === "1" && !loading && !wizard.open) {
       openCreate();
       const next = new URLSearchParams(searchParams); next.delete("new"); setSearchParams(next, { replace: true });
       return;
@@ -88,7 +88,7 @@ export function Contacts() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, searchParams]);
+  }, [items, searchParams, loading]);
 
   // Counts per role
   const counts = useMemo(() => {
@@ -342,7 +342,11 @@ export function Contacts() {
         onClose={(saved) => {
           const wasEditing = !!wizard.editing;
           closeWizard();
-          if (saved) setItems(prev => wasEditing ? prev.map(x => x.id === saved.id ? saved : x) : [saved, ...prev]);
+          if (saved) {
+            setItems(prev => prev.some(x => x.id === saved.id) ? prev.map(x => x.id === saved.id ? saved : x) : [saved, ...prev]);
+            const profile = (saved as any).contractorShells?.[0];
+            if (!wasEditing && saved.isFreelancer && profile) navigate(`/app/contractors/${profile.id}`);
+          }
         }}
       />
     </div>

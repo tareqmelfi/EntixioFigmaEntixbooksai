@@ -140,10 +140,10 @@ export function QuickContactDialog({
             </select>
           </div>
 
-          {form.country === "SA" && form.entityKind === "COMPANY" && (
+          {(
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">{t("الرقم الضريبي", "VAT number")}</Label>
+                <Label className="text-xs text-muted-foreground">{t("الرقم الضريبي (اختياري)", "Tax ID (optional)")}</Label>
                 <Input
                   value={form.vatNumber}
                   onChange={(e) => setForm({ ...form, vatNumber: formatTaxId(e.target.value, form.country) })}
@@ -151,7 +151,7 @@ export function QuickContactDialog({
                   placeholder="300XXX" maxLength={20} dir="ltr" className="border-border font-english"
                 />
               </div>
-              <div>
+              {form.country === "SA" && form.entityKind === "COMPANY" && <div>
                 <Label className="text-xs text-muted-foreground">{t("السجل التجاري", "Commercial registration")}</Label>
                 <Input
                   value={form.crNumber}
@@ -159,7 +159,7 @@ export function QuickContactDialog({
                   onPaste={(e) => { e.preventDefault(); const t = e.clipboardData.getData("text"); setForm({ ...form, crNumber: formatCrNumber(t, form.country) }); }}
                   placeholder="1010XX" maxLength={10} dir="ltr" className="border-border font-english"
                 />
-              </div>
+              </div>}
             </div>
           )}
 

@@ -32,7 +32,7 @@ export const ROLES: Array<{ key: RoleKey; label: string; icon: any; bg: string; 
   { key: "isSupplier",    label: "مورد",       icon: Building2,  bg: "bg-success-subtle",  text: "text-success" },
   { key: "isEmployee",    label: "موظف",       icon: Briefcase,  bg: "bg-info-subtle", text: "text-info" },
   { key: "isShareholder", label: "مساهم",      icon: Landmark,   bg: "bg-danger-subtle",   text: "text-danger" },
-  { key: "isFreelancer",  label: "فري لانسر",  icon: UserCheck,  bg: "bg-info-subtle",   text: "text-info" },
+  { key: "isFreelancer",  label: "فري لانسر / مقاول",  icon: UserCheck,  bg: "bg-info-subtle",   text: "text-info" },
 ];
 
 // English counterparts for ROLES labels (rendered via t(role.label, ROLE_LABEL_EN[role.key]))
@@ -41,7 +41,7 @@ const ROLE_LABEL_EN: Record<RoleKey, string> = {
   isSupplier: "Supplier",
   isEmployee: "Employee",
   isShareholder: "Shareholder",
-  isFreelancer: "Freelancer",
+  isFreelancer: "Freelancer / contractor",
 };
 
 const COUNTRY_OPTIONS = [
@@ -112,7 +112,7 @@ export function contactToForm(c: Contact): FormState {
     legalName: c.legalName || "",
     email: c.email || "",
     phone: c.phone || "",
-    vatNumber: c.vatNumber || "",
+    vatNumber: c.taxId || c.vatNumber || "",
     crNumber: c.crNumber || "",
     nationalId: c.nationalId || "",
     leiCode: c.leiCode || "",
@@ -363,7 +363,7 @@ function Step2({ form, setForm, codeAuto, onCodeEdited }: { form: FormState; set
           <Label className="text-xs text-muted-foreground">{t("العملة الافتراضية", "Default currency")}</Label>
           <Input value={form.defaultCurrency} onChange={(e) => setForm({ ...form, defaultCurrency: e.target.value.toUpperCase() })} maxLength={3} dir="ltr" className="border-border font-english" />
         </div>
-        {isKsa && form.entityKind === "COMPANY" && (
+        {isKsa && (
           <>
             <div>
               <Label className="text-xs text-muted-foreground">{t("الرقم الضريبي", "Tax ID")}</Label>
@@ -374,7 +374,7 @@ function Step2({ form, setForm, codeAuto, onCodeEdited }: { form: FormState; set
                 placeholder="300 XXX XXX XXX X 003" maxLength={20} dir="ltr" className="border-border font-english"
               />
             </div>
-            <div>
+            {form.entityKind === "COMPANY" && <div>
               <Label className="text-xs text-muted-foreground">{t("السجل التجاري", "Commercial registration")}</Label>
               <Input
                 value={form.crNumber}
@@ -382,7 +382,7 @@ function Step2({ form, setForm, codeAuto, onCodeEdited }: { form: FormState; set
                 onPaste={(e) => { e.preventDefault(); const txt = e.clipboardData.getData("text"); setForm({ ...form, crNumber: formatCrNumber(txt, form.country) }); }}
                 placeholder="1010XXXXXX" maxLength={10} dir="ltr" className="border-border font-english"
               />
-            </div>
+            </div>}
           </>
         )}
         {isKsa && form.entityKind === "INDIVIDUAL" && (

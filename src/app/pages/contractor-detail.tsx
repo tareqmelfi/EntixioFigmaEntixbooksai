@@ -6,7 +6,7 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  *                           + work logs + payments + pay/log actions
  */
 import { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   ArrowRight, Banknote, Clock3, Edit2, HardHat, Loader2, Save, Sparkles,
   Star, Trash2,
@@ -14,6 +14,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { InlineAlert } from "../components/product";
+import { SearchableCombobox } from "../components/searchable-combobox";
+import { formatTaxId } from "../lib/tax-id-format";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -31,7 +33,7 @@ const KIND_LABELS: Record<string, { ar: string; en: string; bg: string }> = {
 
 const EMPTY_FORM = {
   code: "", name: "", kind: "FREELANCER" as "FREELANCER" | "CONTRACTOR" | "AGENCY",
-  specialty: "", nationalId: "", email: "", phone: "",
+  contactId: "", taxId: "", country: "", specialty: "", nationalId: "", email: "", phone: "",
   hourlyRate: "", dayRate: "", rating: "", notes: "",
 };
 
@@ -39,6 +41,9 @@ export function ContractorDetail() {
   const { t } = useLanguage();
   const { id } = useParams();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(true);
   const isNew = !id || id === "new";
 
   const { toasts, push, dismiss } = useToasts();
@@ -48,6 +53,7 @@ export function ContractorDetail() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(isNew);
+  useEffect(() => { setEditMode(isNew); }, [id, isNew]);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [pendingLogDelete, setPendingLogDelete] = useState<string | null>(null);
   const [pendingPayDelete, setPendingPayDelete] = useState<string | null>(null);
@@ -56,6 +62,7 @@ export function ContractorDetail() {
     setPerson(x);
     setForm({
       code: x.code || "", name: x.name || "", kind: x.kind || "FREELANCER",
+      contactId: x.contactId || "", taxId: x.contact?.taxId || x.contact?.vatNumber || x.taxId || "", country: x.contact?.country || x.country || "",
       specialty: x.specialty || "", nationalId: x.nationalId || "", email: x.email || "", phone: x.phone || "",
       hourlyRate: x.hourlyRate != null ? String(x.hourlyRate) : "", dayRate: x.dayRate != null ? String(x.dayRate) : "",
       rating: x.rating != null ? String(x.rating) : "", notes: x.notes || "",
@@ -74,12 +81,43 @@ export function ContractorDetail() {
   }, [id, isNew, applyPerson, t]);
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const all: any[] = [];
+        let page = 1;
+        while (true) {
+          const result = await api.contacts.list({ page, limit: 200 });
+          all.push(...result.items);
+          if (all.length >= result.total || !result.items.length) break;
+          page++;
+        }
+        if (live) {
+          setContacts(all);
+          const selected = all.find(c => c.id === params.get("contactId"));
+          if (isNew && selected) selectContact(selected);
+        }
+      } catch { if (live) setError(t("تعذر تحميل قائمة الاتصال. أعد المحاولة قبل إنشاء سجل جديد.", "Could not load contacts. Retry before creating a new record.")); }
+      finally { if (live) setContactsLoading(false); }
+    })();
+    return () => { live = false; };
+  }, [params.get("contactId")]);
+
+  function selectContact(contact: any) {
+    setForm(f => ({ ...f, contactId: contact.id, name: contact.displayName,
+      email: contact.email || "", phone: contact.phone || "", nationalId: contact.nationalId || "",
+      taxId: contact.taxId || contact.vatNumber || "", country: contact.country || "",
+    }));
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { setError(t("الاسم مطلوب", "Name is required")); return; }
     setBusy(true); setError(null);
     try {
       const payload = {
+        contactId: form.contactId || undefined, taxId: form.taxId.trim() || null, country: form.country || undefined,
         code: form.code.trim() || undefined, name: form.name.trim(), kind: form.kind,
         specialty: form.specialty || null, nationalId: form.nationalId || null,
         email: form.email || null, phone: form.phone || null,
@@ -90,7 +128,7 @@ export function ContractorDetail() {
       };
       const saved = isNew ? await api.contractors.create(payload) : await api.contractors.update(id!, payload);
       push("success", isNew ? t("تم تسجيل المقاول", "Contractor registered") : t("تم تحديث المقاول", "Contractor updated"));
-      if (isNew) navigate(`/app/contractors/${saved.id}`, { replace: true });
+      if (isNew) { setEditMode(false); navigate(`/app/contractors/${saved.id}`, { replace: true }); }
       else { applyPerson({ ...person, ...saved }); setEditMode(false); load(); }
     } catch (e: any) {
       setError(e instanceof ApiError ? (e.message === "code_exists" ? t("الرمز موجود", "Code already exists") : e.message) : t("فشل الحفظ", "Save failed"));
@@ -139,6 +177,16 @@ export function ContractorDetail() {
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
             <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("البيانات", "Details")}</div>
+            <p className="text-xs text-muted-foreground">{t("سجل اتصال واحد لجميع الأدوار والمشاريع. بيانات التواصل مشتركة، والأسعار والساعات في هذا الملف.", "One contact across roles and projects. Identity is shared; rates and hours belong to this profile.")}</p>
+            {!person?.contactId && <div className="space-y-2">
+              <Label>{t("جهة اتصال موجودة (اختياري)", "Existing contact (optional)")}</Label>
+              <SearchableCombobox value={form.contactId} disabled={contactsLoading} items={contacts.map(c => ({ id: c.id, label: c.displayName, sublabel: [c.email, c.phone, c.taxId].filter(Boolean).join(" · ") }))}
+                placeholder={t("ابحث عن جهة اتصال أو اكتب اسمًا جديدًا", "Find a contact or enter a new name")}
+                onChange={id => { const c = contacts.find(x => x.id === id); if (c) selectContact(c); }}
+                onCreate={async name => { setForm(f => ({ ...f, contactId: "", name })); return ""; }}
+                createLabel={name => t(`تسجيل جهة جديدة: ${name}`, `Register new contact: ${name}`)} />
+              {form.contactId && <Button type="button" variant="ghost" onClick={() => setForm(f => ({ ...f, contactId: "", name: "", email: "", phone: "", nationalId: "", taxId: "", country: "" }))}>{t("إلغاء الاختيار", "Clear selection")}</Button>}
+            </div>}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t("الرمز", "Code")}</Label>
@@ -171,6 +219,7 @@ export function ContractorDetail() {
               <div className="space-y-2"><Label>{t("الجوال", "Mobile")}</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="space-y-2"><Label>{t("البريد", "Email")}</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} dir="ltr" className="font-english" /></div>
+            <div className="space-y-2"><Label htmlFor="contractor-tax-id">{t("الرقم الضريبي (اختياري للفرد أو الشركة)", "Tax ID (optional for individuals and companies)")}</Label><Input id="contractor-tax-id" value={form.taxId} onChange={e => setForm({ ...form, taxId: formatTaxId(e.target.value, form.country || "") })} dir="ltr" /></div>
             <div className="space-y-2"><Label>{t("ملاحظات", "Notes")}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></div>
           </CardContent>
         </Card>
@@ -202,7 +251,7 @@ export function ContractorDetail() {
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/contractors") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
-        <Button type="submit" disabled={busy} className="min-w-[140px]">
+        <Button type="submit" disabled={busy || contactsLoading} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("تسجيل المقاول", "Register contractor") : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
@@ -222,6 +271,11 @@ export function ContractorDetail() {
           <Clock3 className="me-2 h-4 w-4" />{t("سجّل ساعات", "Log hours")}
         </Button>
       </div>
+
+      {person.contactId ? <div className="rounded-lg border border-border p-4 space-y-2">
+        <Link to={`/app/contacts/${person.contactId}`} className="text-primary underline">{t("فتح سجل الاتصال الموحد", "Open unified contact")}</Link>
+        <p className="text-sm text-muted-foreground">{t("الرقم الضريبي", "Tax ID")}: <bdi>{person.contact?.taxId || person.contact?.vatNumber || "—"}</bdi></p>
+      </div> : <InlineAlert>{t("هذا ملف سابق غير مرتبط. اختر جهة الاتصال من التعديل، أو احفظه لإنشاء الربط.", "This older profile is unlinked. Select its contact in Edit, or save to create the link.")}</InlineAlert>}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -413,7 +467,7 @@ export function ContractorDetail() {
             <span className="text-xs text-muted-foreground">{person.specialty || ""}</span>
           </div>
         )}
-        {isNew && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground flex items-center gap-1.5"><HardHat className="h-4 w-4" />{t("المقاول يختلف عن مورد الشركة: تعاقد مباشر وساعات ودفع فوري بدون دورة فواتير شراء", "A contractor differs from a company supplier: direct engagement, hours and instant payment without a bill cycle")}</p>}
+        {isNew && <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground flex items-center gap-1.5"><HardHat className="h-4 w-4" />{t("سجّل جهة اتصال جديدة أو اختر جهة موجودة، ثم أكمل بيانات التعاقد والأسعار", "Register a new contact or select an existing one, then complete engagement details and rates")}</p>}
       </div>
       {error && !editMode && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
       {(isNew || editMode) ? formView : detailView}

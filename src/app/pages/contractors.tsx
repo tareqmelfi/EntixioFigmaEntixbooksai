@@ -28,6 +28,8 @@ export function Contractors() {
   const [peers, setPeers] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ linked: number; review: Array<{ id: string; name: string }> } | null>(null);
   const [kindFilter, setKindFilter] = useState<string>("");
 
   const refresh = useCallback(async () => {
@@ -41,6 +43,13 @@ export function Contractors() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
+  const syncContacts = async () => {
+    setSyncing(true); setError(null);
+    try { setSyncResult(await api.contractors.syncContacts()); await refresh(); }
+    catch (e: any) { setError(e instanceof ApiError ? e.message : t("تعذرت المزامنة", "Sync failed")); }
+    finally { setSyncing(false); }
+  };
+
   const filtered = items.filter((x) => !kindFilter || x.kind === kindFilter);
   const totalOutstanding = items.reduce((s, x) => s + Number(x.stats?.outstanding || 0), 0);
   const totalPaid = items.reduce((s, x) => s + Number(x.stats?.totalPaid || 0), 0);
@@ -50,7 +59,7 @@ export function Contractors() {
       <PageHeader
         eyebrow={t("الموظفون والرواتب", "Employees & payroll")}
         title={t("المقاولون والفريلانسر", "Contractors & Freelancers")}
-        description={t("تعاقد مباشر بدون دورة موردين · ساعات عمل لكل مشروع · دفع مباشر يُقيد كأتعاب مقاولين", "Direct engagement without the supplier cycle · hours per project · direct payments posted as subcontractor fees")}
+        description={t("جهة اتصال موحدة · تعاقد وأسعار وساعات لكل مشروع · مدفوعات مرتبطة", "One shared contact · engagement, rates and hours per project · linked payments")}
         actions={<Button onClick={() => navigate("/app/contractors/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("مقاول جديد", "New contractor")}</Button>}
       />
 
@@ -62,6 +71,7 @@ export function Contractors() {
       </MetricStrip>
 
       <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" onClick={syncContacts} disabled={syncing}>{syncing && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{t("مزامنة السجلات السابقة مع الاتصال", "Sync older records with contacts")}</Button>
         <button onClick={() => setKindFilter("")} aria-pressed={!kindFilter} className={`rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${!kindFilter ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{t("الكل", "All")}</button>
         {Object.entries(KIND_LABELS).map(([k, v]) => (
           <button key={k} onClick={() => setKindFilter(k)} aria-pressed={kindFilter === k} className={`rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${kindFilter === k ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{t(v.ar, v.en)}</button>
@@ -69,6 +79,11 @@ export function Contractors() {
       </div>
 
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
+      {syncResult && <InlineAlert>
+        <p>{t("تم ربط السجلات:", "Records linked:")} {syncResult.linked}</p>
+        {syncResult.review.length > 0 && <p>{t("اختر جهة الاتصال لهذه الملفات من التعديل؛ لم تُدمج الأسماء المتشابهة تلقائيًا:", "Select a contact in Edit for these profiles; similar names were not merged automatically:")}</p>}
+        {syncResult.review.map(x => <Link key={x.id} to={`/app/contractors/${x.id}`} className="block text-primary underline">{x.name}</Link>)}
+      </InlineAlert>}
 
       <section className="space-y-3">
         <h2 className="text-section font-semibold text-foreground">{t("السجل", "Register")} · <span className="font-english tabular-nums">{filtered.length}</span></h2>
