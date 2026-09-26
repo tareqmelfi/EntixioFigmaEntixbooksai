@@ -327,6 +327,7 @@ export const router = createBrowserRouter([
       { path: "employees/new", element: lazyElement(() => import("./pages/employee-new"), "EmployeeNew"), errorElement: <ErrorBoundary /> },
       // Contacts (formerly العملاء والموردين)
       { path: "contacts", element: lazyElement(() => import("./pages/contacts"), "Contacts"), errorElement: <ErrorBoundary /> },
+      { path: "files/upload", element: lazyElement(() => import("./components/contact-documents"), "LegacyContactUpload"), errorElement: <ErrorBoundary /> },
       { path: "contacts/:id", element: lazyElement(() => import("./pages/contact-detail"), "ContactDetail"), errorElement: <ErrorBoundary /> },
       // Partners & Affiliates · برنامج الشركاء
       { path: "partners", element: lazyElement(() => import("./pages/partners"), "Partners"), errorElement: <ErrorBoundary /> },

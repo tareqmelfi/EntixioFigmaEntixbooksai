@@ -1109,7 +1109,7 @@ export function Estimates() {
             ))}
           </ul>
           <div className="ledger-table hidden overflow-x-auto md:block [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
-            <Table className="table-fixed min-w-[1100px]">
+            <Table className="table-fixed min-w-[1280px]">
               <colgroup>
                 <col style={{ width: "200px" }} />{/* رقم الدراسة · mono */}
                 <col style={{ minWidth: "160px" }} />{/* العنوان */}
@@ -1119,7 +1119,7 @@ export function Estimates() {
                 {!listHidden && <col style={{ width: "90px" }} />}{/* الهامش */}
                 <col style={{ width: "140px" }} />{/* الحالة */}
                 <col style={{ width: "110px" }} />{/* التاريخ */}
-                <col style={{ width: "60px" }} />{/* حذف */}
+                <col style={{ width: "180px" }} />{/* Edit and delete actions */}
               </colgroup>
               <TableHeader><TableRow className="hover:bg-transparent">
                 <TableHead>{t("رقم الدراسة", "Estimate no.")}</TableHead>
@@ -1158,12 +1158,12 @@ export function Estimates() {
                     <TableCell className="align-middle">{statusPill(e)}</TableCell>
                     <TableCell className="text-start"><span dir="ltr" className="font-english text-xs tabular-nums text-content-secondary">{String(e.createdAt || "").slice(0, 10)}</span></TableCell>
                     <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {/* CEO 2026-09-21: «الدراسة والتسعير ماني شايف فيها تعديل ليش
                             كل مرة دراسة جديدة» — the row already opened the editor, but
                             nothing on screen said so. The affordance is now visible. */}
-                        <button type="button" onClick={() => navigate(`/app/estimates/${e.id}`)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-primary hover:border-border-strong" title={t("تعديل الدراسة", "Edit estimate")} data-testid="estimate-edit">
-                          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تعديل", "Edit")}
+                        <button type="button" onClick={() => navigate(`/app/estimates/${e.id}`)} className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-border px-3 text-xs font-semibold text-primary hover:border-border-strong" title={t("تعديل الدراسة", "Edit estimate")} data-testid="estimate-edit">
+                          <Pencil className="h-3.5 w-3.5 shrink-0" strokeWidth={1.75} /> <span>{t("تعديل", "Edit")}</span>
                         </button>
                         {pendingDelete === e.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
