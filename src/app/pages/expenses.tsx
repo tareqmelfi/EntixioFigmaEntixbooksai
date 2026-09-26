@@ -1882,15 +1882,100 @@ export function Expenses() {
         />
         {isStripeSource && <InlineAlert tone="info">{t("مصروف رسوم مرتبط بفاتورة Stripe. تُزامن قيمته من المصدر؛ يمكنك إرفاق مستندات داعمة أدناه.", "Processing expense linked to a Stripe invoice. Its amount is synced from the source; supporting documents can be attached below.")}</InlineAlert>}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,34%)]">
+        {/* Figures strip · total · before tax · VAT · payment method */}
+        <MetricStrip className="compact xl:grid-cols-2 2xl:grid-cols-4">
+          <Metric label={t("الإجمالي", "Total")} value={<LedgerFigure value={Number(selected.total || 0)} currency={selected.currency} />} />
+          <Metric label={t("قبل الضريبة", "Before tax")} value={<LedgerFigure value={Number(selected.subtotal ?? selected.amount ?? 0)} currency={selected.currency} />} />
+          <Metric label="VAT" value={<LedgerFigure value={Number(selected.taxAmount || 0)} currency={selected.currency} />} />
+          <Metric label={t("طريقة الدفع", "Payment method")} value={<span className="font-sans text-base font-medium text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</span>} />
+        </MetricStrip>
+
+        <div className="grid grid-cols-1 gap-6">
+          <aside aria-label={t("مرفقات المصروف", "Expense attachments")} className="min-w-0 rounded-lg border border-border bg-card p-3 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-section font-semibold text-foreground">
+                <Paperclip className="h-4 w-4 text-content-secondary" strokeWidth={1.75} /> {t("المرفقات", "Attachments")}
+                {detailAttachments.length > 0 && (
+                  <span className="font-english text-xs font-normal tabular-nums text-content-secondary">{activeAttIdx + 1} / {detailAttachments.length}</span>
+                )}
+              </h2>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={attFileRef}
+                  type="file"
+                  hidden
+                  multiple
+                  accept=".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv"
+                  onChange={(e) => { if (e.target.files?.length) handleDetailUpload(e.target.files); e.target.value = ""; }}
+                />
+                <Button type="button" variant="secondary" size="sm" disabled={attBusy} onClick={() => attFileRef.current?.click()} className="h-8 text-xs">
+                  <Upload className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {attBusy ? t("جارٍ الرفع…", "Uploading…") : t("رفع مرفقات", "Upload attachments")}
+                </Button>
+              </div>
+            </div>
+            <div className="mt-4 space-y-3">
+              {detailAttachments.length === 0 ? (
+                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border-strong text-center">
+                  <FileImage className="mb-3 h-8 w-8 text-muted-foreground" strokeWidth={1.75} />
+                  <p className="text-sm text-content-secondary">{t("لا توجد مرفقات لهذا المصروف", "No attachments for this expense")}</p>
+                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs font-semibold text-primary hover:underline">{t("ارفع أول مرفق", "Upload first attachment")}</button>
+                </div>
+              ) : (
+                <>
+                  {/* carousel controls · navigate right/left between files */}
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      disabled={activeAttIdx <= 0}
+                      onClick={() => setActiveAttIdx((i) => Math.max(0, i - 1))}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:border-border-strong disabled:opacity-40"
+                    >
+                      <ChevronRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} /> {t("السابق", "Previous")}
+                    </button>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="min-w-0 truncate font-code text-xs text-content-secondary" dir="ltr" title={detailAttachments[activeAttIdx]?.name}>{detailAttachments[activeAttIdx]?.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleAttachmentRemove(detailAttachments[activeAttIdx])}
+                        className="shrink-0 rounded-full p-1 text-danger hover:bg-surface-hover"
+                        title={t("حذف المرفق", "Delete attachment")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={activeAttIdx >= detailAttachments.length - 1}
+                      onClick={() => setActiveAttIdx((i) => Math.min(detailAttachments.length - 1, i + 1))}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:border-border-strong disabled:opacity-40"
+                    >
+                      {t("التالي", "Next")} <ChevronLeft className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />
+                    </button>
+                  </div>
+                  {/* Full-width receipt with optional fullscreen; never squeezed beside the ledger */}
+                  <AttachmentViewer attachment={detailAttachments[activeAttIdx]} height="clamp(420px, 78dvh, 1100px)" />
+                  {/* thumbnails strip */}
+                  {detailAttachments.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto pb-1">
+                      {detailAttachments.map((att, i) => (
+                        <button
+                          key={`${att.name}-${i}`}
+                          type="button"
+                          onClick={() => setActiveAttIdx(i)}
+                          className={`max-w-[160px] shrink-0 truncate rounded-full border px-2.5 py-1 font-code text-[11px] ${i === activeAttIdx ? "border-foreground bg-foreground text-background" : "border-border text-content-secondary hover:border-border-strong"}`}
+                          dir="ltr"
+                        >
+                          {att.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </aside>
           <div className="min-w-0 space-y-6">
-            {/* Figures strip · total · before tax · VAT · payment method */}
-            <MetricStrip className="compact xl:grid-cols-2 2xl:grid-cols-4">
-              <Metric label={t("الإجمالي", "Total")} value={<LedgerFigure value={Number(selected.total || 0)} currency={selected.currency} />} />
-              <Metric label={t("قبل الضريبة", "Before tax")} value={<LedgerFigure value={Number(selected.subtotal ?? selected.amount ?? 0)} currency={selected.currency} />} />
-              <Metric label="VAT" value={<LedgerFigure value={Number(selected.taxAmount || 0)} currency={selected.currency} />} />
-              <Metric label={t("طريقة الدفع", "Payment method")} value={<span className="font-sans text-base font-medium text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</span>} />
-            </MetricStrip>
+
 
             {selectedSettlement && (
               <section className="rounded-lg border border-border border-s-[3px] border-s-primary bg-card p-5">
@@ -2007,89 +2092,7 @@ export function Expenses() {
             </section>
           </div>
 
-          <aside className="min-w-0 rounded-lg border border-border bg-card p-5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="flex items-center gap-2 text-section font-semibold text-foreground">
-                <Paperclip className="h-4 w-4 text-content-secondary" strokeWidth={1.75} /> {t("المرفقات", "Attachments")}
-                {detailAttachments.length > 0 && (
-                  <span className="font-english text-xs font-normal tabular-nums text-content-secondary">{activeAttIdx + 1} / {detailAttachments.length}</span>
-                )}
-              </h2>
-              <div className="flex items-center gap-2">
-                <input
-                  ref={attFileRef}
-                  type="file"
-                  hidden
-                  multiple
-                  accept=".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv"
-                  onChange={(e) => { if (e.target.files?.length) handleDetailUpload(e.target.files); e.target.value = ""; }}
-                />
-                <Button type="button" variant="secondary" size="sm" disabled={attBusy} onClick={() => attFileRef.current?.click()} className="h-8 text-xs">
-                  <Upload className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {attBusy ? t("جارٍ الرفع…", "Uploading…") : t("رفع مرفقات", "Upload attachments")}
-                </Button>
-              </div>
-            </div>
-            <div className="mt-4 space-y-3">
-              {detailAttachments.length === 0 ? (
-                <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-dashed border-border-strong text-center">
-                  <FileImage className="mb-3 h-8 w-8 text-muted-foreground" strokeWidth={1.75} />
-                  <p className="text-sm text-content-secondary">{t("لا توجد مرفقات لهذا المصروف", "No attachments for this expense")}</p>
-                  <button type="button" onClick={() => attFileRef.current?.click()} className="mt-2 text-xs font-semibold text-primary hover:underline">{t("ارفع أول مرفق", "Upload first attachment")}</button>
-                </div>
-              ) : (
-                <>
-                  {/* carousel controls · navigate right/left between files */}
-                  <div className="flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      disabled={activeAttIdx <= 0}
-                      onClick={() => setActiveAttIdx((i) => Math.max(0, i - 1))}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:border-border-strong disabled:opacity-40"
-                    >
-                      <ChevronRight className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} /> {t("السابق", "Previous")}
-                    </button>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="min-w-0 truncate font-code text-xs text-content-secondary" dir="ltr" title={detailAttachments[activeAttIdx]?.name}>{detailAttachments[activeAttIdx]?.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleAttachmentRemove(detailAttachments[activeAttIdx])}
-                        className="shrink-0 rounded-full p-1 text-danger hover:bg-surface-hover"
-                        title={t("حذف المرفق", "Delete attachment")}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={activeAttIdx >= detailAttachments.length - 1}
-                      onClick={() => setActiveAttIdx((i) => Math.min(detailAttachments.length - 1, i + 1))}
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs text-foreground hover:border-border-strong disabled:opacity-40"
-                    >
-                      {t("التالي", "Next")} <ChevronLeft className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />
-                    </button>
-                  </div>
-                  {/* viewer · PDF native scroll / image free scroll */}
-                  <AttachmentViewer attachment={detailAttachments[activeAttIdx]} height={620} />
-                  {/* thumbnails strip */}
-                  {detailAttachments.length > 1 && (
-                    <div className="flex gap-2 overflow-x-auto pb-1">
-                      {detailAttachments.map((att, i) => (
-                        <button
-                          key={`${att.name}-${i}`}
-                          type="button"
-                          onClick={() => setActiveAttIdx(i)}
-                          className={`max-w-[160px] shrink-0 truncate rounded-full border px-2.5 py-1 font-code text-[11px] ${i === activeAttIdx ? "border-foreground bg-foreground text-background" : "border-border text-content-secondary hover:border-border-strong"}`}
-                          dir="ltr"
-                        >
-                          {att.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </aside>
+
         </div>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
       </div>
