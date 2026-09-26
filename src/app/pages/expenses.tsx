@@ -307,11 +307,11 @@ function readExpenseDraft(): { formData: FormState; extractionSummary: Extractio
   }
 }
 
-function writeExpenseDraft(formData: FormState, extractionSummary: ExtractionSummary | null) {
+function writeExpenseDraft(formData: FormState, extractionSummary: ExtractionSummary | null, storageKey = expenseDraftKey()) {
   if (typeof localStorage === "undefined") return;
   const payload = { formData, extractionSummary, updatedAt: new Date().toISOString() };
   try {
-    localStorage.setItem(expenseDraftKey(), JSON.stringify(payload));
+    localStorage.setItem(storageKey, JSON.stringify(payload));
   } catch {
     const slim = {
       ...payload,
@@ -320,7 +320,7 @@ function writeExpenseDraft(formData: FormState, extractionSummary: ExtractionSum
         attachments: [],
       },
     };
-    try { localStorage.setItem(expenseDraftKey(), JSON.stringify(slim)); } catch {}
+    try { localStorage.setItem(storageKey, JSON.stringify(slim)); } catch {}
   }
 }
 
@@ -1350,6 +1350,20 @@ export function Expenses() {
         url: attachmentPreviewUrl(a),
       }))
     : [];
+
+  // Flush a new expense draft when section navigation unmounts the editor,
+  // including a click before the debounced autosave has fired.
+  const editorDraftKey = useRef(expenseDraftKey());
+  const pendingDraftRef = useRef({ createOpen, editingId, formData, extractionSummary });
+  pendingDraftRef.current = { createOpen, editingId, formData, extractionSummary };
+  // The previous editor flushes during unmount, after this list's first render.
+  useEffect(() => { setDraftAvailable(hasStoredExpenseDraft()); }, []);
+  useEffect(() => () => {
+    const draft = pendingDraftRef.current;
+    if (draft.createOpen && !draft.editingId && hasDraftContent(draft.formData)) {
+      writeExpenseDraft(draft.formData, draft.extractionSummary, editorDraftKey.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!createOpen || editingId || !hasDraftContent(formData)) return;

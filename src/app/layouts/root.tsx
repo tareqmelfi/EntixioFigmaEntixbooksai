@@ -66,16 +66,27 @@ export function Root() {
   });
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
+  // Sidebar destinations are fresh section entries, even when the URL is
+  // unchanged and the page currently holds an inline detail/editor in state.
+  // Only sidebar navigation remounts content: ordinary query updates must not
+  // clear a form. Adjust before rendering so stale detail never flashes.
+  const [sectionEntry, setSectionEntry] = useState({ key: location.key, revision: 0 });
+  if (sectionEntry.key !== location.key) {
+    setSectionEntry({
+      key: location.key,
+      revision: sectionEntry.revision + (location.state?.sidebarSectionEntry === true ? 1 : 0),
+    });
+  }
 
   useEffect(() => {
     if (mainRef.current) {
       mainRef.current.scrollTo({ top: 0, behavior: "instant" });
     }
-  }, [location.pathname]);
+  }, [location.pathname, sectionEntry.revision]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, sectionEntry.revision]);
 
   const handleModeChange = useCallback((mode: SidebarMode) => {
     setSidebarMode(mode);
@@ -162,7 +173,7 @@ export function Root() {
             {gate ? (
               <SubscriptionGate gate={gate} orgName={activeOrgName} onSwitch={() => { clearGate(); window.dispatchEvent(new CustomEvent("entix:open-switcher")); }} />
             ) : (
-              <Outlet />
+              <Outlet key={sectionEntry.revision} />
             )}
           </div>
         </main>
