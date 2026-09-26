@@ -115,6 +115,7 @@ test('expense editor · line account combobox + suggestion + header fallback (ar
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/app/expenses?new=1')
   await page.getByPlaceholder(/ضيافة ووجبات/).fill('إيجار مكاتب الإدارة')
+  await page.getByRole('button', { name: 'تفاصيل البنود والمشروع والأصول', exact: true }).click()
   await page.getByRole('button', { name: /إضافة بند/ }).click()
   const rows = page.locator('table tbody tr')
   await rows.first().locator('input').first().fill('فاتورة كهرباء وإنترنت STC — أغسطس')

@@ -1,3 +1,4 @@
+import { BankTransferForm } from "../components/bank-transfer-form";
 import { UnmatchedBankTransactions } from "../components/unmatched-bank-transactions";
 import { displayLocale } from "../lib/number-display";
 /**
@@ -29,7 +30,7 @@ export function BankAccounts() {
   const { id: routeAccountId } = useParams();
   const [items, setItems] = useState<BankAccount[]>([]);
   const { toasts, push, dismiss } = useToasts();
-  const [totalBalance, setTotalBalance] = useState(0);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,7 +40,7 @@ export function BankAccounts() {
     setLoading(true); setError(null);
     try {
       const d = await api.bankAccounts.list();
-      setItems(d.items); setTotalBalance(d.totalBalance);
+      setItems(d.items);
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load"));
     } finally { setLoading(false); }
@@ -56,18 +57,18 @@ export function BankAccounts() {
 
   // Transactions (vouchers) linked to the selected bank account
   const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<Voucher[]>([]);
+  const [transactions, setTransactions] = useState<Array<Voucher & { kind?: string; detailPath?: string }>>([]);
   const [txLoading, setTxLoading] = useState(false);
   useEffect(() => {
     if (!selectedAccount) { setTransactions([]); return; }
     let cancelled = false;
     setTxLoading(true);
-    api.vouchers.list({ bankAccountId: selectedAccount.id })
-      .then((d) => { if (!cancelled) setTransactions(d.items || []); })
+    Promise.all([api.vouchers.list({ bankAccountId: selectedAccount.id }), api.bankAccounts.activity(selectedAccount.id)])
+      .then(([v, a]) => { if (!cancelled) setTransactions([...(v.items || []), ...(a.items || [])].sort((x,y) => y.date.localeCompare(x.date))); })
       .catch(() => { if (!cancelled) setTransactions([]); })
       .finally(() => { if (!cancelled) setTxLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedAccount?.id]);
+  }, [selectedAccount]);
 
   const handleDelete = async (id: string) => {
     setPendingDelete(null);
@@ -86,6 +87,7 @@ export function BankAccounts() {
         actions={<Button onClick={() => navigate("/app/bank-accounts/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("حساب جديد", "New account")}</Button>}
       />
 
+      <BankTransferForm accounts={items} onSaved={refresh} />
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {selectedAccount && (
@@ -174,7 +176,7 @@ export function BankAccounts() {
                 <tbody>
                   {transactions.map((v) => {
                     const inbound = v.type === "RECEIPT";
-                    const detailPath = inbound ? `/app/receipts/${v.id}` : `/app/payments/${v.id}`;
+                    const detailPath = v.detailPath || (inbound ? `/app/receipts/${v.id}` : `/app/payments/${v.id}`);
                     const linkedPath = v.invoiceId ? `/app/invoices/${v.invoiceId}` : v.billId ? `/app/purchases/bills/${v.billId}` : null;
                     return (
                       <tr
@@ -186,7 +188,7 @@ export function BankAccounts() {
                         <td className="py-3 px-4 text-start"><time data-testid="bank-transaction-date" dateTime={v.date?.slice(0, 10)} dir="ltr" className="inline-block font-english whitespace-nowrap text-sm font-medium text-foreground tabular-nums">{v.date?.slice(0, 10) || "—"}</time></td>
                         <td className="py-3 px-4 text-sm">
                           <StatusBadge tone={inbound ? "success" : "warning"} icon={inbound ? <ArrowDownToLine className="h-3 w-3" strokeWidth={1.75} /> : <ArrowUpFromLine className="h-3 w-3" strokeWidth={1.75} />}>
-                            {inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}
+                            {v.kind === "transfer" ? t("تحويل", "Transfer") : v.kind === "expense" ? t("مصروف", "Expense") : inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}
                           </StatusBadge>
                         </td>
                         <td className="py-3 px-4 text-start">
@@ -223,7 +225,7 @@ export function BankAccounts() {
       )}
 
       <MetricStrip className="xl:grid-cols-3">
-        <Metric label={t("إجمالي الأرصدة", "Total balance")} value={<LedgerFigure value={totalBalance} />} />
+        <Metric label={t("إجمالي الأرصدة", "Total balance")} value={<div className="flex flex-wrap gap-3">{Object.entries(items.reduce<Record<string, number>>((a, b) => ({ ...a, [b.currency]: (a[b.currency] || 0) + Number(b.balance) }), {})).map(([currency, value]) => <LedgerFigure key={currency} value={value} currency={currency} />)}</div>} />
         <Metric label={t("عدد الحسابات", "Accounts")} value={String(items.length)} />
         <Metric label={t("العملات", "Currencies")} value={String(new Set(items.map(b => b.currency)).size)} />
       </MetricStrip>

@@ -1,3 +1,5 @@
+import { isFinancialNotice } from "../lib/financial-notice";
+import { settlePurchase } from "../lib/purchase-settlement";
 import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Expenses (المصروفات النقدية) · wired to /api/expenses
@@ -36,7 +38,7 @@ import { FullPageForm } from "../components/full-page-form";
 import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
 import { useReturnTo } from "../lib/use-return-to";
-import { api, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
+import { api, getOrgId, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
 import { buildDuplicateDecision, getSimilarityReview, type SimilarityReview } from "../lib/similarity-review";
 import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { SearchableCombobox } from "../components/searchable-combobox";
@@ -71,6 +73,7 @@ type UploadedAttachment = {
 
 type FormState = {
   category: string;
+  bankAccountId?: string;
   date: string;
   amount: string;
   taxAmount: string;
@@ -135,6 +138,7 @@ type CurrencySettlement = {
   bookBaseAmount: number;
   actualPaidAmount: number;
   actualRate: number;
+  paymentToBaseRate: number;
   difference: number;
   treatment: FxTreatment;
   treatmentLabel: string;
@@ -190,26 +194,23 @@ function fxTreatmentLabels(t: Translate): Record<FxTreatment, string> {
 const DEFAULT_RATES_TO_SAR: Record<string, number> = {
   SAR: 1,
   USD: 3.75,
-  EUR: 4.1,
-  AED: 1.02,
-  GBP: 4.8,
 };
 
-const EXPENSE_DRAFT_KEY = "entix.expenses.currentDraft.v2";
+const expenseDraftKey = () => `entix.expenses.currentDraft.v3:${getOrgId() || "no-company"}`;
 
-function emptyForm(): FormState {
+function emptyForm(currency = "SAR"): FormState {
   return {
     category: "",
     date: new Date().toISOString().slice(0, 10),
     amount: "",
     taxAmount: "",
     totalAmount: "",
-    sourceCurrency: "SAR",
-    baseCurrency: "SAR",
+    sourceCurrency: currency,
+    baseCurrency: currency,
     exchangeRate: "1",
-    actualPaidCurrency: "SAR",
+    actualPaidCurrency: currency,
     actualPaidAmount: "",
-    fxTreatment: "FX_LOSS",
+    fxTreatment: "MERGE_INTO_EXPENSE",
     paymentMethod: "CASH",
     description: "",
     vendorName: "",
@@ -284,7 +285,7 @@ function isBankStatementBlocked(data: any, fileName?: string): boolean {
 function readExpenseDraft(): { formData: FormState; extractionSummary: ExtractionSummary | null; updatedAt: string } | null {
   if (typeof localStorage === "undefined") return null;
   try {
-    const raw = localStorage.getItem(EXPENSE_DRAFT_KEY);
+    const raw = localStorage.getItem(expenseDraftKey());
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed?.formData) return null;
@@ -310,7 +311,7 @@ function writeExpenseDraft(formData: FormState, extractionSummary: ExtractionSum
   if (typeof localStorage === "undefined") return;
   const payload = { formData, extractionSummary, updatedAt: new Date().toISOString() };
   try {
-    localStorage.setItem(EXPENSE_DRAFT_KEY, JSON.stringify(payload));
+    localStorage.setItem(expenseDraftKey(), JSON.stringify(payload));
   } catch {
     const slim = {
       ...payload,
@@ -319,13 +320,13 @@ function writeExpenseDraft(formData: FormState, extractionSummary: ExtractionSum
         attachments: [],
       },
     };
-    try { localStorage.setItem(EXPENSE_DRAFT_KEY, JSON.stringify(slim)); } catch {}
+    try { localStorage.setItem(expenseDraftKey(), JSON.stringify(slim)); } catch {}
   }
 }
 
 function clearExpenseDraft() {
   if (typeof localStorage === "undefined") return;
-  try { localStorage.removeItem(EXPENSE_DRAFT_KEY); } catch {}
+  try { localStorage.removeItem(expenseDraftKey()); } catch {}
 }
 
 function hasStoredExpenseDraft() {
@@ -380,14 +381,14 @@ function normalizeCurrency(value: any, fallback = "SAR"): string {
 
 function defaultExchangeRate(sourceCurrency: string, baseCurrency: string): number {
   if (sourceCurrency === baseCurrency) return 1;
-  if (baseCurrency === "SAR") return DEFAULT_RATES_TO_SAR[sourceCurrency] || 1;
+  if (baseCurrency === "SAR") return DEFAULT_RATES_TO_SAR[sourceCurrency] || 0;
   if (sourceCurrency === "SAR" && DEFAULT_RATES_TO_SAR[baseCurrency]) {
     return Number((1 / DEFAULT_RATES_TO_SAR[baseCurrency]).toFixed(6));
   }
   const sourceToSar = DEFAULT_RATES_TO_SAR[sourceCurrency];
   const baseToSar = DEFAULT_RATES_TO_SAR[baseCurrency];
   if (sourceToSar && baseToSar) return Number((sourceToSar / baseToSar).toFixed(6));
-  return 1;
+  return 0;
 }
 
 function roundMoney(value: number): number {
@@ -408,33 +409,10 @@ function detectedDocumentCurrency(data: any, fallback = "SAR"): string {
 }
 
 function calculateCurrencySettlement(form: FormState, sourceTotal: number, t: Translate): CurrencySettlement {
-  const sourceCurrency = normalizeCurrency(form.sourceCurrency);
-  const baseCurrency = normalizeCurrency(form.baseCurrency, sourceCurrency);
-  const actualPaidCurrency = normalizeCurrency(form.actualPaidCurrency, baseCurrency);
-  const exchangeRate = Number(normalizeDigits(form.exchangeRate || "0")) || defaultExchangeRate(sourceCurrency, baseCurrency);
-  const bookBaseAmount = roundMoney(sourceTotal * exchangeRate);
-  const actualPaidAmountInput = Number(normalizeDigits(form.actualPaidAmount || "0"));
-  const actualPaidAmount = roundMoney(
-    actualPaidAmountInput > 0
-      ? actualPaidAmountInput
-      : (actualPaidCurrency === sourceCurrency ? sourceTotal : bookBaseAmount),
-  );
-  const actualRate = sourceTotal > 0 ? roundMoney(actualPaidAmount / sourceTotal) : exchangeRate;
-  const difference = roundMoney(actualPaidAmount - bookBaseAmount);
-  return {
-    sourceCurrency,
-    baseCurrency,
-    actualPaidCurrency,
-    sourceTotal: roundMoney(sourceTotal),
-    exchangeRate,
-    bookBaseAmount,
-    actualPaidAmount,
-    actualRate,
-    difference,
-    treatment: form.fxTreatment,
-    treatmentLabel: fxTreatmentLabels(t)[form.fxTreatment],
-    isCrossCurrency: sourceCurrency !== baseCurrency || sourceCurrency !== actualPaidCurrency,
-  };
+  return { ...settlePurchase({ ...form, sourceTotal,
+    actualPaidAmount: Number(normalizeDigits(form.actualPaidAmount || "0")),
+    exchangeRate: Number(normalizeDigits(form.exchangeRate || "0")), treatment: form.fxTreatment,
+  }), treatment: form.fxTreatment, treatmentLabel: fxTreatmentLabels(t)[form.fxTreatment] };
 }
 
 function enrichPaymentSplits(
@@ -444,9 +422,8 @@ function enrichPaymentSplits(
   return payments.map((payment) => {
     const currency = normalizeCurrency(payment.currency, settlement.actualPaidCurrency);
     const amount = Number(payment.amount || 0);
-    const rate = currency === settlement.sourceCurrency
-      ? settlement.exchangeRate
-      : (currency === settlement.baseCurrency ? 1 : defaultExchangeRate(currency, settlement.baseCurrency));
+    const rate = currency === settlement.actualPaidCurrency ? settlement.paymentToBaseRate
+      : currency === settlement.sourceCurrency ? settlement.exchangeRate : 0;
     return {
       ...payment,
       currency,
@@ -689,7 +666,16 @@ export function Expenses() {
   const [draftAvailable, setDraftAvailable] = useState(() => hasStoredExpenseDraft());
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const { language, t } = useLanguage();
-  const { currency: orgCurrency } = useOrgRegion();
+  const { currency: orgCurrency, isSA, loading: regionLoading } = useOrgRegion();
+  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
+  const [showDetails, setShowDetails] = useState(false);
+  const [showSplits, setShowSplits] = useState(false);
+  useEffect(() => { api.bankAccounts.list().then(d => setBankAccounts(d.items)).catch(() => {}); }, []);
+  useEffect(() => {
+    if (!orgCurrency || editingId) return;
+    setFormData(f => ({ ...f, baseCurrency: orgCurrency,
+      ...(!f.amount && !f.extractedJson ? { sourceCurrency: orgCurrency, actualPaidCurrency: orgCurrency, exchangeRate: "1" } : {}) }));
+  }, [orgCurrency, editingId]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -723,7 +709,7 @@ export function Expenses() {
     if (!createOpen || expenseAccountItems.length === 0) return;
     const timers = suggestTimersRef.current;
     const schedule = (key: string, text: string, category: string | null, apply: (hit: { accountId: string | null; via?: string }) => void) => {
-      const cacheKey = `${text.toLowerCase()}|${(category || "").toLowerCase()}`;
+      const cacheKey = `${getOrgId()}|${text.toLowerCase()}|${(category || "").toLowerCase()}`;
       const existing = timers.get(key);
       if (existing) clearTimeout(existing);
       timers.set(key, setTimeout(async () => {
@@ -760,9 +746,9 @@ export function Expenses() {
   useEffect(() => () => { for (const tm of suggestTimersRef.current.values()) clearTimeout(tm); }, []);
 
   useEffect(() => {
-    if (searchParams.get("new") === "1") {
+    if (searchParams.get("new") === "1" || location.pathname === "/app/expenses/new") {
       openCreate();
-      setSearchParams({}, { replace: true });
+      if (searchParams.get("new") === "1") setSearchParams({}, { replace: true });
     }
     // Receipt Capture → "تعديل في النموذج" · prefill from the stashed OCR JSON.
     if (searchParams.get("fromOcr") === "1") {
@@ -776,8 +762,8 @@ export function Expenses() {
             // so amounts, line items, payments and the document's own currency survive.
             const totals = extractionTotals(ocr);
             const lineItems = normalizeLineItems(ocr, language);
-            const sourceCurrency = detectedDocumentCurrency(ocr, "SAR");
-            const baseCurrency = normalizeCurrency("SAR");
+            const sourceCurrency = detectedDocumentCurrency(ocr, orgCurrency || "SAR");
+            const baseCurrency = orgCurrency || sourceCurrency;
             const exchangeRate = String(defaultExchangeRate(sourceCurrency, baseCurrency));
             const payments = normalizePayments(ocr, totals.total, "CARD", sourceCurrency);
             const warnings = buildExtractionWarnings(t, ocr, items, totals.total || null);
@@ -787,9 +773,11 @@ export function Expenses() {
               ...f,
               category: inferCategory(ocr, language),
               amount: totals.subtotal ? String(totals.subtotal) : (totals.total ? String(totals.total) : f.amount),
-              taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
+              taxAmount: String(totals.tax ?? 0),
               totalAmount: totals.total ? String(totals.total) : f.totalAmount,
               sourceCurrency,
+              actualPaidCurrency: sourceCurrency,
+              actualPaidAmount: "",
               baseCurrency,
               exchangeRate,
               date: ocr?.issueDate ? String(ocr.issueDate).slice(0, 10) : f.date,
@@ -839,7 +827,7 @@ export function Expenses() {
       setSearchParams({}, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, location.pathname]);
 
   // B1 · /app/expenses?branchId=<id|none> (deep-link from branch reports)
   const branchFilterId = searchParams.get("branchId") || "";
@@ -864,7 +852,8 @@ export function Expenses() {
 
   function openCreate() {
     setEditingId(null);
-    setFormData(emptyForm());
+    setShowDetails(false); setShowSplits(false);
+    setFormData(emptyForm(orgCurrency));
     const prefillContact = searchParams.get("contactId") || "";
     if (prefillContact) {
       api.contacts.get(prefillContact)
@@ -887,7 +876,7 @@ export function Expenses() {
       setDraftSavedAt(draft.updatedAt);
       setDraftNotice(t("تم استرجاع مسودة مصروف محفوظة تلقائياً.", "Saved expense draft restored automatically."));
     } else {
-      setFormData(emptyForm());
+      setFormData(emptyForm(orgCurrency));
       setExtractionSummary(null);
       setDraftSavedAt(null);
       setDraftNotice(null);
@@ -930,6 +919,11 @@ export function Expenses() {
 
   function openEdit(expense: ApiExpense) {
     const settlement = (expense.extractedJson as any)?.currencySettlement || {};
+    if (settlement.version === 2 && expense.status !== 'DRAFT') {
+      push('error', t('هذا المصروف مدفوع ومرحّل. يمكن إضافة المرفقات من تفاصيله؛ تعديل المبلغ يتطلب تسوية.', 'This expense is paid and posted. Add attachments in its details; changing amounts requires a correction.')); return;
+    }
+    setShowSplits(Array.isArray(expense.paymentSplits) && expense.paymentSplits.length > 1);
+    setShowDetails(false);
     const sourceCurrency = normalizeCurrency(settlement.sourceCurrency || expense.currency || "SAR");
     const baseCurrency = normalizeCurrency(settlement.baseCurrency || settlement.actualPaidCurrency || expense.currency || "SAR", sourceCurrency);
     setEditingId(expense.id);
@@ -942,11 +936,12 @@ export function Expenses() {
       taxAmount: String(Number(expense.taxAmount || 0)),
       totalAmount: String(Number(expense.total || 0)),
       sourceCurrency,
+      bankAccountId: settlement.bankAccountId || "",
       baseCurrency,
       exchangeRate: String(settlement.exchangeRate || defaultExchangeRate(sourceCurrency, baseCurrency)),
       actualPaidCurrency: normalizeCurrency(settlement.actualPaidCurrency || baseCurrency, baseCurrency),
       actualPaidAmount: settlement.actualPaidAmount ? String(settlement.actualPaidAmount) : "",
-      fxTreatment: (settlement.treatment as FxTreatment) || "FX_LOSS",
+      fxTreatment: (settlement.treatment as FxTreatment) || "MERGE_INTO_EXPENSE",
       paymentMethod: expense.paymentMethod,
       description: expense.description || "",
       vendorName: expense.contact?.displayName || expense.vendorName || "",
@@ -975,6 +970,20 @@ export function Expenses() {
     setCreateOpen(true);
   }
 
+  // Item edits and the visible total must use the same calculation as ingestion.
+  useEffect(() => {
+    if (!formData.lineItems.length) return;
+    let net = 0, tax = 0;
+    for (const line of formData.lineItems) {
+      const base = (Number(line.quantity) || 1) * Number(line.unitPrice || 0) - Number(line.discountAmount || 0);
+      const rate = Number(line.taxRate) || 0;
+      const gross = Number(line.lineTotal) || base;
+      const n = line.taxInclusive ? gross / (1 + rate) : base;
+      net += n; tax += line.taxInclusive ? gross - n : n * rate;
+    }
+    setFormData(f => ({ ...f, amount: net.toFixed(2), taxAmount: tax.toFixed(2), totalAmount: (net + tax).toFixed(2) }));
+  }, [formData.lineItems]);
+
   async function handleSubmit(mode: "draft" | "approve" = "approve") {
     setCreateError(null);
     setLineError(null);
@@ -984,7 +993,10 @@ export function Expenses() {
     const taxAmount = Number(normalizeDigits(formData.taxAmount || "0"));
     const totalAmount = Number(normalizeDigits(formData.totalAmount || String(subtotal + taxAmount)));
     const settlement = calculateCurrencySettlement(formData, totalAmount, t);
-    const splits = formData.paymentSplits
+    if (mode !== "draft" && (!(settlement.actualPaidAmount > 0) || !(settlement.exchangeRate > 0))) {
+      setCreateError(t("أدخل المبلغ المسحوب فعليًا، وسعر التحويل لعملة الشركة إذا لزم.", "Enter the actual amount charged and the rate to company currency when needed.")); return;
+    }
+    const splits = (showSplits ? formData.paymentSplits : [])
       .map((payment) => ({
         ...payment,
         amount: Number(normalizeDigits(String(payment.amount || 0))),
@@ -994,17 +1006,17 @@ export function Expenses() {
     const finalSplits = enrichPaymentSplits(
       splits.length
         ? splits
-        : [{ method: formData.paymentMethod, amount: settlement.actualPaidAmount || totalAmount, currency: settlement.actualPaidCurrency, reference: null }],
+        : [{ method: formData.paymentMethod, amount: settlement.actualPaidAmount || totalAmount, currency: settlement.actualPaidCurrency, reference: formData.paymentSplits.length === 1 ? formData.paymentSplits[0].reference : null }],
       settlement,
     );
     const splitTotal = paymentTotal(finalSplits);
-    const expectedPaymentTotal = settlement.isCrossCurrency ? settlement.actualPaidAmount : totalAmount;
+    const expectedPaymentTotal = settlement.actualPaidAmount;
     const expectedPaymentCurrency = settlement.isCrossCurrency ? settlement.actualPaidCurrency : settlement.sourceCurrency;
-    if (!formData.category.trim() || totalAmount <= 0) {
+    if ((!formData.category.trim() && !formData.accountId) || totalAmount <= 0) {
       setCreateError(t("الرجاء تعبئة التصنيف والمبلغ", "Please fill in category and amount"));
       return;
     }
-    if (Math.abs(splitTotal - expectedPaymentTotal) > 0.05) {
+    if (finalSplits.some(p => p.currency !== expectedPaymentCurrency) || Math.abs(splitTotal - expectedPaymentTotal) > 0.01) {
       setCreateError(t("مجموع المدفوعات ", "Payment total ") + money(splitTotal, expectedPaymentCurrency) + t(" لا يطابق المبلغ المتوقع ", " does not match expected ") + money(expectedPaymentTotal, expectedPaymentCurrency));
       return;
     }
@@ -1025,7 +1037,7 @@ export function Expenses() {
       const primaryAttachment = formData.attachments[formData.attachments.length - 1];
       const input: ExpenseInput = {
         date: formData.date,
-        category: formData.category.trim(),
+        category: formData.category.trim() || accountLabel(formData.accountId),
         amount: subtotal || Math.max(0, totalAmount - taxAmount),
         subtotal: subtotal || Math.max(0, totalAmount - taxAmount),
         totalAmount,
@@ -1062,7 +1074,7 @@ export function Expenses() {
           ...(formData.extractedJson || {}),
           sourceCurrency: settlement.sourceCurrency,
           baseCurrency: settlement.baseCurrency,
-          currencySettlement: settlement,
+          currencySettlement: { ...settlement, version: 2, bankAccountId: formData.bankAccountId || null },
           paymentSplits: finalSplits,
           attachments: formData.attachments.map(({ name, type, size }) => ({ name, type, size })),
           // backward-compat: full file set survives on APIs without the attachments endpoint
@@ -1247,9 +1259,10 @@ export function Expenses() {
         fileName: file.name,
         mimeType: mimeTypeForFile(file),
         target: "expense",
-        defaultTaxRate: 0.15,
+        defaultTaxRate: isSA ? 0.15 : 0,
         currency: formData.sourceCurrency || "SAR",
       });
+      if (isFinancialNotice(data)) { push("error", t("هذا تنبيه رصيد وليس فاتورة شراء. لن تتم تعبئة المصروف.", "This balance alert is not a purchase invoice. The expense was not filled.")); return; }
       if (isBankStatementBlocked(data, file.name)) {
         setExtractionSummary({
           fileName: file.name,
@@ -1270,7 +1283,7 @@ export function Expenses() {
       const totals = extractionTotals(data);
       const lineItems = normalizeLineItems(data, language);
       const sourceCurrency = detectedDocumentCurrency(data, formData.sourceCurrency || "SAR");
-      const baseCurrency = normalizeCurrency(formData.baseCurrency, sourceCurrency === "SAR" ? "SAR" : formData.baseCurrency || "SAR");
+      const baseCurrency = orgCurrency || sourceCurrency;
       const exchangeRate = formData.exchangeRate && formData.exchangeRate !== "1"
         ? formData.exchangeRate
         : String(defaultExchangeRate(sourceCurrency, baseCurrency));
@@ -1278,18 +1291,17 @@ export function Expenses() {
       const warnings = buildExtractionWarnings(t, data, items, totals.total || null);
       const supplierTaxId = data?.issuer?.vatNumber || data?.issuer?.taxId || "";
       const vendorName = cleanVendorName(data?.issuer?.name);
-      const bookBaseAmount = roundMoney(totals.total * (Number(exchangeRate) || defaultExchangeRate(sourceCurrency, baseCurrency)));
       setFormData((f) => ({
         ...f,
         category: f.category || inferCategory(data, language),
         amount: totals.subtotal ? String(totals.subtotal) : f.amount,
-        taxAmount: totals.tax ? String(totals.tax) : f.taxAmount,
+        taxAmount: String(totals.tax ?? 0),
         totalAmount: totals.total ? String(totals.total) : f.totalAmount,
         sourceCurrency,
         baseCurrency,
         exchangeRate,
-        actualPaidCurrency: f.actualPaidCurrency || baseCurrency,
-        actualPaidAmount: f.actualPaidAmount || (sourceCurrency !== baseCurrency ? String(bookBaseAmount) : ""),
+        actualPaidCurrency: f.bankAccountId ? f.actualPaidCurrency : sourceCurrency,
+        actualPaidAmount: f.bankAccountId ? f.actualPaidAmount : "",
         date: data?.issueDate || f.date,
         vendorName: vendorName || f.vendorName,
         supplierTaxId: supplierTaxId || f.supplierTaxId,
@@ -1325,7 +1337,7 @@ export function Expenses() {
 
   const formTotal = Number(normalizeDigits(formData.totalAmount || "0")) || (Number(normalizeDigits(formData.amount || "0")) + Number(normalizeDigits(formData.taxAmount || "0")));
   const currencySettlement = calculateCurrencySettlement(formData, formTotal, t);
-  const paymentRows = formData.paymentSplits.length
+  const paymentRows = showSplits && formData.paymentSplits.length
     ? formData.paymentSplits
     : [{ method: formData.paymentMethod, amount: currencySettlement.isCrossCurrency ? currencySettlement.actualPaidAmount : formTotal, currency: currencySettlement.actualPaidCurrency, reference: null } as ExpensePaymentSplit];
   const paymentRowsTotal = paymentTotal(paymentRows);
@@ -1373,18 +1385,18 @@ export function Expenses() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => closeCreate()} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button type="button" variant="outline" disabled={busy} onClick={() => handleSubmit("draft")} className="border-border" title={t("المسودة لا تُرحَّل للدفاتر ولا تتطلب حسابات البنود", "A draft is not posted and does not require line accounts")}>
+              <Button type="button" variant="outline" disabled={busy || regionLoading || !orgCurrency} onClick={() => handleSubmit("draft")} className="border-border" title={t("المسودة لا تُرحَّل للدفاتر ولا تتطلب حسابات البنود", "A draft is not posted and does not require line accounts")}>
                 {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
               </Button>
-              <Button type="button" disabled={busy} onClick={() => handleSubmit("approve")} className="bg-primary hover:bg-primary/90">
+              <Button type="button" disabled={busy || regionLoading || !orgCurrency} onClick={() => handleSubmit("approve")} className="bg-primary hover:bg-primary/90">
                 {busy ? "..." : editingId ? t("تحديث", "Update") : t("حفظ", "Save")}
               </Button>
             </div>
           }
         >
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(420px,0.9fr)_minmax(0,1.1fr)] items-start">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,0.7fr)_minmax(0,1.3fr)] items-start">
             <DocumentPreviewPane
-              className="xl:sticky xl:top-4 min-h-[640px]"
+              className="xl:sticky xl:top-4 min-h-[200px] md:min-h-[360px]"
               hint={t("ارفع إيصالاً أو فاتورة مصروف", "Upload a receipt or expense invoice")}
               onFilesAdded={handleFilesAdded}
               onExtract={handleExtract}
@@ -1393,6 +1405,10 @@ export function Expenses() {
             />
 
             <div className="space-y-4">
+              <div className="rounded-lg border border-border p-3 text-sm">
+                <b>{t("دفعت الآن", "Paid now")}</b> · {t("سجّل الشراء والدفع معًا هنا.", "Record the purchase and payment together here.")}
+                <Link className="block mt-2 text-primary underline" to="/app/purchases/bills?new=1">{t("لم تدفع بعد؟ سجّل فاتورة مورد مستحقة", "Not paid yet? Record a supplier bill")}</Link>
+              </div>
               {hasActiveDraft && (
                 <div className="rounded-lg border border-primary/20 bg-card px-3 py-3 text-sm text-foreground">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1410,7 +1426,7 @@ export function Expenses() {
                       className="h-8 border-border text-xs"
                       onClick={() => {
                         clearExpenseDraft();
-                        setFormData(emptyForm());
+                        setFormData(emptyForm(orgCurrency));
                         setExtractionSummary(null);
                         setDraftSavedAt(null);
                         setDraftAvailable(false);
@@ -1435,12 +1451,12 @@ export function Expenses() {
                         {extractionSummary.documentNumber ? <> · {t("رقم", "No.")} <span className="font-english">{extractionSummary.documentNumber}</span></> : null}
                         {extractionSummary.vendorCr ? <> · {t("س.ت:", "CR:")} <span className="font-english">{extractionSummary.vendorCr}</span></> : null}
                         {extractionSummary.vendorUnn ? <> · {t("موحد (700):", "UNN (700):")} <span className="font-english">{extractionSummary.vendorUnn}</span></> : null}
-                        {extractionSummary.total ? <> · <span className="font-english">{displayDigits(extractionSummary.total.toFixed(2))} SAR</span></> : null}
+                        {extractionSummary.total ? <> · <span className="font-english">{displayDigits(extractionSummary.total.toFixed(2))} {formData.sourceCurrency}</span></> : null}
                         {extractionSummary.confidence != null ? <> · {t("ثقة", "Confidence")} <span className="font-english">{Math.round(extractionSummary.confidence * 100)}%</span></> : null}
                       </div>
                       <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                        <div className="rounded bg-card px-2 py-1">{t("قبل الضريبة ", "Before tax ")}<span className="font-english">{money(extractionSummary.subtotal || 0)}</span></div>
-                        <div className="rounded bg-card px-2 py-1">{t("الضريبة ", "Tax ")}<span className="font-english">{money(extractionSummary.tax || 0)}</span></div>
+                        <div className="rounded bg-card px-2 py-1">{t("قبل الضريبة ", "Before tax ")}<span className="font-english">{money(extractionSummary.subtotal || 0, formData.sourceCurrency)}</span></div>
+                        <div className="rounded bg-card px-2 py-1">{t("الضريبة ", "Tax ")}<span className="font-english">{money(extractionSummary.tax || 0, formData.sourceCurrency)}</span></div>
                         <div className="rounded bg-card px-2 py-1">{t("الأصناف ", "Items ")}<span className="font-english">{extractionSummary.lineCount}</span></div>
                       </div>
                       {extractionSummary.warnings.length > 0 && (
@@ -1467,17 +1483,17 @@ export function Expenses() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("الرقم الضريبي للمورد", "Supplier Tax No.")}</Label>
-                  <Input dir="ltr" placeholder="300000000000003" value={formData.supplierTaxId} onChange={(e) => setFormData({ ...formData, supplierTaxId: normalizeDigits(e.target.value) })} className="border-border font-english" />
+                  <Input dir="ltr" placeholder={t("اختياري · كما في المستند", "Optional · as shown on the document")} value={formData.supplierTaxId} onChange={(e) => setFormData({ ...formData, supplierTaxId: normalizeDigits(e.target.value) })} className="border-border font-english" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">{t("التصنيف *", "Category *")}</Label>
+                  <Label className="text-foreground/80">{t("وصف مختصر (اختياري)", "Short description (optional)")}</Label>
                   <Input placeholder={t("مثال: ضيافة ووجبات · فواتير خدمات", "e.g. Entertainment & meals · Service invoices")} value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} required className="border-border" />
                   <div className="space-y-1" data-testid="expense-header-account" data-account-suggested={(formData as any).accountSuggested ? "true" : undefined}>
                     <div className="flex items-center gap-2">
-                      <Label className="text-foreground/80 text-xs">{t("حساب المصروف (الافتراضي للبنود)", "Expense account (default for lines)")}</Label>
+                      <Label className="text-foreground/80 text-xs">{t("نوع التكلفة *", "Cost category *")}</Label>
                       {(formData as any).accountSuggested && formData.accountId && (
                         <button type="button" onClick={() => setFormData({ ...formData, accountSuggested: false } as FormState)} className="rounded-full border border-border bg-surface-subtle px-1.5 py-0.5 text-[10px] font-semibold leading-none text-content-secondary hover:text-foreground" title={t("حساب مقترح تلقائياً · اضغط للتأكيد أو اختر حساباً آخر", "Suggested automatically · click to confirm or pick another account")}>
                           {t("مقترح", "Suggested")}
@@ -1490,8 +1506,9 @@ export function Expenses() {
                       items={expenseAccountItems}
                       placeholder={t("اختر حساب المصروف من الشجرة…", "Pick the expense account from the chart…")}
                     />
-                    <p className="text-[11px] text-muted-foreground">{t("يُستخدم لكل بند بلا حساب خاص · المصروف لا يُعتمد بدون حساب على كل بند أو هنا.", "Used for every line without its own account · an expense is not approved without an account on each line or here.")}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("اختر مرة واحدة لجميع البنود. يمكنك تخصيص كل بند من التفاصيل.", "Choose once for all items. Override individual items in details.")}</p>
                   </div>
+                  {showDetails && <>
                   <button
                     type="button"
                     role="checkbox"
@@ -1526,6 +1543,7 @@ export function Expenses() {
                       ) : null;
                     })()}
                   </div>
+                  </>}
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("رقم الفاتورة / الإيصال", "Invoice / Receipt No.")}</Label>
@@ -1546,14 +1564,14 @@ export function Expenses() {
                     options={Object.entries(paymentMethodLabels(t)).filter(([value]) => value !== "CLEARING").map(([value, label]) => ({ value, label }))}
                   />
                 </div>
-                <BranchField value={formData.branchId} onChange={(id) => setFormData((f) => ({ ...f, branchId: id }))} />
-                <ProjectField value={formData.projectId} onChange={(id) => setFormData((f) => ({ ...f, projectId: id }))} />
+                {showDetails && <><BranchField value={formData.branchId} onChange={(id) => setFormData((f) => ({ ...f, branchId: id }))} />
+                <ProjectField value={formData.projectId} onChange={(id) => setFormData((f) => ({ ...f, projectId: id }))} /></>}
               </div>
 
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("قبل الضريبة *", "Before Tax *")}</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.amount} onChange={(e) => {
+                  <Input type="text" inputMode="decimal" placeholder="0.00" readOnly={formData.lineItems.length > 0} value={formData.amount} onChange={(e) => {
                     const amount = normalizeDigits(e.target.value);
                     const tax = Number(normalizeDigits(formData.taxAmount || "0"));
                     setFormData({ ...formData, amount, totalAmount: String((Number(amount || 0) + tax).toFixed(2)) });
@@ -1561,7 +1579,7 @@ export function Expenses() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("ضريبة VAT", "VAT")}</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.taxAmount} onChange={(e) => {
+                  <Input type="text" inputMode="decimal" placeholder="0.00" readOnly={formData.lineItems.length > 0} value={formData.taxAmount} onChange={(e) => {
                     const taxAmount = normalizeDigits(e.target.value);
                     const amount = Number(normalizeDigits(formData.amount || "0"));
                     setFormData({ ...formData, taxAmount, totalAmount: String((amount + Number(taxAmount || 0)).toFixed(2)) });
@@ -1569,103 +1587,43 @@ export function Expenses() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-foreground/80">{t("الإجمالي", "Total")}</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0.00" value={formData.totalAmount} onChange={(e) => setFormData({ ...formData, totalAmount: normalizeDigits(e.target.value) })} dir="ltr" className="border-border font-english" />
+                  <Input type="text" inputMode="decimal" placeholder="0.00" readOnly={formData.lineItems.length > 0} value={formData.totalAmount} onChange={(e) => { const totalAmount = normalizeDigits(e.target.value); setFormData({ ...formData, totalAmount, amount: String(Math.max(0, Number(totalAmount) - Number(formData.taxAmount || 0))) }); }} dir="ltr" className="border-border font-english" />
                 </div>
               </div>
 
-              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{t("تسوية العملة والدفع الفعلي", "Currency Settlement & Actual Payment")}</h3>
-                    <p className="text-xs text-muted-foreground">{t("افصل عملة الفاتورة عن عملة البنك، وسجل فرق الصرف أو تكلفة التحويل بوضوح.", "Separate invoice currency from bank currency, and record FX difference or transfer cost clearly.")}</p>
+              {formData.lineItems.length > 0 && <button type="button" onClick={() => setShowDetails(true)} className="text-sm text-primary underline">{t("الإجمالي محسوب من البنود · تعديل البنود", "Total calculated from items · Edit items")}</button>}
+              <section className="rounded-lg border border-border bg-card p-4 space-y-3" aria-label={t("المبلغ والدفع", "Amount and payment")}>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="space-y-2"><Label>{t("عملة الفاتورة", "Invoice currency")}</Label>
+                    <SegGroup value={formData.sourceCurrency} options={currencies(t).map(c => ({ value: c.value, label: c.value }))}
+                      onChange={sourceCurrency => setFormData(f => ({ ...f, sourceCurrency, exchangeRate: String(defaultExchangeRate(sourceCurrency, orgCurrency)), ...(!f.bankAccountId ? { actualPaidCurrency: sourceCurrency, actualPaidAmount: "" } : {}) }))} />
                   </div>
-                  {currencySettlement.isCrossCurrency && (
-                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${currencySettlement.difference > 0 ? "bg-warning-subtle text-warning" : currencySettlement.difference < 0 ? "bg-success-subtle text-success" : "bg-info-subtle text-info"}`}>
-                      {t("فرق", "Diff")} {money(Math.abs(currencySettlement.difference), currencySettlement.actualPaidCurrency)}
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">{t("عملة الفاتورة", "Invoice currency")}</Label>
-                    <SegGroup
-                      compact
-                      value={formData.sourceCurrency}
-                      onChange={(sourceCurrency) => {
-                        const exchangeRate = String(defaultExchangeRate(sourceCurrency, formData.baseCurrency));
-                        const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
-                        setFormData({
-                          ...formData,
-                          sourceCurrency,
-                          exchangeRate,
-                          actualPaidAmount: sourceCurrency === formData.baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
-                        });
-                      }}
-                      options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">{t("عملة الدفاتر", "Books currency")}</Label>
-                    <SegGroup
-                      compact
-                      value={formData.baseCurrency}
-                      onChange={(baseCurrency) => {
-                        const exchangeRate = String(defaultExchangeRate(formData.sourceCurrency, baseCurrency));
-                        const sourceTotal = Number(normalizeDigits(formData.totalAmount || "0"));
-                        setFormData({
-                          ...formData,
-                          baseCurrency,
-                          actualPaidCurrency: baseCurrency,
-                          exchangeRate,
-                          actualPaidAmount: formData.sourceCurrency === baseCurrency ? "" : String(roundMoney(sourceTotal * Number(exchangeRate || 1))),
-                        });
-                      }}
-                      options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">{t("سعر السوق / العادل", "Market / Fair rate")}</Label>
-                    <Input dir="ltr" inputMode="decimal" value={formData.exchangeRate} onChange={(e) => setFormData({ ...formData, exchangeRate: normalizeDigits(e.target.value) })} className="h-9 border-border font-english text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">{t("المسحوب فعلياً", "Actually paid")}</Label>
-                    <Input dir="ltr" inputMode="decimal" placeholder={String(currencySettlement.bookBaseAmount || 0)} value={formData.actualPaidAmount} onChange={(e) => setFormData({ ...formData, actualPaidAmount: normalizeDigits(e.target.value) })} className="h-9 border-border font-english text-sm" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">{t("عملة السحب", "Payment currency")}</Label>
-                    <SegGroup
-                      compact
-                      value={formData.actualPaidCurrency}
-                      onChange={(actualPaidCurrency) => setFormData({ ...formData, actualPaidCurrency })}
-                      options={currencies(t).map((currency) => ({ value: currency.value, label: currency.value }))}
-                    />
+                  <div className="space-y-2"><Label>{t("دفعت من", "Paid from")}</Label>
+                    <SearchableCombobox value={formData.bankAccountId || ""} items={bankAccounts.map(b => ({ id: b.id, label: `${b.name} · ${b.currency}` }))}
+                      placeholder={t("اختر البنك أو البطاقة (اختياري)", "Choose bank or card (optional)")}
+                      onChange={bankAccountId => { const bank = bankAccounts.find(b => b.id === bankAccountId); setFormData(f => ({ ...f, bankAccountId, paymentMethod: bank ? "BANK_TRANSFER" : f.paymentMethod, actualPaidCurrency: bank?.currency || f.sourceCurrency, actualPaidAmount: "" })); }} />
                   </div>
                 </div>
-                <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_1fr_1.4fr]">
-                  <div className="rounded-md border border-border bg-card p-2">
-                    <p className="text-[11px] text-muted-foreground">{t("إجمالي الفاتورة", "Invoice total")}</p>
-                    <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.sourceTotal, currencySettlement.sourceCurrency)}</p>
+                <details><summary className="cursor-pointer text-sm text-primary">{t("دفعت بعملة أخرى؟", "Paid in another currency?")}</summary>
+                  <div className="pt-3"><SegGroup value={formData.actualPaidCurrency} options={currencies(t).map(c => ({ value: c.value, label: c.value }))}
+                    onChange={actualPaidCurrency => setFormData(f => ({ ...f, actualPaidCurrency, bankAccountId: "", actualPaidAmount: "" }))} /></div>
+                </details>
+                {formData.sourceCurrency !== formData.actualPaidCurrency && <div className="space-y-2">
+                  <Label htmlFor="expense-actual-paid">{t("المبلغ المسحوب فعليًا", "Actual amount charged")} ({formData.actualPaidCurrency})</Label>
+                  <Input id="expense-actual-paid" dir="ltr" inputMode="decimal" value={formData.actualPaidAmount} placeholder="0.00"
+                    onChange={e => setFormData(f => ({ ...f, actualPaidAmount: normalizeDigits(e.target.value) }))} />
+                  <p className="text-xs text-muted-foreground">{t("اكتب المبلغ كما ظهر في كشف البطاقة. نحسب سعر التحويل من المبلغين.", "Enter the amount on your card statement. The rate is calculated from both amounts.")}</p>
+                </div>}
+                <p className="text-sm font-medium" dir="auto">{money(formTotal, formData.sourceCurrency)} → {money(currencySettlement.actualPaidAmount, formData.actualPaidCurrency)}</p>
+                {currencySettlement.isCrossCurrency && <details><summary className="cursor-pointer text-sm text-primary">{t("سعر مرجعي وفصل رسوم التحويل (اختياري)", "Reference rate and separate conversion fees (optional)")}</summary>
+                  <div className="space-y-2 pt-3"><Label>{t("سعر التحويل إلى عملة الشركة", "Conversion rate to company currency")} ({orgCurrency})</Label>
+                    {formData.sourceCurrency !== orgCurrency ? <Input aria-label="Reference exchange rate" dir="ltr" inputMode="decimal" value={formData.exchangeRate} onChange={e => setFormData(f => ({ ...f, exchangeRate: normalizeDigits(e.target.value) }))} /> : <p className="text-xs">{t("مقارنة مرجعية للدولار والريال: 1 USD = 3.75 SAR. ليست سعر البنك الفعلي.", "USD/SAR reference: 1 USD = 3.75 SAR. This is not the actual bank rate.")}</p>}
+                    <SegGroup value={formData.fxTreatment} onChange={fxTreatment => setFormData(f => ({ ...f, fxTreatment: fxTreatment as FxTreatment }))} options={Object.entries(fxTreatmentLabels(t)).map(([value, label]) => ({ value, label }))} />
                   </div>
-                  <div className="rounded-md border border-border bg-card p-2">
-                    <p className="text-[11px] text-muted-foreground">{t("القيمة العادلة", "Fair value")}</p>
-                    <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.bookBaseAmount, currencySettlement.baseCurrency)}</p>
-                  </div>
-                  <div className="rounded-md border border-border bg-card p-2">
-                    <p className="text-[11px] text-muted-foreground">{t("السحب البنكي", "Bank withdrawal")}</p>
-                    <p className="font-english text-sm font-semibold text-foreground">{money(currencySettlement.actualPaidAmount, currencySettlement.actualPaidCurrency)}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground/80">{t("معالجة الفرق", "Difference handling")}</Label>
-                    <SegGroup
-                      compact
-                      value={formData.fxTreatment}
-                      onChange={(fxTreatment) => setFormData({ ...formData, fxTreatment: fxTreatment as FxTreatment })}
-                      options={Object.entries(fxTreatmentLabels(t)).map(([value, label]) => ({ value, label }))}
-                    />
-                  </div>
-                </div>
-              </div>
-
+                </details>}
+              </section>
+              <Button type="button" variant="outline" onClick={() => setShowDetails(!showDetails)} aria-expanded={showDetails}>{t("تفاصيل البنود والمشروع والأصول", "Item, project and asset details")}</Button>
+              {showDetails && <>
               <div className="rounded-lg border border-border bg-card">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
@@ -1678,7 +1636,7 @@ export function Expenses() {
                     className="h-8 border-border text-xs"
                     onClick={() => setFormData((f) => ({
                       ...f,
-                      lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, discountAmount: 0, taxRate: 0.15, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة", costCenter: "", projectCode: "", sourceCurrency: f.sourceCurrency }],
+                      lineItems: [...f.lineItems, { description: "", quantity: 1, unitPrice: 0, discountAmount: 0, taxRate: isSA ? 0.15 : 0, taxInclusive: true, lineTotal: 0, category: "مصروف عام", accountName: "509-99 · مصروفات عامة", costCenter: "", projectCode: "", sourceCurrency: f.sourceCurrency }],
                     }))}
                   >
                     <Plus className="me-1 h-3.5 w-3.5" /> {t("إضافة بند", "Add line")}
@@ -1788,6 +1746,9 @@ export function Expenses() {
                 )}
               </div>
 
+              </>}
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showSplits} onChange={e => setShowSplits(e.target.checked)} />{t("دفعت بأكثر من طريقة", "Paid using more than one method")}</label>
+              {showSplits && <>
               <div className="rounded-lg border border-border bg-card">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
                   <div>
@@ -1850,6 +1811,7 @@ export function Expenses() {
                 </div>
               </div>
 
+              </>}
               <div className="space-y-2">
                 <Label className="text-foreground/80">{t("ملاحظات", "Notes")}</Label>
                 <textarea rows={3} placeholder={t("تفاصيل إضافية...", "Additional details...")} value={formData.notes || formData.description} onChange={(e) => setFormData({ ...formData, notes: e.target.value, description: e.target.value })} className="w-full rounded-md border border-border px-3 py-2 text-sm" />
