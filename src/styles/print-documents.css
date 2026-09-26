@@ -121,7 +121,10 @@
   max-width: none !important; overflow: visible !important; text-overflow: clip !important;
   white-space: normal !important; overflow-wrap: anywhere;
 }
-.report-output-sheet .document-table .numeric-text { white-space: normal; overflow-wrap: anywhere; }
+.report-output-sheet .document-table .numeric-text { white-space: nowrap; overflow-wrap: normal; }
+/* Keep project/account names intact and allow words to wrap, never ellipsize them. */
+.entix-report-paper .report-readable-table td { max-width: none; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+.entix-report-paper .report-readable-table .numeric-text { white-space: nowrap; overflow-wrap: normal; }
 .report-output-sheet .report-page-footer { flex-shrink: 0; }
 .report-output-sheet .report-page-footer footer { position: static !important; padding: 3mm 0 1mm !important; margin: 0 !important; }
 .report-output-sheet .report-page-footer .truncate { white-space: normal; overflow: visible; }

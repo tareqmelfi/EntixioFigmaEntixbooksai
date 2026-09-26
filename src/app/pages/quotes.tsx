@@ -6,7 +6,7 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  * UX-1 compliant: NO Dialog · NO alert/confirm/prompt
  * UX pattern: FullPageForm + ItemsTable + SearchableCombobox · مطابق Wafeq
  */
-import { useEffect, useMemo, useState, useCallback, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, type ReactNode } from "react";
 import { useSearchParams, useParams, Link, useLocation } from "react-router";
 import { Plus, Search, Trash2, Loader2, FileText, ArrowLeftRight, FileSignature, FileSpreadsheet, Link2, CheckCircle2, XCircle, Printer, ArrowRight, Eye, Mail, Pencil } from "lucide-react";
 import { useNavigate } from "react-router";
@@ -242,6 +242,7 @@ function PaymentPlanFields({
 export function Quotes() {
   const { t, language } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
+  const consumingNewQuery = useRef(false);
   const [items, setItems] = useState<Quote[]>([]);
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -249,6 +250,9 @@ export function Quotes() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [fullPreviewUrl, setFullPreviewUrl] = useState<string | null>(null);
+  const [acceptLink, setAcceptLink] = useState<{ quoteId: string; url: string } | null>(null);
+  const [linkBusy, setLinkBusy] = useState(false);
   // CEO 2026-09-21 (verbatim): «ولا شفت تعديل في العروض كلها نفس المشلكة» — the
   // quote form only ever created. Opening a saved quote now fills the SAME form
   // and PATCHes it, so a correction is an edit, never a second quote.
@@ -393,6 +397,7 @@ export function Quotes() {
       setCreateError(null);
       setEditId(null);
       setCreateOpen(true);
+      consumingNewQuery.current = true;
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
@@ -403,7 +408,7 @@ export function Quotes() {
   );
 
   const total = items.reduce((s, q) => s + Number(q.total), 0);
-  const accepted = items.filter(q => q.status === "ACCEPTED").length;
+  const accepted = items.filter(q => q.status === "ACCEPTED" || q.status === "CONVERTED").length;
   const pending = items.filter(q => q.status === "SENT" || q.status === "VIEWED").length;
   // Currency-honest total: one currency → label it · mixed → per-currency figures
   const totalByCur = Object.entries(items.reduce<Record<string, number>>((acc, q) => { acc[q.currency] = (acc[q.currency] || 0) + Number(q.total); return acc; }, {}))
@@ -450,7 +455,10 @@ export function Quotes() {
   const location = useLocation();
   useEffect(() => {
     if (location.pathname === "/app/quotes" && !searchParams.get("new")) {
+      // Consuming ?new=1 is part of opening the form, not a user navigation away.
+      if (consumingNewQuery.current) { consumingNewQuery.current = false; return; }
       setCreateOpen(false);
+      setFullPreviewUrl(null);
       setEditId(null);
       setSignFor(null);
       setSendComposeFor(null);
@@ -561,13 +569,13 @@ export function Quotes() {
     goBackToSource();
   };
 
-  /** «معاينة كاملة» · saves a draft first (a document needs an id) then opens the print view in a new tab */
+  /** Save once, then preview in this page without relying on popup permissions. */
   const handleFullPreview = async () => {
-    const win = window.open("", "_blank", "noopener");
     const q = await handleSubmit("draft", { stayOpen: true });
-    if (!q) { win?.close(); return; }
-    const url = `/print/proposal/${q.id}?noprint=1${form.templateId ? `&templateId=${form.templateId}` : ""}`;
-    if (win) win.location.href = url; else window.open(url, "_blank", "noopener");
+    if (!q) return;
+    const params = new URLSearchParams({ noprint: "1", embed: "1", lang: language });
+    if (form.templateId) params.set("templateId", form.templateId);
+    setFullPreviewUrl(`/print/proposal/${encodeURIComponent(q.id)}?${params}`);
   };
 
   const handleSubmit = async (action: "draft" | "send" = "draft", opts?: { stayOpen?: boolean }): Promise<Quote | null> => {
@@ -620,6 +628,8 @@ export function Quotes() {
       if (status === undefined) delete (payload as any).status;
       const q = editId ? await api.quotes.update(editId, payload) : await api.quotes.create(payload);
       setItems(prev => editId ? prev.map((x) => (x.id === q.id ? { ...x, ...q } : x)) : [q, ...prev]);
+      // A saved preview becomes an edit: returning and previewing again must not create another quote.
+      if (opts?.stayOpen) setEditId(q.id);
       if (editId) setDetail((prev) => (prev && prev.id === q.id ? { ...prev, ...q } : prev));
       // SPEC-05 L2 · the schedule needs a saved quote · an unbalanced plan blocks
       // ONLY itself — the quote is already saved either way.
@@ -704,18 +714,22 @@ export function Quotes() {
     }
   };
 
-  // SPEC-04 · public accept link: generate (+email) then copy to clipboard
+  // Creating/copying an acceptance link never sends email or changes the quote status.
   const handleSendLink = async (q: Quote) => {
+    setLinkBusy(true);
     try {
-      const r = await api.quotes.send(q.id);
-      try { await navigator.clipboard.writeText(r.url); } catch { /* clipboard may be blocked */ }
-      push("success", r.emailed
-        ? t(`أُرسل الرابط للعميل بالبريد ونُسخ: ${r.url}`, `Link emailed to the customer and copied: ${r.url}`)
-        : t(`نُسخ رابط الاعتماد: ${r.url}`, `Accept link copied: ${r.url}`));
-      setItems(prev => prev.map(x => x.id === q.id ? { ...x, status: x.status === "DRAFT" ? "SENT" : x.status, acceptToken: r.token } : x));
+      const r = await api.quotes.send(q.id, { email: false });
+      setAcceptLink({ quoteId: q.id, url: r.url });
+      setItems(prev => prev.map(x => x.id === q.id ? { ...x, acceptToken: r.token } : x));
+      try {
+        await navigator.clipboard.writeText(r.url);
+        push("success", t("نُسخ رابط القبول — لم يُرسل بريد", "Accept link copied — no email sent"));
+      } catch {
+        push("info", t("الرابط جاهز أدناه — حدده وانسخه", "The link is ready below — select it to copy"));
+      }
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل إنشاء الرابط", "Failed to create the link"));
-    }
+      push("error", humanizeError(e, language, { ar: "فشل إنشاء الرابط", en: "Failed to create the link" }));
+    } finally { setLinkBusy(false); }
   };
 
   // SPEC-04 · manual award (bank transfer / phone) → ACCEPTED + auto project
@@ -777,7 +791,7 @@ export function Quotes() {
       }
       closeSign();
     } catch (e: any) {
-      setSignError(e instanceof ApiError ? (e.message === "already_pending" ? t("يوجد طلب توقيع نشط لهذا العرض", "There is an active signing request for this quote") : e.message) : t("فشل الإرسال", "Send failed"));
+      setSignError(humanizeError(e, language, { ar: "فشل الإرسال", en: "Send failed" }));
     } finally { setBusy(false); }
   };
 
@@ -797,7 +811,7 @@ export function Quotes() {
         defaultBody={t(
           `مرحباً ${contact?.displayName || ""}،\n\nمرفق عرض السعر رقم ${q.quoteNumber} بقيمة ${Number(q.total).toFixed(2)} ${q.currency}.\n\nنسعد بتعاونكم معنا.`,
           `Hi ${contact?.displayName || ""},\n\nPlease find attached quote ${q.quoteNumber} for ${Number(q.total).toFixed(2)} ${q.currency}.\n\nLooking forward to working with you.`,
-        )}
+        ) + (acceptLink?.quoteId === q.id ? `\n\n${acceptLink.url}` : "")}
         prefill={sendComposeFor.prefill}
         onClose={() => { const fromCreate = sendComposeFor?.fromCreate; setSendComposeFor(null); if (fromCreate) closeCreate(); }}
         onSent={(record) => {
@@ -809,6 +823,25 @@ export function Quotes() {
         }}
         push={push}
       />
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </>;
+  }
+
+  if (fullPreviewUrl) {
+    return <>
+      <FullPageForm
+        title={t("معاينة عرض السعر", "Quote preview")}
+        subtitle={t("حُفظت التعديلات — يمكنك العودة لإكمال التحرير", "Changes saved — return to continue editing")}
+        onClose={() => setFullPreviewUrl(null)}
+        footer={<div className="flex items-center gap-2">
+          <Button type="button" variant="outline" onClick={() => setFullPreviewUrl(null)} data-testid="quote-preview-back">{t("العودة للتحرير", "Back to editing")}</Button>
+          <a href={`${fullPreviewUrl.split("?")[0]}?lang=${language}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-primary">
+            <Printer className="h-4 w-4" /> {t("طباعة / PDF", "Print / PDF")}
+          </a>
+        </div>}
+      >
+        <iframe src={fullPreviewUrl} title={t("المعاينة الكاملة لعرض السعر", "Full quote preview")} className="w-full min-h-[75vh] border-0 bg-white" data-testid="quote-preview-frame" />
+      </FullPageForm>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </>;
   }
@@ -829,8 +862,8 @@ export function Quotes() {
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
-                <Button type="button" variant="secondary" disabled={busy} onClick={handleFullPreview} data-testid="quote-full-preview" title={t("يحفظ مسودة ثم يفتح المستند الكامل بكل صفحاته في تبويب جديد", "Saves a draft, then opens the full document with all its pages in a new tab")}>
-                  {t("معاينة كاملة", "Full preview")}
+                <Button type="button" variant="secondary" disabled={busy} onClick={handleFullPreview} data-testid="quote-full-preview" title={t("يحفظ التعديلات ويعرض المستند الكامل داخل الصفحة", "Saves changes and previews the full document in this page")}>
+                  {t("حفظ ومعاينة كاملة", "Save and preview")}
                 </Button>
               </div>
               <div className="flex items-center gap-2">
@@ -1151,6 +1184,14 @@ export function Quotes() {
     );
   }
 
+  const todayLocal = new Date();
+  const todayKey = `${todayLocal.getFullYear()}-${String(todayLocal.getMonth() + 1).padStart(2, "0")}-${String(todayLocal.getDate()).padStart(2, "0")}`;
+  const quoteExpired = (q: Quote) => q.status === "EXPIRED" || (!!q.validUntil && q.validUntil.slice(0, 10) < todayKey && ["DRAFT", "SENT", "VIEWED"].includes(q.status));
+  const expiryDate = (q: Quote) => <span className={quoteExpired(q) ? "text-warning" : "text-content-secondary"}>
+    <span dir="ltr" className="font-english text-xs tabular-nums">{q.validUntil?.slice(0, 10) || "—"}</span>
+    {quoteExpired(q) && <span className="ms-1 text-xs" data-testid="quote-expired">{t("انتهت الصلاحية", "Expired")}</span>}
+  </span>;
+
   const statusWord = (q: Quote) => (STATUS_LABELS[q.status] ? t(STATUS_LABELS[q.status].ar, STATUS_LABELS[q.status].en) : q.status);
   const statusPill = (q: Quote) => (
     <StatusBadge
@@ -1177,9 +1218,16 @@ export function Quotes() {
         <Printer className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("العرض", "Proposal")}
       </a>
       {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
-        <button onClick={() => handleSendLink(q)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إنشاء رابط اعتماد عام + إرساله للعميل", "Create a public accept link + email it")}>
+        <button onClick={() => handleSendLink(q)} disabled={linkBusy} data-testid="quote-accept-link" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إنشاء ونسخ رابط القبول بدون إرسال بريد", "Create and copy an accept link without sending email")}>
           <Link2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("رابط القبول", "Accept link")}
         </button>
+      )}
+      {acceptLink?.quoteId === q.id && (
+        <div className="basis-full space-y-1" data-testid="quote-accept-link-result">
+          <Label htmlFor={`accept-link-${q.id}`} className="text-xs text-content-secondary">{t("رابط القبول · لم يُرسل بريد", "Accept link · no email sent")}</Label>
+          <Input id={`accept-link-${q.id}`} readOnly dir="ltr" value={acceptLink.url} onFocus={(e) => e.target.select()} className="text-xs" />
+          <Button type="button" size="sm" variant="outline" onClick={() => setSendComposeFor({ quote: q })}>{t("مراجعة رسالة البريد", "Review email message")}</Button>
+        </div>
       )}
       {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
         pendingAccept === q.id ? (
@@ -1302,7 +1350,7 @@ export function Quotes() {
                   <dt className="text-content-secondary">{t("تاريخ العرض", "Quote date")}</dt>
                   <dd><span dir="ltr" className="font-english tabular-nums text-foreground">{q.issueDate?.slice(0, 10)}</span></dd>
                   <dt className="text-content-secondary">{t("صالح حتى", "Valid until")}</dt>
-                  <dd><span dir="ltr" className="font-english tabular-nums text-foreground">{q.validUntil?.slice(0, 10) || "—"}</span></dd>
+                  <dd>{expiryDate(q)}</dd>
                   <dt className="text-content-secondary">{t("الإجمالي", "Total")}</dt>
                   <dd><span dir="ltr" className="font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(q.total)} <span className="font-english text-xs text-muted-foreground">{q.currency}</span></span></dd>
                   {q.rejectReason && <>
@@ -1420,7 +1468,7 @@ export function Quotes() {
       <MetricStrip className="compact">
         <Metric label={t("إجمالي العروض", "Total quotes")} value={items.length} hint={t("عرض", "quotes")} />
         <Metric label={t("معلقة (في انتظار الرد)", "Pending (awaiting response)")} value={<span className="text-warning">{pending}</span>} hint={t("مرسلة أو مُشاهَدة", "Sent or viewed")} />
-        <Metric label={t("مقبولة", "Accepted")} value={<span className="text-success">{accepted}</span>} hint={t("ترسية", "Awarded")} />
+        <Metric label={t("مقبولة", "Accepted")} value={<span className="text-success">{accepted}</span>} hint={t("تشمل المحوّلة لفاتورة", "Includes converted quotes")} />
         <Metric
           label={t("القيمة الإجمالية", "Total value")}
           value={totalByCur.length > 1
@@ -1457,6 +1505,7 @@ export function Quotes() {
                     <span dir="ltr" className="block font-english text-[11px] leading-4 text-danger tabular-nums">{t("خصم", "Disc.")} -{money2((q as any).discountTotal)}</span>
                   )}
                   {statusPill(q)}
+                  {quoteExpired(q) && expiryDate(q)}
                 </span>
               </button>
             </li>
@@ -1502,7 +1551,7 @@ export function Quotes() {
                   <span className="block overflow-hidden text-ellipsis whitespace-nowrap leading-5"><bdi dir="auto">{q.contact?.displayName || "—"}</bdi></span>
                 </TableCell>
                 <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{q.issueDate?.slice(0, 10)}</span></TableCell>
-                <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{q.validUntil?.slice(0, 10)}</span></TableCell>
+                <TableCell className="text-start">{expiryDate(q)}</TableCell>
                 <TableCell className="text-end">
                   <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(q.total)}{q.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {q.currency}</span>}</span>
                   {Number((q as any).discountTotal || 0) > 0.005 && (

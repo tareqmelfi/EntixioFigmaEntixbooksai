@@ -1,3 +1,4 @@
+import { summarizeReport } from "../lib/report-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
@@ -128,7 +129,7 @@ export function ReportView() {
   const visibleReport = useMemo(() => {
     if (!report) return report;
     if (detailMode === "full" || !hasDetailSections) return report;
-    return { ...report, sections: report.sections.filter((s) => !isDetailSection(s.id)) };
+    return summarizeReport(report);
   }, [report, detailMode, hasDetailSections]);
 
   // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.

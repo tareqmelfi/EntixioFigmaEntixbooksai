@@ -50,8 +50,9 @@ export function ForgotPassword() {
       resultError.toLowerCase().includes("network") ||
       resultError.toLowerCase().includes("connect");
 
-    // Keep privacy-safe success for non-existent accounts, but surface real service/config errors.
-    if (status === 400 || status === 422 || resultError.includes("RESET_PASSWORD_DISABLED") || resultError.includes("email_provider_not_configured")) {
+    // Only a successful server response can acknowledge a reset request.
+    // Errors remain account-neutral so they do not reveal whether the email exists.
+    if (resultError.includes("RESET_PASSWORD_DISABLED") || resultError.includes("email_provider_not_configured")) {
       setError(t("خدمة استعادة كلمة المرور غير مهيأة حالياً. تواصل مع الدعم.", "Password reset service is not configured. Please contact support."));
       return;
     }
@@ -61,8 +62,15 @@ export function ForgotPassword() {
       return;
     }
 
-    // Privacy: don't reveal whether email exists.
-    setSent(true);
+    if (status === 429) {
+      setError(t("طلبات كثيرة خلال وقت قصير. انتظر قليلاً ثم حاول مرة أخرى.", "Too many requests. Wait a little before trying again."));
+      return;
+    }
+    if (status === 400 || status === 403 || status === 422) {
+      setError(t("تعذر قبول الطلب. تحقق من البريد وأكمل التحقق الأمني ثم حاول مرة أخرى.", "The request was not accepted. Check your email and complete the security check, then try again."));
+      return;
+    }
+    setError(t("تعذر طلب رابط الاسترداد الآن. حاول مرة أخرى أو تواصل مع الدعم.", "Could not request a reset link right now. Retry or contact support."));
   };
 
   return (
