@@ -9,7 +9,7 @@ export function InboxReviewEditor({detail,onSaved,onDirty}:{detail:InboxMessageD
   const {t}=useLanguage();
   const [notes,setNotes]=useState(detail.reviewNotes || '');
   const [editing,setEditing]=useState(false);
-  const [ex,setEx]=useState<any>(()=>({issuer:{name:''},documentNumber:'',issueDate:new Date().toISOString().slice(0,10),currency:detail.extractedCurrency || '',...detail.extractedJson,lines:detail.extractedJson?.lines?.length ? detail.extractedJson.lines.map((l:any)=>({...l, unitPrice:l.taxInclusive ? Number(l.unitPrice)/(1+Number(l.taxRate||0)) : l.unitPrice, taxInclusive:false})) : [{description:'',quantity:1,unitPrice:0,taxRate:0}]}));
+  const [ex,setEx]=useState<any>(()=>({issuer:{name:''},documentNumber:'',issueDate:new Date().toISOString().slice(0,10),currency:detail.extractedCurrency || '',...detail.extractedJson,lines:detail.extractedJson?.lines?.length ? detail.extractedJson.lines.map((l:any)=>({...l, unitPrice:(Number(l.unitPrice||0) - Number(l.discountAmount ?? l.discount ?? 0)/Number(l.quantity||1))/(l.taxInclusive ? 1+Number(l.taxRate||0) : 1), discountAmount:0, discount:0, taxInclusive:false})) : [{description:'',quantity:1,unitPrice:0,taxRate:0}]}));
   useEffect(()=>{onDirty(editing || notes !== (detail.reviewNotes || ''));},[editing,notes,detail.reviewNotes,onDirty]);
   const [busy,setBusy]=useState(false),[error,setError]=useState('');
   const field=(label:string,value:string,change:(value:string)=>void,type='text')=><label className="space-y-1 text-xs">{label}<Input type={type} value={value??''} onChange={e=>change(e.target.value)} /></label>;
@@ -18,7 +18,7 @@ export function InboxReviewEditor({detail,onSaved,onDirty}:{detail:InboxMessageD
     try {
       let extracted;
       if(editing){
-        const lines=ex.lines.map((l:any)=>({...l,quantity:Number(l.quantity),unitPrice:Number(l.unitPrice),taxRate:Number(l.taxRate||0)}));
+        const lines=ex.lines.map((l:any)=>({...l,quantity:Number(l.quantity),unitPrice:Number(l.unitPrice),taxRate:Number(l.taxRate||0), subtotal:Number(l.quantity)*Number(l.unitPrice), lineTotal:Number(l.quantity)*Number(l.unitPrice)*(1+Number(l.taxRate||0))}));
         const subtotal=lines.reduce((s:number,l:any)=>s+l.quantity*l.unitPrice,0),tax=lines.reduce((s:number,l:any)=>s+l.quantity*l.unitPrice*l.taxRate,0);
         extracted={...ex,issueDate:ex.issueDate?.slice(0,10),dueDate:ex.dueDate?.slice(0,10)||null,lines,totals:{subtotal,tax,total:Math.round((subtotal+tax)*100)/100}};
       }
