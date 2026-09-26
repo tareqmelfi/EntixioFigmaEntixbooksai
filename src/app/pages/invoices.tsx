@@ -778,16 +778,18 @@ export function Invoices() {
   if (sendComposeFor) {
     const inv = sendComposeFor.invoice;
     const contact = inv.contact || customers.find((c) => c.id === inv.contactId);
-    const payLink = (inv as any).__payLink as string | undefined;
+    const payLink = ((inv as any).__payLink || (inv as any).paymentLinkUrl) as string | undefined;
+    const emailT = (ar: string, en: string) => ((inv as any).language || language) === "en" ? en : ar;
     return <>
+      <div role="status" className="mb-3 rounded-lg border border-border bg-card p-3 text-sm">{payLink ? t('رابط الدفع مرفق في الرسالة أدناه.', 'The payment link is included in the message below.') : t('هذه الرسالة بدون رابط دفع. يمكنك الرجوع وتجهيز الرابط من شاشة الفاتورة.', 'This message has no payment link. Go back to the invoice to prepare one.')}</div>
       <SendComposeForm
         entityType="invoice"
         entityId={inv.id}
         documentNumber={inv.invoiceNumber}
         documentLabelAr="فاتورة" documentLabelEn="Invoice"
         defaultTo={contact?.email ? [contact.email] : []}
-        defaultSubject={t(`فاتورة ${inv.invoiceNumber}`, `Invoice ${inv.invoiceNumber}`)}
-        defaultBody={t(
+        defaultSubject={emailT(`فاتورة ${inv.invoiceNumber}`, `Invoice ${inv.invoiceNumber}`)}
+        defaultBody={emailT(
           `مرحباً ${contact?.displayName || ""}،\n\nمرفق الفاتورة رقم ${inv.invoiceNumber} بقيمة ${Number(inv.total).toFixed(2)} ${inv.currency}.${payLink ? `\n\nرابط الدفع: ${payLink}` : ""}\n\nشكراً لتعاملكم معنا.`,
           `Hi ${contact?.displayName || ""},\n\nPlease find attached invoice ${inv.invoiceNumber} for ${Number(inv.total).toFixed(2)} ${inv.currency}.${payLink ? `\n\nPayment link: ${payLink}` : ""}\n\nThank you.`,
         )}

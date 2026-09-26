@@ -97,7 +97,7 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
   useEffect(() => () => { if (dirtyRef.current) toastRef.current(); }, []);
 
   return (
-    <div className="-m-4 sm:-mx-[40px] sm:-my-[28px] min-h-[calc(100vh-4rem)] flex flex-col bg-canvas relative">
+    <div data-full-page-form="true" className="-m-4 sm:-mx-[40px] sm:-my-[28px] min-h-[calc(100vh-4rem)] flex flex-col bg-canvas relative">
       {/* Header bar · NOT sticky · scrolls with content (fixes banner-cover bug) */}
       <div className="bg-surface border-b border-border flex-shrink-0">
         <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4 flex-wrap">
