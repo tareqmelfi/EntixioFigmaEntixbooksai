@@ -1581,7 +1581,7 @@ export function Invoices() {
                         {t("تفكيك", "Split")}
                       </button>
                     )}
-                    {i.status !== "DRAFT" && <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} aria-label={t("فاتورة صادرة ومقفلة", "Issued and locked")} />}
+                    {i.status !== "DRAFT" && !isUS && <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} aria-label={t("فاتورة صادرة ومقفلة", "Issued and locked")} />}
                     {i.status !== "PAID" && i.status !== "CANCELLED" && (
                       <button
                         onClick={() => openRecordPayment(i)}
@@ -1711,8 +1711,8 @@ export function Invoices() {
                 ><FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}</button>
               )}
               {selected.status !== "DRAFT" && (
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("فاتورة صادرة ومقفلة", "Issued and locked")}>
-                  <LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />{t("مقفلة", "Locked")}
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("افتح الفاتورة لمراجعة خيارات التعديل والتصحيح", "Open invoice to review amendment and correction options")}>
+                  {!isUS && <LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />}{isUS ? t("صادرة · افتح لإدارة الفاتورة", "Issued · open to manage") : t("مقفلة", "Locked")}
                 </span>
               )}
               {selected.status === "DRAFT" && (pendingDelete === selected.id ? (

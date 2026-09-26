@@ -1,3 +1,4 @@
+import { InvoiceAmendmentPanel } from './invoice-amendment-panel';
 import { InvoiceDocuments } from './invoice-documents';
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
@@ -10,7 +11,7 @@ import { FullPageForm } from './full-page-form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { SendLogSection } from './send-log-section';
 import { InvoiceReclassifyPanel } from './invoice-reclassify-panel';
-import { LockKeyhole, CheckCircle2, Clock3, Mail } from 'lucide-react';
+import { CheckCircle2, Clock3, Mail } from 'lucide-react';
 
 /** Issued document view: never mounts editable invoice controls. */
 export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey, accounts }: {
@@ -60,11 +61,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         {!stripeManaged && <Button variant="outline" disabled={paymentBusy || !canRelease} onClick={preparePayment}>{paymentBusy ? t('جارٍ التحقق…', 'Checking…') : t('تجهيز / تحديث رابط الدفع', 'Prepare / refresh payment link')}</Button>}
         {paymentError && <p role="alert" className="text-sm text-warning">{paymentError}</p>}
       </section>}
-      <div className="rounded-lg border border-border bg-muted/40 p-4 flex gap-3">
-        <LockKeyhole className="h-5 w-5 shrink-0 text-primary" />
-        <div><p className="font-semibold">{t('فاتورة صادرة ومقفلة', 'Issued invoice · locked')}</p>
-          <p className="text-sm text-muted-foreground mt-1">{stripeManaged ? t('الفاتورة والدفعات متزامنة مع أصل Stripe. يمكنك إضافة المستندات الداعمة أدناه.', 'Invoice and payments are synced from Stripe. Supporting documents can be attached below.') : t('لا يمكن تعديلها أو حذفها أو إرجاعها لمسودة. التصحيح بإشعار دائن أو مدين مرتبط بالفاتورة الأصلية. يمكنك تسجيل التحصيل بشكل مستقل.', 'This invoice cannot be edited, deleted or returned to draft. Corrections require a credit/debit note linked to the original. Receipts can be recorded separately.')}</p></div>
-      </div>
+      <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} />
       {/* An issued invoice is locked for its MONEY, not for its bookkeeping —
           the account a line landed on can still be corrected (2026-09-21). */}
       {!stripeManaged && invoice.status !== 'CANCELLED' && !!accounts?.length && (
@@ -94,6 +91,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         <div className="min-w-0 rounded-lg border border-border bg-surface-subtle overflow-hidden" aria-label={t('معاينة الفاتورة', 'Invoice preview')}>
           <iframe
             title={t('معاينة الفاتورة', 'Invoice preview')}
+            key={invoice.updatedAt}
             src={previewSrc}
             className="w-full block bg-card"
             style={{ height: 'min(78vh, 900px)', minHeight: 480, border: 0 }}
