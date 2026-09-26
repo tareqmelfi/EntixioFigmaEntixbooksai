@@ -47,7 +47,7 @@ test('clicking a bill row opens THAT bill (full fetch) — never a blank «new b
   )
 
   await page.goto('/app/purchases/bills')
-  await page.getByText('SP-INV-48300').click()
+  await page.getByText('SP-INV-48300', { exact: true }).click()
 
   // The form must identify the opened bill, not claim «new».
   await expect(page.getByRole('heading', { name: /SP-INV-48300/ })).toBeVisible()

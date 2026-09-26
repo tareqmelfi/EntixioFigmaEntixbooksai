@@ -1339,6 +1339,8 @@ export const api = {
 
   // Bank Accounts
   bankAccounts: {
+    activity: (id: string) => request<{items: Array<Voucher & {kind?: string; detailPath?: string}>}>(`/api/bank-accounts/${id}/activity`),
+    transfer: (data: {fromId:string;toId:string;sent:number;received:number;date:string;requestId:string;baseAmount?:number}) => request<{id:string}>('/api/bank-accounts/transfers', {method:'POST',body:data}),
     list: () => request<{ items: BankAccount[]; total: number; totalBalance: number }>('/api/bank-accounts'),
     create: (data: BankAccountInput) => request<BankAccount>('/api/bank-accounts', { method: 'POST', body: data }),
     update: (id: string, data: Partial<BankAccountInput>) => request<BankAccount>(`/api/bank-accounts/${id}`, { method: 'PATCH', body: data }),

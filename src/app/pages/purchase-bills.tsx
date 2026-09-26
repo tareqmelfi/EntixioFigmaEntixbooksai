@@ -99,7 +99,8 @@ export function PurchaseBills() {
   const [form, setForm] = useState(EMPTY_FORM);
   // A USD company must never open a SAR bill by default (owner report
   // 2026-08-21). Applies while the user hasn't picked a currency manually.
-  const { currency: orgCurrency } = useOrgRegion();
+  const { currency: orgCurrency, isSA } = useOrgRegion();
+  const [showDimensions, setShowDimensions] = useState(false);
   const currencyTouchedRef = useRef(false);
 
   useEffect(() => {
@@ -497,6 +498,7 @@ export function PurchaseBills() {
             </div>
           }
         >
+          {!editingId && <div className="mb-4 rounded-lg border border-border p-3 text-sm"><b>{t("سأدفع لاحقًا", "Pay later")}</b> · {t("تُحفظ الفاتورة كمبلغ مستحق للمورد حتى تسجيل الدفع.", "This bill remains payable until you record its payment.")} <Link to="/app/expenses/new" className="text-primary underline">{t("دفعت بالفعل؟ تسجيل شراء مدفوع", "Already paid? Record a paid purchase")}</Link></div>}
           <div className="mb-4 space-y-2">
             {lockedBill && <p role="status" className="rounded-lg bg-muted p-3 text-sm">{t("هذه الفاتورة معتمدة ومحمية للحفاظ على تطابق الحسابات. استخدم إشعار مورد للتصحيح.", "This approved bill is protected to keep the accounts consistent. Use a supplier credit to correct it.")} <a className="text-primary underline" href="/app/purchases/supplier-credits">{t("إشعارات الموردين", "Supplier credits")}</a></p>}
             {billAttachments.map(a => <a key={a.id} className="block text-sm text-primary underline" href={a.fileUrl} download={a.fileName}>{a.fileName}</a>)}
@@ -601,25 +603,26 @@ export function PurchaseBills() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
+              {showDimensions && <><div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f: any) => ({ ...f, branchId: id }))} />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-foreground/80 text-xs">{t("المشروع", "Project")}</Label>
                 <ProjectField compact value={form.projectId} onChange={(id) => setForm((f: any) => ({ ...f, projectId: id }))} />
-              </div>
+              </div></>}
             </div>
 
+            <Button type="button" variant="outline" onClick={() => setShowDimensions(!showDimensions)} aria-expanded={showDimensions}>{t("ربط بفرع أو مشروع (اختياري)", "Branch or project (optional)")}</Button>
             <ItemsTable
               lines={lines}
               setLines={setLines}
               mode={taxMode}
               onModeChange={setTaxMode}
-              defaultTaxRate={0.15}
+              defaultTaxRate={isSA ? 0.15 : 0}
               currency={form.currency}
               direction="purchases"
-              minRows={10}
+              minRows={2}
               contactId={form.contactId || null}
               invalidIds={invalidLineIds}
               errorMessage={lineError}
@@ -781,7 +784,7 @@ export function PurchaseBills() {
             {!lockedBill && <DocumentDropZone
               target="bill-lines"
               hint={t("استخرج بنود فاتورة المشتريات من فاتورة المورد", "Extract purchase bill lines from the supplier invoice")}
-              defaultTaxRate={0.15}
+              defaultTaxRate={isSA ? 0.15 : 0}
               currency={form.currency}
               onExtracted={(data: ExtractedDocument) => {
                 if (!data.lines || data.lines.length === 0) {
