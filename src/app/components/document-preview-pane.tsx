@@ -469,7 +469,7 @@ function renderPreview(item: FileItem, t: (ar: string, en: string) => string) {
   if (mime.includes("pdf")) {
     return (
       <iframe
-        src={`${item.url}#toolbar=0&view=FitH`}
+        src={`${item.url}#toolbar=0&navpanes=0&view=FitH`}
         className="w-full h-full bg-card rounded shadow-sm"
         style={{ minHeight: 400 }}
         title={item.name}
