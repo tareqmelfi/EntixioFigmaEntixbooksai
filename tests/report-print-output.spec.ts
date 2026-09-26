@@ -65,16 +65,18 @@ test('designer prints from the same paginated content and applies document langu
   await expect(output).not.toContainText('عملة التقرير')
   await expect(page.getByTestId('report-download-pdf')).toBeEnabled()
 })
-test('bilingual print labels retain a gap between Arabic and English', async ({page}, testInfo) => {
+test('bilingual labels stack languages in source and paginated PDF', async ({page}, testInfo) => {
   await setup(page, {template:'condensed', language:'ar', bilingual:true}, 3)
   await page.goto(`/print/report/income-statement?orgId=${visualOrgId}&detail=summary`)
   const output = page.getByTestId('report-output-pages')
   await expect(output).toHaveAttribute('data-ready','true')
-  const gap = await output.locator('thead .report-bilingual').first().evaluate(label => {
-    const [main, alternate] = Array.from(label.children).map(span => span.getBoundingClientRect())
-    return Math.max(main.left - alternate.right, alternate.left - main.right)
-  })
-  expect(gap).toBeGreaterThanOrEqual(5)
+  for (const container of [page.locator('.report-measure-source'), output]) {
+    const labels = await container.locator('.report-bilingual').evaluateAll(labels => labels.map(label => {
+      const [main, alternate] = Array.from(label.children).map(span => span.getBoundingClientRect())
+      return !alternate || alternate.top >= main.bottom
+    }))
+    expect(labels.every(Boolean)).toBe(true)
+  }
   const download = page.waitForEvent('download')
   await page.getByTestId('report-download-pdf').click()
   await (await download).saveAs(testInfo.outputPath('bilingual.pdf'))
@@ -164,7 +166,7 @@ for (const template of ['condensed', 'classic']) {
     const columns = [{ key: 'label', label: 'المشروع␟Project' }, ...Array.from({ length: 12 }, (_, metric) => ({ key: `metric${metric}`, label: `مؤشر المشروع ${metric}␟Project metric ${metric}`, kind: 'money', align: 'end' }))]
     await page.route('https://api.entix.io/api/reports/project-profitability*', route => route.fulfill({ json: {
       ...payload(0), id: 'project-profitability', title: 'ربحية المشاريع', englishTitle: 'Project profitability',
-      sections: [{ id: 'project-profitability', title: 'ربحية المشاريع␟Project profitability', columns, rows: projects }],
+      sections: [{ id: 'project-profitability', title: 'ربحية المشاريع␟Project profitability', description: 'إيرادات وتكلفة المشروع وصافي الربح␟Project revenue, cost and net profit', columns, rows: projects }],
     } }))
     await page.goto(`/print/report/project-profitability?orgId=${visualOrgId}`)
     const output = page.getByTestId('report-output-pages')
@@ -196,6 +198,22 @@ for (const template of ['condensed', 'classic']) {
     for (let metric = 0; metric < 12; metric++) {
       const amount = (1234567.89 + metric).toLocaleString('en-US', { minimumFractionDigits: 2 })
       expect(await output.locator('tbody .numeric-text').filter({ hasText: amount }).count()).toBe(18)
+    }
+    if (template === 'condensed') {
+      for (const container of [page.locator('.report-measure-source'), output]) {
+        const labels = await container.locator('.report-bilingual').evaluateAll(labels => labels.map(label => {
+          const [main, alternate] = Array.from(label.children).map(span => span.getBoundingClientRect())
+          return !alternate || alternate.top >= main.bottom
+        }))
+        expect(labels.every(Boolean)).toBe(true)
+        const currencies = await container.locator('.report-column-currency').evaluateAll(elements => elements.map(element => {
+          const range = document.createRange(); range.selectNodeContents(element)
+          const boxes = Array.from(range.getClientRects())
+          return { singleLine: boxes.length > 0 && Math.max(...boxes.map(box => box.top)) < Math.min(...boxes.map(box => box.bottom)), text: element.textContent, whiteSpace: getComputedStyle(element).whiteSpace }
+        }))
+        expect(currencies.length).toBeGreaterThan(0)
+        for (const currency of currencies) { expect(currency.text).toBe('(SAR)'); expect(currency.singleLine).toBe(true); expect(currency.whiteSpace).toBe('nowrap') }
+      }
     }
     await sheets.first().screenshot({ path: testInfo.outputPath('wide-preview.png') })
     const download = page.waitForEvent('download')

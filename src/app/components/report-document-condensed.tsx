@@ -43,8 +43,8 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { v
   const altCls = size === "lg" ? "text-[11px] font-semibold tracking-wide" : "text-[10px] font-medium";
   return (
     <span className="report-bilingual inline-flex flex-wrap items-baseline gap-x-2">
-      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} dir={lang === "ar" ? "rtl" : "ltr"}>{main}</span>
-      {both && alt ? <span className={`${altCls} text-muted-foreground`} dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</span> : null}
+      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi></span>
+      {both && alt ? <span className={`${altCls} text-muted-foreground`} ><bdi dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</bdi></span> : null}
     </span>
   );
 }
@@ -140,7 +140,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
                         <Bi value={column.label} lang={lang} size="sm" both={bilingual} />
                         {!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
-                          <span className="ms-1 font-english text-[9px] font-normal text-muted-foreground/80" dir="ltr">({report.currency})</span>
+                          <span className="report-column-currency font-english text-[9px] font-normal text-muted-foreground/80"><bdi dir="ltr">({report.currency})</bdi></span>
                         ) : null}
                       </th>
                     ))}
