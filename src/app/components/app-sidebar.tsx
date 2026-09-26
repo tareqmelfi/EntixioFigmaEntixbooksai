@@ -373,7 +373,8 @@ export function AppSidebar({
   const location = useLocation();
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(!!authStore.getState().user?.isPlatformAdmin);
   useEffect(() => authStore.subscribe((s) => setIsPlatformAdmin(!!s.user?.isPlatformAdmin)), []);
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  const navigate = (path: string) => routerNavigate(path, { state: { sidebarSectionEntry: true } });
   const tr = useSidebarText();
   const [openMenus, setOpenMenus] = useState<Set<string>>(new Set());
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -599,7 +600,7 @@ function SidebarContent({
             rail toggle; we keep the toggle but float it on the end edge so the
             mark still sits dead centre. */}
         <div className="relative flex h-[20px] items-center justify-center">
-          <Link
+          <Link state={{ sidebarSectionEntry: true }}
             to="/app"
             onClick={onClose}
             className="flex select-none items-center leading-none transition-opacity hover:opacity-80"
@@ -692,7 +693,7 @@ function SidebarContent({
                    does: 10px muted lettering read as a caption, and the CEO
                    could not tell it was clickable (2026-09-21). */
                 <div className={`mb-[2px] mt-[10px] flex w-full items-center justify-between gap-2 rounded-lg px-[10px] py-[7px] text-[12.5px] font-bold leading-[16px] tracking-[0.2px] transition-colors ${sectionActive ? "bg-primary/10 text-primary" : "text-foreground/75 hover:bg-surface-hover hover:text-foreground"}`} data-section-active={sectionActive ? "" : undefined}>
-                  <Link
+                  <Link state={{ sidebarSectionEntry: true }}
                     to={section.hub}
                     onClick={onClose}
                     className="min-w-0 flex-1 truncate text-start"
@@ -747,20 +748,20 @@ function SidebarContent({
       <div className="mt-auto space-y-px border-t border-border px-[16px] pb-[20px] pt-[10px]">
         {!collapsed && (
           <>
-            <Link to="/app/roadmap" onClick={onClose}>
+            <Link state={{ sidebarSectionEntry: true }} to="/app/roadmap" onClick={onClose}>
               <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/roadmap") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
                 <Map className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/roadmap") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate text-start">{tr("خارطة المزايا")}</span>
               </button>
             </Link>
-            <Link to="/app/settings" onClick={onClose}>
+            <Link state={{ sidebarSectionEntry: true }} to="/app/settings" onClick={onClose}>
               <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/settings") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
                 <Settings className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/settings") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate text-start">{tr("الإعدادات")}</span>
               </button>
             </Link>
             {/* Brand document templates (quote / invoice designer) · sits with the settings entries (2026-09-08) */}
-            <Link to="/app/templates" onClick={onClose} data-testid="sidebar-templates">
+            <Link state={{ sidebarSectionEntry: true }} to="/app/templates" onClick={onClose} data-testid="sidebar-templates">
               <button className={`flex w-full items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${isActive("/app/templates") ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"}`}>
                 <LayoutTemplate className={`h-[16px] w-[16px] shrink-0 ${isActive("/app/templates") ? "text-background" : "text-muted-foreground"}`} strokeWidth={1.75} />
                 <span className="min-w-0 flex-1 truncate text-start">{tr("القوالب")}</span>
@@ -768,7 +769,7 @@ function SidebarContent({
             </Link>
 
             <div className="flex items-center gap-1">
-              <Link to="/app/help" className="flex flex-1 items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] text-content-secondary transition-colors hover:bg-surface-hover hover:text-foreground">
+              <Link state={{ sidebarSectionEntry: true }} to="/app/help" className="flex flex-1 items-center gap-[10px] rounded-lg px-[10px] py-[7px] text-[13px] leading-[16px] text-content-secondary transition-colors hover:bg-surface-hover hover:text-foreground">
                 <HelpCircle className="h-[16px] w-[16px] shrink-0 text-muted-foreground" strokeWidth={1.75} />
                 <span className="min-w-0 truncate">{tr("مركز المساعدة")}</span>
               </Link>
@@ -805,7 +806,7 @@ function SidebarLink({ item, active, onClick, collapsed }: { item: MenuItem; act
   const Icon = item.icon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
   const tr = useSidebarText();
   return (
-    <Link to={item.path!} onClick={onClick}>
+    <Link state={{ sidebarSectionEntry: true }} to={item.path!} onClick={onClick}>
       <button
         className={`flex w-full items-center rounded-lg text-[13px] transition-colors ${
           active ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
@@ -835,7 +836,8 @@ function CollapsibleMenu({
   collapsed?: boolean;
 }) {
   const Icon = item.icon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  const navigate = useNavigate();
+  const routerNavigate = useNavigate();
+  const navigate = (path: string) => routerNavigate(path, { state: { sidebarSectionEntry: true } });
   const tr = useSidebarText();
 
   // Click main label → navigate to parent path + open submenu
@@ -913,7 +915,7 @@ function CollapsibleMenu({
             const ChildIcon = child.icon as React.ComponentType<{ className?: string; strokeWidth?: number }>;
             const active = isActive(child.path);
             return (
-              <Link key={child.path + child.title} to={child.path} onClick={onNavigate}>
+              <Link state={{ sidebarSectionEntry: true }} key={child.path + child.title} to={child.path} onClick={onNavigate}>
                 <button
                   className={`flex w-full items-center gap-[10px] rounded-lg ps-8 pe-[10px] py-[7px] text-[13px] leading-[16px] transition-colors ${
                     active ? "bg-foreground font-semibold text-background" : "text-content-secondary hover:bg-surface-hover hover:text-foreground"
