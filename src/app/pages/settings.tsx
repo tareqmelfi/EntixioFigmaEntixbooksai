@@ -2073,6 +2073,9 @@ function ZatcaTab({ org, push }: { org: Org; push: any }) {
           <p className="text-[13px] text-content-secondary">{t("حالة ربط الجهاز، الشهادة المحفوظة، وسجل الربط القابل للمشاركة.", "Device onboarding status, the stored certificate, and the shareable binding record.")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="secondary" className="h-9 px-3.5 text-[13px]">
+            <a href="/guides/zatca-onboarding-ar.html" target="_blank" rel="noopener noreferrer">{t("دليل الربط بالصور", "Onboarding guide (Arabic)")}</a>
+          </Button>
           <Button variant="secondary" className="h-9 px-3.5 text-[13px]" onClick={refresh}>{t("تحديث الحالة", "Refresh status")}</Button>
           <Button asChild variant="secondary" className="h-9 px-3.5 text-[13px]">
             <a href={FATOORA_DEVICE_PORTAL} target="_blank" rel="noopener noreferrer">

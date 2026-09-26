@@ -23,7 +23,10 @@ const QUICK_PROMPTS: Array<{ ar: string; en: string }> = [
   { ar: "كيف أنقل ملكية شركة أنشأتها لحساب عميل؟", en: "How do I transfer ownership of a company I created to a client's account?" },
 ];
 
-const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string }> = [
+const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string; guide?: boolean }> = [
+  { qAr: "كيف أربط منشأتي بهيئة الزكاة والضريبة والجمارك؟", qEn: "How do I connect my organization to ZATCA?",
+    aAr: "يمكن لفريق Entix مساعدتك، أو تدخل بوابة فاتورة بنفسك وتختار تهيئة وحدة/جهاز جديد ثم تصدر رمز الجهاز OTP. الرمز صالح ساعة، ويختلف عن رمز تسجيل الدخول للجوال. جهّز بيانات المنشأة وتأكد من البيئة قبل إصداره. الربط وشهادة الجهاز وحالة إرسال الفواتير تُراجع بشكل منفصل لكل منشأة.",
+    aEn: "The Entix team can assist, or you can sign in to Fatoora and onboard a new device to generate a device OTP. It is valid for one hour and differs from the SMS login code. Prepare your organization details and confirm the environment first. Device onboarding, its certificate and invoice submission status are checked separately for each organization.", guide: true },
   { qAr: "الاشتراك على الشركة أم على الإيميل؟", qEn: "Is the subscription per company or per account?",
     aAr: "على الشركة. كل منشأة لها اشتراكها المستقل — وأنت كمالك تدخل كل شركاتك بنفس الحساب. شركتك الإضافية تحصل على خصم 30% تلقائي عند الدفع.",
     aEn: "Per company. Each entity has its own subscription — you access all your companies from one account. Your additional companies get an automatic 30% discount at checkout." },
@@ -40,8 +43,8 @@ const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string }> = [
     aAr: "نعم — من المبيعات ← «كاشير POS». شاشة ملء-شاشة: باركود أولًا، نقود سريعة مع الباقي، تعليق فواتير، وردية بفتح وإغلاق ومطابقة درج، وإيصال 80مم.",
     aEn: "Yes — Sales → “Cashier POS”. Full-screen: barcode-first, quick cash with live change, held bills, shift open/close with drawer reconciliation, 80mm receipt." },
   { qAr: "ما حالة تكامل ZATCA؟", qEn: "What is the ZATCA integration status?",
-    aAr: "تكامل ZATCA للمرحلة الثانية قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.",
-    aEn: "ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance." },
+    aAr: "حالة الربط خاصة بكل منشأة. راجع الإعدادات ← ZATCA للتحقق من بيئة الجهاز وصلاحية شهادته وحالة إرسال الفواتير. وجود شهادة لا يثبت قبول كل فاتورة، والتفعيل الإنتاجي يتطلب استكمال التحقق الخاص بالمنشأة.",
+    aEn: "Onboarding status is specific to each organization. Check Settings → ZATCA for the device environment, certificate validity and invoice submission status. A certificate does not prove acceptance of every invoice; production activation requires organization-specific verification." },
   { qAr: "كيف أنشئ شركة جديدة بسرعة؟", qEn: "How do I create a company quickly?",
     aAr: "من مبدّل الشركات ← «إنشاء منشأة جديدة»: اختر الدولة أولًا (السعودية/أمريكا) ثم الاسم فقط يكفي — الشعار والإيميل والنشاط اختيارية، وشجرة الحسابات تنبني حسب النشاط وتعدّلها لاحقًا.",
     aEn: "From the org switcher → “Create new company”: pick the country first (SA/US), then just a name is enough — logo/email/industry optional, and the chart of accounts builds from the industry, editable later." },
@@ -186,7 +189,13 @@ export function HelpCenter() {
                 <span className={`text-muted-foreground transition-transform ${openFaq === i ? "rotate-180" : ""}`}>▾</span>
               </button>
               {(openFaq === i || openFaq === -1) && (
-                <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">{t(f.aAr, f.aEn)}</div>
+                <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">
+                  {t(f.aAr, f.aEn)}
+                  {f.guide && <div className="mt-3 flex flex-wrap gap-4">
+                    <a className="text-primary underline" href="/guides/zatca-onboarding-ar.html" target="_blank" rel="noopener noreferrer">{t("الخطوات المصورة", "Illustrated guide (Arabic)")}</a>
+                    <a className="text-primary underline" href="/guides/zatca-onboarding-ar.pdf" download>{t("تحميل دليل الربط PDF", "Download the Arabic PDF guide")}</a>
+                  </div>}
+                </div>
               )}
             </div>
           ))}
