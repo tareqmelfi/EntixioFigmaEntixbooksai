@@ -50,7 +50,7 @@ function writeSession(id: string) {
   }
 }
 
-export function SupportChatWidget() {
+export function SupportChatWidget({ path, onNavigate }: { path: string; onNavigate: () => void }) {
   const { language, t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
@@ -62,7 +62,6 @@ export function SupportChatWidget() {
   const [unseen, setUnseen] = useState(0);
   const sessionRef = useRef<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const path = typeof window !== "undefined" ? window.location.pathname : "/";
   const hidden = HIDDEN_PREFIXES.some((p) => path.startsWith(p));
 
   useEffect(() => {
@@ -119,6 +118,7 @@ export function SupportChatWidget() {
     }
   }, [open, msgs.length]);
 
+  if (path.startsWith('/app') && !path.startsWith('/app/help') && !path.includes('/pos')) return <button type="button" onClick={onNavigate} aria-label={t("محادثة الدعم", "Support chat")} className="support-portal-launcher fixed bottom-4 end-4 z-40 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm text-primary-foreground shadow-raised"><MessageCircle className="h-5 w-5" />{t("الدعم", "Support")}</button>;
   if (hidden) return null;
 
   const send = async (e: React.FormEvent) => {
@@ -139,6 +139,7 @@ export function SupportChatWidget() {
           lang: language === "ar" ? "ar" : "en",
         }),
       });
+      if (!r.ok) throw new Error("send_failed");
       const d = await r.json();
       if (d?.sessionId) {
         sessionRef.current = d.sessionId;

@@ -1,0 +1,36 @@
+name: Generate visual baselines for review
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - tests/visual-regression.spec.ts
+      - .github/workflows/visual-baselines.yml
+jobs:
+  capture:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            container: mcr.microsoft.com/playwright:v1.62.0-noble
+          - os: macos-latest
+            container: null
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'npm' }
+      - run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/visual-regression.spec.ts --project=chromium --update-snapshots --reporter=list
+        env:
+          CI: 'true'
+          VISUAL_REGRESSION: '1'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reviewed-candidates-${{ matrix.os }}
+          path: tests/visual-regression.spec.ts-snapshots/
+          retention-days: 7

@@ -289,3 +289,6 @@
     text-overflow: ellipsis;
   }
 }
+
+/* Document actions own the footer; support remains available from Help. */
+body:has([data-full-page-form]) .support-portal-launcher { display: none; }

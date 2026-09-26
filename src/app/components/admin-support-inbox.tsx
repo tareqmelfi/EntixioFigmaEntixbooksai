@@ -13,7 +13,7 @@ import { Button } from "./ui/button";
 import { api, type AdminTicketRow, type AdminTicketDetail } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 
-type Filter = "needs" | "whatsapp" | "web" | "all";
+type Filter = "needs" | "whatsapp" | "web" | "portal" | "all";
 
 const CATEGORY_LABEL: Record<string, [string, string]> = {
   sales_A: ["مبيعات A", "Sales A"],
@@ -32,7 +32,7 @@ function fmt(value?: string | null): string {
 
 function ChannelIcon({ channel }: { channel?: string }) {
   if (channel === "whatsapp") return <Smartphone className="h-3.5 w-3.5 text-success" />;
-  if (channel === "web") return <Globe className="h-3.5 w-3.5 text-info" />;
+  if (channel === "web" || channel === "portal") return <Globe className="h-3.5 w-3.5 text-info" />;
   return <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />;
 }
 
@@ -101,6 +101,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
     ["needs", "تحتاج ردّك", "Needs you"],
     ["whatsapp", "واتساب", "WhatsApp"],
     ["web", "شات الموقع", "Website chat"],
+    ["portal", "داخل المنصة", "In-app support"],
     ["all", "الكل", "All"],
   ];
 

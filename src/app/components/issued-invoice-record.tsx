@@ -3,7 +3,7 @@ import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { authStore } from './auth-store';
-import type { DocumentSendRecord, Invoice } from '../lib/api';
+import { api, type DocumentSendRecord, type Invoice } from '../lib/api';
 import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
 import { FullPageForm } from './full-page-form';
@@ -26,6 +26,14 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
   const navigate = useNavigate();
   const canCorrect = authStore.getState().user?.role === 'admin';
   const [refreshing, setRefreshing] = useState(false);
+  const [paymentBusy, setPaymentBusy] = useState(false);
+  const [paymentError, setPaymentError] = useState('');
+  const preparePayment = async () => {
+    setPaymentBusy(true); setPaymentError('');
+    try { await api.paymentLinks.create(invoice.id, 'auto'); await onRefresh(); }
+    catch { setPaymentError(t('تعذر تجهيز الرابط. راجع بوابات الدفع في إعدادات هذه المنشأة ثم أعد المحاولة.', 'Could not prepare the link. Check this company’s payment gateway settings, then retry.')); }
+    finally { setPaymentBusy(false); }
+  };
   const stripeManaged = (invoice as any).paymentLinkProvider === 'stripe-subscription';
   const delivery = invoice.zatcaDelivery;
   const evidence = delivery?.evidence;
@@ -46,6 +54,12 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
       {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}
     </div>}>
     <div className="space-y-4 w-full">
+      {remaining > 0 && invoice.status !== 'CANCELLED' && <section className="rounded-lg border border-border bg-card p-4 space-y-2">
+        <h2 className="font-semibold">{t('دفع العميل عبر الإنترنت', 'Customer online payment')}</h2>
+        {(invoice as any).paymentLinkUrl ? <a className="text-primary underline" href={(invoice as any).paymentLinkUrl} target="_blank" rel="noopener noreferrer">{t('فتح رابط الدفع', 'Open payment link')} · {(invoice as any).paymentLinkProvider}</a> : <p className="text-sm text-muted-foreground">{t('لم يتم تجهيز رابط دفع لهذه الفاتورة بعد.', 'A payment link has not been prepared for this invoice yet.')}</p>}
+        {!stripeManaged && <Button variant="outline" disabled={paymentBusy || !canRelease} onClick={preparePayment}>{paymentBusy ? t('جارٍ التحقق…', 'Checking…') : t('تجهيز / تحديث رابط الدفع', 'Prepare / refresh payment link')}</Button>}
+        {paymentError && <p role="alert" className="text-sm text-warning">{paymentError}</p>}
+      </section>}
       <div className="rounded-lg border border-border bg-muted/40 p-4 flex gap-3">
         <LockKeyhole className="h-5 w-5 shrink-0 text-primary" />
         <div><p className="font-semibold">{t('فاتورة صادرة ومقفلة', 'Issued invoice · locked')}</p>

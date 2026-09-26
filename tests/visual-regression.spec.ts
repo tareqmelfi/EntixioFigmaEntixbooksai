@@ -1,6 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { prepareVisualApp } from './fixtures/visual-app'
 
+// Stable date/greeting across CI hosts and calendar days; timers still run.
+test.use({ timezoneId: 'UTC' })
+test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(new Date('2026-09-26T12:00:00Z')) })
+
 const viewports = [
   { name: 'phone', width: 390, height: 844 },
   { name: 'tablet', width: 768, height: 1024 },

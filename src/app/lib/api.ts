@@ -648,6 +648,14 @@ function smartImportClient(entity: 'accounts' | 'contacts' | 'products') {
 
 // ── Resource clients ──────────────────────────────────────────────────────────
 export const api = {
+  support: {
+    list: () => request<{ items: SupportTicket[] }>('/api/public/support/portal'),
+    get: (id: string) => request<{ ticket: SupportTicket }>(`/api/public/support/portal/${id}`),
+    create: (body: { subject: string; body: string; category: string; language: string }) => request<{ ticket: SupportTicket }>('/api/public/support/portal', { method: 'POST', body }),
+    reply: (id: string, body: string) => request(`/api/public/support/portal/${id}/messages`, { method: 'POST', body: { body } }),
+    status: (id: string, status: 'OPEN' | 'RESOLVED') => request(`/api/public/support/portal/${id}`, { method: 'PATCH', body: { status } }),
+  },
+
   // Identity
   me: () => request<MeResponse>('/me'),
   // Account deletion (30-day recovery window · web-only by design)
@@ -1899,6 +1907,8 @@ export const api = {
     users: (q?: string) => request<{ items: Array<{ id: string; email: string; name: string | null; emailVerified: boolean; createdAt: string; orgs: Array<{ id: string; name: string; country: string; role: string }> }> }>('/api/admin/users', { query: q ? { q } : undefined, skipOrg: true }),
     resetPassword: (email: string, newPassword: string) => request<{ ok: true }>('/api/admin/users/reset-password', { method: 'POST', body: { email, newPassword }, skipOrg: true }),
     verifyEmail: (email: string) => request<{ ok: true }>('/api/admin/users/verify-email', { method: 'POST', body: { email }, skipOrg: true }),
+    resaleOptions: (orgId: string) => request<any>(`/api/admin/billing-ledger/resale-options?orgId=${encodeURIComponent(orgId)}`, { skipOrg: true }),
+    prepareResale: (data: { stripeInvoiceId: string; resellerOrgId: string; finalInvoiceId: string; wholesaleMinor: number; feeBearer: 'SUPPLIER' | 'RESELLER' }) => request<any>('/api/admin/billing-ledger/resale', { method: 'POST', body: data, skipOrg: true }),
     billingLedger: () => request<any>('/api/admin/billing-ledger', { skipOrg: true }),
     syncBillingLedger: () => request<any>('/api/admin/billing-ledger/sync', { method: 'POST', skipOrg: true }),
     orgSubscription: (orgId: string, data: { action: 'comp' | 'trial' | 'cancel' | 'lifetime'; months?: number; planId?: string }) => request<{ ok: true; status?: string; planName?: string; planTier?: string; lifetime?: boolean }>(`/api/admin/orgs/${orgId}/subscription`, { method: 'POST', body: data, skipOrg: true }),
@@ -4008,4 +4018,9 @@ export interface PublicBoardPayload {
   rows: Array<Pick<ExtRow, 'id' | 'rowKey' | 'rowIndex' | 'normalized' | 'valid' | 'syncedAt'>>
   kpis: ExtKpi[]
   statusOptions: ExtStatusOption[]
+}
+
+export interface SupportTicket {
+  id: string; subject: string; status: string; category: string; priority: string; channel: string; createdAt: string; updatedAt: string;
+  messages?: Array<{ id: string; authorType: string; body: string; createdAt: string }>;
 }
