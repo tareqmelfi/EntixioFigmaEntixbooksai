@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
@@ -10,7 +11,7 @@ import { getOrgId } from "../lib/api";
  * Shows the org's forwarding address at the top so user can configure suppliers.
  */
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   Inbox as InboxIcon,
   Loader2,
@@ -31,6 +32,8 @@ import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
 import { PageHeader } from "../components/product";
+import { InboxReviewEditor } from "../components/inbox-review-editor";
+import { AttachmentViewer } from "../components/attachment-viewer";
 import { humanizeError } from "../lib/error-messages";
 
 type StatusFilter = "ALL" | "RECEIVED" | "EXTRACTED" | "APPROVED" | "REJECTED";
@@ -46,6 +49,8 @@ const STATUS_LABEL: Record<string, { label: { ar: string; en: string }; bg: stri
 export function InboxPage() {
   const { toasts, push, dismiss } = useToasts();
   const { language, t } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const messageId = searchParams.get("message");
   const [items, setItems] = useState<InboxMessageRow[]>([]);
   const [detail, setDetail] = useState<InboxMessageDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,7 +69,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
       const r = await api.inbox.list(filter === "ALL" ? undefined : filter);
       setItems(r.items);
       // Auto-select first unprocessed
-      if (!detail && r.items.length > 0) {
+      if (!detail && !messageId && r.items.length > 0) {
         const firstReady = r.items.find((m) => m.status === "EXTRACTED") || r.items[0];
         loadDetail(firstReady.id);
       }
@@ -90,6 +95,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { if (messageId) void loadDetail(messageId); }, [messageId]);
 
   const loadDetail = async (id: string) => {
     try {
@@ -160,11 +166,11 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
     }
   };
 
-  const handleReject = async () => {
+  const handleReject = async (reason: string) => {
     if (!detail) return;
     setBusy(true);
     try {
-      await api.inbox.reject(detail.id);
+      await api.inbox.reject(detail.id, reason);
       push("success", t("تم الرفض", "Rejected"));
       await refresh();
       loadDetail(detail.id);
@@ -196,12 +202,9 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
     if (!detail) return;
     try {
       sessionStorage.setItem("entix_ocr_prefill", JSON.stringify({
-        vendor: (detail.extractedJson as any)?.issuer?.name || detail.fromAddress,
-        date: (detail.extractedJson as any)?.issueDate || null,
-        total: (detail.extractedJson as any)?.totals?.total ?? null,
-        currency: (detail.extractedJson as any)?.currency || null,
-        invoiceNumber: (detail.extractedJson as any)?.documentNumber || null,
-        lines: (detail.extractedJson as any)?.lines || [],
+        ...(detail.extractedJson || {}),
+        issuer: detail.extractedJson?.issuer || { name: "" },
+        notes: detail.reviewNotes || "",
         __fromInbox: detail.id,
       }));
     } catch {}
@@ -255,7 +258,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
           <p className={`text-xs mt-2 ${mailboxStatus?.configured ? "text-muted-foreground" : "text-warning"}`}>
             {mailboxStatus?.configured
               ? t("اطلب من مورّديك إرسال فواتيرهم لهذا العنوان · أو انسخ بريدك إلى هذا العنوان (CC) عند تلقّي الفواتير", "Ask your suppliers to send their invoices to this address · or CC your email to this address when receiving invoices")
-              : t("العنوان غير جاهز للاستلام بعد. يلزم إعداد توجيه البريد و INBOX_WEBHOOK_TOKEN على الخادم قبل استخدامه مع الموردين.", "The address is not ready to receive yet. Mail routing and INBOX_WEBHOOK_TOKEN must be configured on the server before using it with suppliers.")}
+              : t("إعداد الاستقبال يحتاج تحققًا. الرسائل التي وصلت تبقى متاحة للمراجعة.", "Receiving setup needs verification. Messages already received remain available for review.")}
           </p>
         </CardContent>
       </Card>
@@ -286,10 +289,11 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
         ))}
       </div>
 
+      {messageId && <button className="text-sm text-primary" onClick={() => setSearchParams({})}>{t("العودة إلى البريد الوارد", "Back to inbox")}</button>}
       {/* Two-pane layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left · list */}
-        <Card className="lg:col-span-5 border-border max-h-[70vh] overflow-y-auto">
+        <Card className={`${messageId ? "hidden" : ""} lg:col-span-5 border-border max-h-[70vh] overflow-y-auto`}>
           <CardContent className="p-0">
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -309,7 +313,8 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
                   return (
                     <li
                       key={m.id}
-                      onClick={() => loadDetail(m.id)}
+                      onClick={() => { setSearchParams({ message: m.id }); }}
+                      role="button" tabIndex={0} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSearchParams({ message: m.id }); } }}
                       className={`px-4 py-3 cursor-pointer border-b border-border/50 last:border-0 transition ${
                         active ? "bg-surface-subtle border-s-[3px] border-s-primary" : "hover:bg-surface-hover"
                       }`}
@@ -347,7 +352,7 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
         </Card>
 
         {/* Right · detail */}
-        <Card className="lg:col-span-7 border-border">
+        <Card className={`${messageId ? "lg:col-span-12" : "lg:col-span-7"} border-border`}>
           <CardContent className="p-0">
             {!detail ? (
               <div className="text-center py-20 px-6">
@@ -356,7 +361,9 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
               </div>
             ) : (
               <DetailPane
+                key={`${detail.id}-${detail.status}-${JSON.stringify(detail.extractedJson)}-${detail.reviewNotes}`}
                 detail={detail}
+                onSaved={() => { void loadDetail(detail.id); void refresh(); }}
                 busy={busy}
                 onApprove={handleApprove}
                 onReject={handleReject}
@@ -372,12 +379,13 @@ const [pendingSimilarity, setPendingSimilarity] = useState<SimilarityReview | nu
 }
 
 function DetailPane({
-  detail, busy, onApprove, onReject, onReprocess, onManualEntry,
+  detail, busy, onApprove, onReject, onReprocess, onManualEntry, onSaved,
 }: {
   detail: InboxMessageDetail;
   busy: boolean;
   onApprove: () => void;
-  onReject: () => void;
+  onReject: (reason: string) => void;
+  onSaved: () => void;
   onReprocess: () => void;
   onManualEntry: () => void;
 }) {
@@ -385,7 +393,13 @@ function DetailPane({
   const ex = detail.extractedJson || null;
   const lines: any[] = ex?.lines || [];
   const sl = STATUS_LABEL[detail.status] || { label: { ar: detail.status, en: detail.status }, bg: "bg-surface-hover", text: "text-muted-foreground" };
-  const isFinal = detail.status === "APPROVED" || detail.status === "REJECTED";
+  const isFinal = detail.status === "APPROVED";
+  const [attachment,setAttachment] = useState<any>(null);
+  const [attachmentError,setAttachmentError] = useState("");
+  const [reason,setReason] = useState("");
+  const [reviewDirty,setReviewDirty] = useState(false);
+  const [rejectOpen,setRejectOpen] = useState(false);
+  const openAttachment = async (id: string) => { setAttachment(null); setAttachmentError(""); try { setAttachment(await api.inbox.attachment(detail.id,id)); } catch { setAttachmentError(t("تعذر فتح المرفق. أعد المحاولة.","Could not open attachment. Please retry.")); } };
 
   // Proactive duplicate check · when a message is EXTRACTED, look for an existing
   // bill matching vendor + date + total so we can warn BEFORE the user approves.
@@ -410,6 +424,15 @@ function DetailPane({
         </div>
       </div>
 
+      {detail.status === "REJECTED" && <div className="p-5 space-y-2 bg-warning-subtle">
+        <p>{t("سبب الرفض:", "Rejection reason:")} {detail.rejectionReason || t("لم يُسجّل سبب لهذه الرسالة القديمة؛ لا يعني ذلك رفضًا من الهيئة.", "No reason was recorded for this older message; this is not a tax authority rejection.")}</p>
+        <button className="text-primary underline" disabled={busy || reviewDirty} onClick={async()=>{try {await api.inbox.reopen(detail.id);onSaved();} catch {setAttachmentError(t("تعذر إعادة فتح الرسالة. أعد المحاولة.","Could not reopen message. Please retry."));}}}>{t("إعادة فتح للمراجعة", "Reopen for review")}</button>
+      </div>}
+      {detail.processingError && <p className="p-5 text-warning">{t("تعذر الاستخراج التلقائي. يمكنك إعادة المحاولة أو إدخال البيانات يدويًا.", "Automatic extraction failed. Retry or enter details manually.")}</p>}
+      <section className="p-5 space-y-2">
+        <h3 className="text-sm font-semibold">{t("الرسالة الأصلية", "Original message")}</h3>
+        {detail.bodyHtml ? <iframe title={t("محتوى البريد", "Email content")} sandbox="" referrerPolicy="no-referrer" className="w-full min-h-[420px] rounded border border-border bg-white" srcDoc={'<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\';">'+DOMPurify.sanitize(detail.bodyHtml, {USE_PROFILES:{html:true}, FORBID_TAGS:['meta','base','form','input','button','iframe','object','embed'], FORBID_ATTR:['href','srcset','target','action','formaction']})} /> : <pre className="whitespace-pre-wrap break-words text-sm font-inherit" dir="auto">{detail.bodyText || t("لم يصل محتوى نصي مع هذه الرسالة.", "No message body was received.")}</pre>}
+      </section>
       {/* Attachments */}
       {detail.attachments.length > 0 && (
         <div className="p-5">
@@ -418,16 +441,19 @@ function DetailPane({
           </div>
           <div className="flex flex-wrap gap-2">
             {detail.attachments.map((a) => (
-              <div key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/40 text-xs">
+              <button onClick={()=>void openAttachment(a.id)} key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/40 text-xs">
                 <FileText className="h-3.5 w-3.5 text-primary" />
                 <span className="text-foreground/80 font-english">{a.filename}</span>
                 <span className="text-muted-foreground/60 font-english">· {displayDigits((a.sizeBytes / 1024).toFixed(0))}KB</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
+      {attachmentError && <p role="alert" className="p-5 text-destructive">{attachmentError}</p>}
+      {attachment && <div className="p-5"><AttachmentViewer attachment={attachment} height="70vh" /></div>}
+      {!isFinal && <InboxReviewEditor detail={detail} onSaved={onSaved} onDirty={setReviewDirty} />}
       {/* Extracted preview */}
       {ex && (
         <div className="p-5 bg-muted/40">
@@ -512,14 +538,15 @@ function DetailPane({
         </div>
       )}
 
+      {reviewDirty && <p className="p-5 text-warning">{t("احفظ المراجعة أولًا لتنتقل تعديلاتك وملاحظاتك إلى المستند.", "Save the review first to carry your changes and notes into the document.")}</p>}
       {/* Actions */}
-      {!isFinal && (
+      {!isFinal && detail.status !== "REJECTED" && (
         <div className="p-5 flex flex-wrap items-center gap-2">
           {ex ? (
             <>
               <button
                 onClick={onApprove}
-                disabled={busy}
+                disabled={busy || reviewDirty}
                 className="px-4 py-2 rounded-lg bg-success text-primary-foreground text-sm hover:bg-success transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
@@ -527,31 +554,31 @@ function DetailPane({
               </button>
               <button
                 onClick={onReprocess}
-                disabled={busy}
+                disabled={busy || reviewDirty}
                 className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <RefreshCw className="h-3.5 w-3.5" /> {t("إعادة الاستخراج", "Re-extract")}
               </button>
               <button
-                onClick={onReject}
-                disabled={busy}
+                onClick={()=>setRejectOpen(!rejectOpen)}
+                disabled={busy || reviewDirty}
                 className="px-4 py-2 rounded-lg border border-danger-border text-danger text-sm hover:bg-danger-subtle transition flex items-center gap-1.5 disabled:opacity-50"
               >
                 <XCircle className="h-3.5 w-3.5" /> {t("رفض", "Reject")}
               </button>
               <button
                 onClick={onManualEntry}
-                disabled={busy}
+                disabled={busy || reviewDirty}
                 className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5 disabled:opacity-50"
                 title={t("إدخال يدوي للبنود في سجل مصروف/مشتريات", "Manually enter lines into an expense/purchase record")}
               >
-                <FileText className="h-3.5 w-3.5" /> {t("إدخال يدوي", "Manual entry")}
+                <FileText className="h-3.5 w-3.5" /> {t("تحويل إلى مصروف", "Create expense")}
               </button>
             </>
           ) : (
             <button
               onClick={onReprocess}
-              disabled={busy}
+              disabled={busy || reviewDirty}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm hover:bg-primary transition flex items-center gap-1.5 disabled:opacity-50"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
@@ -562,16 +589,18 @@ function DetailPane({
           {!ex && (
             <button
               onClick={onManualEntry}
-              disabled={busy}
+              disabled={busy || reviewDirty}
               className="px-4 py-2 rounded-lg border border-border text-sm hover:bg-primary/5 transition flex items-center gap-1.5 disabled:opacity-50"
               title={t("إدخال يدوي للبنود في سجل مصروف/مشتريات", "Manually enter lines into an expense/purchase record")}
             >
-              <FileText className="h-3.5 w-3.5" /> {t("إدخال يدوي", "Manual entry")}
+              <FileText className="h-3.5 w-3.5" /> {t("تحويل إلى مصروف", "Create expense")}
             </button>
           )}
         </div>
       )}
 
+      {rejectOpen && !isFinal && <div className="p-5 space-y-2"><label>{t("سبب الرفض", "Rejection reason")}<textarea value={reason} onChange={e=>setReason(e.target.value)} className="block w-full border border-border rounded p-2 bg-background" /></label><button disabled={busy || !reason.trim()} onClick={()=>onReject(reason)} className="text-primary disabled:opacity-50">{t("تأكيد الرفض", "Confirm rejection")}</button></div>}
+      {detail.expenseId && <div className="p-5"><a className="text-primary underline" href={`/app/expenses/${detail.expenseId}`}>{t("عرض المصروف المرتبط", "View linked expense")}</a></div>}
       {detail.billId && (
         <div className="p-5 bg-success-subtle flex items-center gap-2 text-sm text-success">
           <CheckCircle2 className="h-4 w-4" />

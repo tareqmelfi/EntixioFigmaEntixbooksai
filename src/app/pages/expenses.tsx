@@ -633,6 +633,9 @@ function selectedAttachment(t: Translate, expense: ApiExpense) {
 
 
 export function Expenses() {
+  const [inboxSourceLoading,setInboxSourceLoading] = useState(false);
+  const inboxSourceRequest = useRef(0);
+  useEffect(() => () => { inboxSourceRequest.current++; }, []);
   const [searchParams, setSearchParams] = useSearchParams();
   const [items, setItems] = useState<ApiExpense[]>([]);
   const { toasts, push, dismiss } = useToasts();
@@ -746,7 +749,7 @@ export function Expenses() {
   useEffect(() => () => { for (const tm of suggestTimersRef.current.values()) clearTimeout(tm); }, []);
 
   useEffect(() => {
-    if (searchParams.get("new") === "1" || location.pathname === "/app/expenses/new") {
+    if ((searchParams.get("new") === "1" || location.pathname === "/app/expenses/new") && !createOpen) {
       openCreate();
       if (searchParams.get("new") === "1") setSearchParams({}, { replace: true });
     }
@@ -820,6 +823,15 @@ export function Expenses() {
             }));
             setExtractionSummary(ocr.__error ? null : ocr);
           }
+          if (ocr.__fromInbox) {
+            setInboxSourceLoading(true);
+            const request = ++inboxSourceRequest.current;
+            api.inbox.source(ocr.__fromInbox).then(source => {
+              if (request !== inboxSourceRequest.current) return;
+              setFormData(f=>({...f, notes: source.notes, attachments: source.files.map(a=>({name:a.name,type:a.contentType,size:a.sizeBytes,base64:a.base64}))}));
+              setInboxSourceLoading(false);
+            }).catch(()=>{if (request !== inboxSourceRequest.current) return; setCreateError(t("تعذر نقل مرفقات البريد. ارجع إلى الرسالة وأعد فتح الإدخال اليدوي.","Could not transfer email attachments. Return to the message and reopen manual entry."));});
+          }
           setCreateOpen(true);
         }
       } catch { /* malformed stash · fall through to a blank form */ }
@@ -851,6 +863,8 @@ export function Expenses() {
   const expSingleCur = expByCur.length === 1 ? expByCur[0].currency : null;
 
   function openCreate() {
+    inboxSourceRequest.current++;
+    setInboxSourceLoading(false);
     setEditingId(null);
     setShowDetails(false); setShowSplits(false);
     setFormData(emptyForm(orgCurrency));
@@ -868,6 +882,8 @@ export function Expenses() {
   }
 
   function openDraft() {
+    inboxSourceRequest.current++;
+    setInboxSourceLoading(false);
     const draft = readExpenseDraft();
     setEditingId(null);
     if (draft && hasDraftContent(draft.formData)) {
@@ -886,6 +902,7 @@ export function Expenses() {
   }
 
   function closeCreate(preserveDraft = true) {
+    inboxSourceRequest.current++;
     goBackToSource();
     if (preserveDraft && !editingId && hasDraftContent(formData)) {
       writeExpenseDraft(formData, extractionSummary);
@@ -1032,6 +1049,7 @@ export function Expenses() {
         return;
       }
     }
+    if (inboxSourceLoading) { setCreateError(t("انتظر نقل مرفقات البريد قبل الحفظ.", "Wait for email attachments before saving.")); return; }
     setBusy(true);
     try {
       const primaryAttachment = formData.attachments[formData.attachments.length - 1];

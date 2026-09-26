@@ -803,7 +803,11 @@ export const api = {
         `/api/inbox/${id}/approve`,
         { method: 'POST', body: duplicateDecision ? { duplicateDecision } : {} },
       ),
-    reject: (id: string) => request<{ ok: true }>(`/api/inbox/${id}/reject`, { method: 'POST' }),
+    attachment: (id: string, aid: string) => request<{ name: string; type: string; url: string }>(`/api/inbox/${id}/attachments/${aid}`),
+    source: (id: string) => request<{ files: Array<{name:string;contentType:string;base64:string;sizeBytes:number}>; notes:string }>(`/api/inbox/${id}/source`),
+    review: (id: string, body: { notes:string; extracted?:any }) => request(`/api/inbox/${id}/review`, { method: 'PATCH', body }),
+    reopen: (id: string) => request(`/api/inbox/${id}/reopen`, { method: 'POST' }),
+    reject: (id: string, reason: string) => request<{ ok: true }>(`/api/inbox/${id}/reject`, { method: 'POST', body: { reason } }),
     reprocess: (id: string) => request<{ ok: true; kind: string; lines: number }>(`/api/inbox/${id}/reprocess`, { method: 'POST' }),
     duplicateCheck: (id: string) => request<{ possibleDuplicate: boolean; match?: { id: string; billNumber: string; total: number; issueDate: string; supplierName: string | null } | null }>(`/api/inbox/${id}/duplicate-check`),
   },
@@ -2613,6 +2617,10 @@ export interface InboxMessageRow {
 }
 
 export interface InboxMessageDetail extends InboxMessageRow {
+  expenseId?: string | null
+  reviewNotes?: string
+  rejectionReason?: string | null
+  processingError?: string | null
   fromAddress: string
   toAddress: string
   bodyText: string
