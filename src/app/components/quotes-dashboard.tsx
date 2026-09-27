@@ -15,6 +15,7 @@ const names: Record<QuoteStage, [string,string]> = {
   REJECTED: ['مرفوضة','Declined'], EXPIRED: ['منتهية الصلاحية','Expired'],
 };
 const tones = { DRAFT: 'neutral', SENT: 'warning', VIEWED: 'info', ACCEPTED: 'warning', CONVERTED: 'success', REJECTED: 'critical', EXPIRED: 'critical' } as const;
+type QuoteFilter = QuoteStage | 'ALL' | 'PROJECT' | 'WAITING';
 const amount = (n: number | string) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImport }: {
@@ -25,7 +26,7 @@ export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImp
   const mobile = useIsMobile();
   const today = localDateKey();
   const [query, setQuery] = useState('');
-  const [stage, setStage] = useState<QuoteStage | 'ALL' | 'PROJECT' | 'WAITING'>('ALL');
+  const [stage, setStage] = useState<QuoteFilter>('ALL');
   const [client, setClient] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -33,10 +34,11 @@ export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImp
   const invalidRange = !!(from && to && from > to);
   const period = useMemo(() => items.filter(q => (!from || q.issueDate.slice(0,10) >= from) && (!to || q.issueDate.slice(0,10) <= to)), [items, from, to]);
   const summary = useMemo(() => summarizeQuotes(period, today), [period, today]);
+  const matchesStage = (q: QuoteOverview, filter: QuoteFilter) => filter === 'ALL' || (filter === 'WAITING' ? ['SENT','VIEWED'].includes(quoteStage(q,today)) : filter === 'PROJECT' ? !!(q.projectId || q.projects?.length) : quoteStage(q,today) === filter);
   const shown = period.filter(q => {
     const text = `${q.quoteNumber} ${q.title || ''} ${q.contact?.displayName || ''} ${(q.projects || []).map(p => `${p.code} ${p.name}`).join(' ')}`.toLocaleLowerCase();
     return (!query || text.includes(query.trim().toLocaleLowerCase())) && (!client || q.contactId === client)
-      && (stage === 'ALL' || (stage === 'WAITING' ? ['SENT','VIEWED'].includes(quoteStage(q,today)) : stage === 'PROJECT' ? !!(q.projectId || q.projects?.length) : quoteStage(q, today) === stage));
+      && matchesStage(q, stage);
   });
   const pick = (value: typeof stage) => { setStage(value); setVisible(25); };
   const groups = [
@@ -64,7 +66,7 @@ export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImp
     {q.convertedInvoiceId && <Link to={`/app/invoices/${q.convertedInvoiceId}`} className="text-primary hover:underline"><bdi>{q.convertedInvoice?.invoiceNumber || t('فتح الفاتورة','Open invoice')}</bdi>{q.convertedInvoice?.status === 'CANCELLED' && <span className="ms-1 text-danger">{t('ملغاة','Voided')}</span>}</Link>}
     {!q.projectId && !q.projects?.length && !q.convertedInvoiceId && <span className="text-muted-foreground">—</span>}
   </div>;
-  return <div className="space-y-7" data-testid="quotes-dashboard">
+  return <div className="space-y-5" data-testid="quotes-dashboard">
     <PageHeader className="flex-col sm:flex-row [&>div:first-child]:w-full sm:[&>div:first-child]:w-auto" eyebrow={t('المبيعات','Sales')} title={t('عروض الأسعار','Quotes')} description={t('من العرض إلى الموافقة والمشروع والفاتورة — متابعة واحدة واضحة.','From proposal to approval, project and invoice — one clear view.')} actions={<>
       <Button variant="outline" onClick={onImport}><FileSpreadsheet className="me-2 h-4 w-4" />{t('استيراد BOQ','Import BOQ')}</Button>
       <Button onClick={onNew}><Plus className="me-2 h-4 w-4" />{t('عرض سعر جديد','New quote')}</Button>
@@ -81,42 +83,53 @@ export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImp
       : loading ? <div role="status" className="py-16 text-center text-muted-foreground">{t('جارٍ تحميل العروض وروابط المشاريع…','Loading quotes and project links…')}</div>
       : invalidRange ? <p role="alert" className="text-danger">{t('تاريخ البداية يجب أن يسبق النهاية.','The start date must be before the end date.')}</p>
       : <>
-        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {([
-            ['ALL',t('كل العروض','All quotes'),period.length,'text-foreground'],
-            ['WAITING',t('بانتظار الرد','Awaiting reply'),summary.counts.SENT + summary.counts.VIEWED,'text-primary'],
-            ['ACCEPTED',t('مقبولة ولم تُفوتر','Accepted, not invoiced'),summary.counts.ACCEPTED,'text-warning'],
-            ['CONVERTED',t('محوّلة لفاتورة','Invoiced'),summary.counts.CONVERTED,'text-success'],
-            ['EXPIRED',t('منتهية الصلاحية','Expired'),summary.counts.EXPIRED,'text-danger'],
-            ['PROJECT',t('عروض مرتبطة بمشاريع','Quotes linked to projects'),period.filter(q=>q.projectId || q.projects?.length).length,'text-primary'],
-          ] as const).map(([key,label,value,color])=><button key={key} type="button" onClick={()=>pick(key)} aria-pressed={stage===key} className={`min-h-28 bg-card p-4 text-start hover:bg-surface-subtle focus-visible:outline-2 focus-visible:outline-primary ${stage===key ? 'shadow-[inset_0_-3px_0_var(--primary)]' : ''}`} data-testid={`quote-metric-${key}`}>
-            <span className="block text-xs text-muted-foreground">{label}</span><span className={`mt-3 block font-display text-3xl tabular-nums ${color}`}>{value}</span>
-          </button>)}
+            ['ALL',t('كل العروض','All quotes'),'text-foreground','bg-card'],
+            ['WAITING',t('بانتظار الرد','Awaiting reply'),'text-primary','bg-primary/5'],
+            ['ACCEPTED',t('مقبولة ولم تُفوتر','Accepted, not invoiced'),'text-warning','bg-warning/5'],
+            ['CONVERTED',t('محوّلة لفاتورة','Invoiced'),'text-success','bg-success/5'],
+            ['EXPIRED',t('منتهية الصلاحية','Expired'),'text-danger','bg-danger/5'],
+            ['PROJECT',t('مرتبطة بمشاريع','Linked to projects'),'text-primary','bg-primary/5'],
+          ] as const).map(([key,label,color,background])=> {
+            const metric = summarizeQuotes(period.filter(q=>matchesStage(q,key)),today);
+            const count = Object.values(metric.counts).reduce((total,n)=>total+n,0);
+            return <button key={key} type="button" onClick={()=>pick(key)} aria-pressed={stage===key} className={`flex min-w-0 flex-col rounded-xl border p-4 text-start transition-colors hover:border-primary/50 focus-visible:outline-2 focus-visible:outline-primary ${background} ${stage===key ? 'border-primary ring-1 ring-primary/20' : 'border-border'}`} data-testid={`quote-metric-${key}`}>
+              <span className="text-xs font-medium text-muted-foreground">{label}</span>
+              <span className={`mt-2 font-display text-3xl tabular-nums ${color}`} data-testid={`quote-count-${key}`}>{count}</span>
+              <span className="mt-2 block w-full border-t border-border/60 pt-2 text-sm font-medium tabular-nums" data-testid={key==='ALL' ? 'quote-currency-totals' : `quote-total-${key}`}>
+                <span className="mb-1 block text-xs font-normal text-muted-foreground">{t('إجمالي المبلغ','Total amount')}</span>
+                {Object.entries(metric.currencies).map(([cur,n])=><span key={cur} className="block"><bdi>{amount(n)} <span className="text-xs font-normal text-muted-foreground">{cur}</span></bdi></span>)}
+                {!count && <span>{amount(0)}</span>}
+              </span>
+            </button>;
+          })}
         </div>
-        <section className="grid gap-6 border-y border-border py-5 lg:grid-cols-[1.7fr_1fr]" aria-label={t('ملخص العروض','Quote summary')}>
-          <div>
-            <div className="mb-4 flex items-center justify-between gap-3"><h2 className="font-semibold">{t('حركة العروض','Quote pipeline')}</h2><span className="text-xs text-muted-foreground">{t('اضغط حالة لتصفية القائمة','Select a stage to filter the list')}</span></div>
-            <div className="flex flex-wrap gap-2">{QUOTE_STAGES.map(s=><button key={s} type="button" aria-pressed={stage===s} onClick={()=>pick(s)} className={`rounded-full border px-3 py-2 text-xs ${stage===s ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card'}`}><span>{t(...names[s])}</span> <span className="ms-2 font-semibold tabular-nums">{summary.counts[s]}</span></button>)}</div>
-          </div>
-          <div className="flex flex-wrap justify-between gap-5">
-            <div><p className="text-xs text-muted-foreground">{t('القيمة المعروضة · تشمل الضريبة','Quoted value · including tax')}</p><div className="mt-2 space-y-1" data-testid="quote-currency-totals">{Object.entries(summary.currencies).map(([cur,n])=><p key={cur} dir="ltr" className="text-start font-display text-xl tabular-nums">{amount(n)} <span className="text-xs">{cur}</span></p>)}{!period.length && <p>—</p>}</div></div>
-            <div><p className="text-xs text-muted-foreground">{t('نسبة القبول','Acceptance rate')}</p><p className="mt-2 font-display text-2xl">{summary.acceptanceRate == null ? '—' : `${summary.acceptanceRate}%`}</p><p className="mt-1 max-w-48 text-xs text-muted-foreground">{t('المقبولة والمفوترة ÷ (المقبولة والمفوترة والمرفوضة)','Accepted + invoiced ÷ accepted, invoiced and declined')}</p></div>
-          </div>
-        </section>
-        <div className="grid gap-4 lg:grid-cols-3">
+        {(summary.accepted.length > 0 || summary.rejected.length > 0 || summary.overdue.length > 0) && <details className="rounded-lg border border-border" data-testid="quote-customer-insights">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium" data-testid="quote-insights-toggle">{t('تفاصيل العملاء والمتابعة','Customer insights & follow-up')}{summary.acceptanceRate != null && <span className="ms-3 text-xs font-normal text-muted-foreground">{t('نسبة القبول','Acceptance rate')} {summary.acceptanceRate}%</span>}</summary>
+        <div className="grid gap-3 px-3 pb-3 lg:grid-cols-3">
           {([
             ['accepted',t('الأكثر قبولًا','Most acceptances'),t('عدد العروض المقبولة والمحوّلة','Accepted and invoiced quote count')],
             ['rejected',t('الأكثر رفضًا','Most declines'),t('حسب الرفض المسجّل، لا انتهاء الصلاحية','Recorded declines, not expired quotes')],
             ['overdue',t('عملاء يحتاجون متابعة','Customers to follow up'),t('عروض منتهية دون رد؛ لا تشمل المسودات','Expired without a response; excludes drafts')],
-          ] as const).map(([key,title,hint])=><section key={key} className="rounded-xl border border-border bg-card p-4" data-testid={`quote-clients-${key}`}>
+          ] as const).filter(([key])=>summary[key].length > 0).map(([key,title,hint])=><section key={key} className="rounded-xl border border-border bg-card p-4" data-testid={`quote-clients-${key}`}>
             <h2 className="font-semibold">{title}</h2><p className="mt-1 text-xs text-muted-foreground">{hint}</p>
             <ol className="mt-3 divide-y divide-border">{summary[key].map(c=><li key={c.id}><button type="button" className="flex w-full items-center justify-between gap-3 py-3 text-start text-sm hover:text-primary" onClick={()=>{setClient(c.id);pick(key==='rejected'?'REJECTED':key==='overdue'?'EXPIRED':'ALL');}}><bdi className="min-w-0 break-words">{c.name}</bdi><span className="shrink-0 text-xs tabular-nums">{c[key]} {key==='overdue' ? t(`· الأقدم ${c.oldestDays} يوم`,`· oldest ${c.oldestDays}d`) : t('عرض','quotes')}</span></button></li>)}</ol>
             {!summary[key].length && <p className="py-5 text-sm text-muted-foreground">{t('لا توجد بيانات لهذه الحالة','No records in this category')}</p>}
           </section>)}
         </div>
+        </details>}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div><h2 className="font-semibold">{t('سجل العروض','Quote register')} <span className="text-muted-foreground">({shown.length})</span></h2><p className="mt-1 text-xs text-muted-foreground">{t('المؤشرات للفترة المختارة. البحث والحالة والعميل يصفّون القائمة فقط. العروض المحوّلة محفوظة بالأسفل.','Metrics cover the selected period. Search, stage and customer filter the list only. Invoiced quotes stay below.')}</p></div>
+          <div><h2 className="font-semibold">{t('سجل العروض','Quote register')} <span className="text-muted-foreground">({shown.length})</span></h2><p className="mt-1 text-xs text-muted-foreground">{t('المبالغ تشمل الضريبة؛ كل عملة مستقلة. اضغط بطاقة لتصفية العروض.','Totals include tax, with each currency separate. Select a card to filter quotes.')}</p></div>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <label><span className="sr-only">{t('حالة العرض','Quote stage')}</span><select value={stage} onChange={e=>pick(e.target.value as QuoteFilter)} className="h-10 max-w-full rounded-md border border-border bg-card px-3 text-sm">
+              <option value="ALL">{t('كل الحالات','All stages')}</option>
+              <option value="WAITING">{t('بانتظار الرد','Awaiting reply')}</option>
+              {QUOTE_STAGES.map(s=><option key={s} value={s}>{t(...names[s])}</option>)}
+              <option value="PROJECT">{t('مرتبطة بمشروع','Linked to a project')}</option>
+            </select></label>
           <label className="relative w-full sm:w-72"><span className="sr-only">{t('ابحث في العروض','Search quotes')}</span><Search className="absolute start-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={e=>{setQuery(e.target.value);setVisible(25);}} placeholder={t('رقم العرض، العميل أو المشروع','Quote number, customer or project')} className="ps-9" /></label>
+          </div>
         </div>
         {(stage!=='ALL' || client || query) && <div className="flex flex-wrap items-center gap-3 text-xs"><span>{t('التصفية الحالية:','Current filter:')} {stage==='ALL'?t('كل الحالات','All stages'):stage==='PROJECT'?t('مرتبطة بمشروع','Linked to a project'):stage==='WAITING'?t('بانتظار الرد','Awaiting reply'):t(...names[stage])}{client ? ` · ${period.find(q=>q.contactId===client)?.contact?.displayName || '—'}`:''}</span><Button variant="outline" size="sm" onClick={()=>{pick('ALL');setClient('');setQuery('');}}>{t('مسح التصفية','Clear filters')}</Button></div>}
         {!shown.length && <div className="rounded-xl border border-dashed border-border py-12 text-center"><h3 className="font-semibold">{items.length ? t('لا توجد عروض تطابق التصفية','No matching quotes') : t('ابدأ بأول عرض سعر','Create your first quote')}</h3><p className="mt-2 text-sm text-muted-foreground">{items.length ? t('غيّر الفترة أو امسح التصفية.','Change the period or clear filters.') : t('ستظهر المؤشرات تلقائيًا مع إرسال العروض وتسجيل قرارات العملاء.','Insights appear as quotes are sent and customer decisions are recorded.')}</p></div>}
