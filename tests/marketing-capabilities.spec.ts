@@ -30,7 +30,7 @@ for (const language of ['en', 'ar'] as const) {
     for (const [id, name] of [['invoices',language === 'ar' ? 'الفواتير والتحصيل' : 'Invoices and collection'],['quotes',language === 'ar' ? 'عروض الأسعار' : 'Quotations'],['projects',language === 'ar' ? 'المشاريع' : 'Projects']]) {
       await gallery.getByRole('button', {name,exact:true}).click();
       const image = gallery.getByRole('img');
-      await expect(image).toHaveAttribute('src', `/marketing/product/${id}-${language}.png`);
+      await expect(image).toHaveAttribute('src', `/marketing/product/${id}-${language}${id === 'quotes' ? '-20260927' : ''}.png`);
       await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
     }
     await page.screenshot({path:testInfo.outputPath(`features-${language}.png`),fullPage:true});
