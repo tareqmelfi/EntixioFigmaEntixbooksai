@@ -16,7 +16,7 @@ export function qrSvg(text: string): string {
   const qr = qrcode(0, "M");
   qr.addData(text);
   qr.make();
-  return qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true });
+  return qr.createSvgTag({ cellSize: 2, margin: 8, scalable: true });
 }
 
 /** Resolve the template for a document: explicit id → org default for the kind (BOTH counts). */

@@ -89,6 +89,7 @@ async function mocks(page: Page, lang: 'ar' | 'en') {
     const { pathname } = new URL(route.request().url())
     const m = route.request().method()
     if (pathname === '/orgs') return route.fulfill({ json: [org] })
+    if (pathname === `/orgs/${visualOrgId}`) return route.fulfill({ json: org })
     if (pathname === '/api/estimates' && m === 'GET') return route.fulfill({ json: { items: [estimateRow, estimateRow2], total: 2, confidentialHidden: false } })
     if (pathname === '/api/estimates' && m === 'POST') return route.fulfill({ status: 201, json: { ...estimateFull, id: 'est-new', number: 'EST-202609-0044', status: 'DRAFT' } })
     if (pathname === '/api/estimates/est-1') return route.fulfill({ json: estimateFull })

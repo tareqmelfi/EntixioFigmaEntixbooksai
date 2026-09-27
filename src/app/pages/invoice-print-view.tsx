@@ -1,3 +1,4 @@
+import { resolveDocumentLanguage } from "../lib/document-language";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
 /**
@@ -181,10 +182,7 @@ export function InvoicePrintView() {
     );
   }
 
-  // Language: ?lang= override · else org.defaultInvoiceLanguage · else infer from country
-  const orgDefaultLang = (org as any).defaultInvoiceLanguage as ("ar" | "en" | undefined);
-  const inferredLang = (org.country || "SA") === "SA" ? "ar" : "en";
-  const lang = (langOverride === "ar" || langOverride === "en") ? langOverride : (orgDefaultLang || inferredLang);
+  const lang = resolveDocumentLanguage(langOverride, docFromInvoice(invoice), docTpl, org);
 
   const total = safeNum(invoice.total);
 

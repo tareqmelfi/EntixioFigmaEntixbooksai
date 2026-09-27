@@ -1,3 +1,4 @@
+import { resolveDocumentLanguage } from "../lib/document-language";
 /**
  * Proposal print view (SPEC-04) · /print/proposal/:id — org-side branded PDF
  * via browser print.
@@ -17,7 +18,7 @@ import { waitForPrintReady } from "../lib/print-image";
 
 export function QuoteProposalPrint() {
   const { id } = useParams<{ id: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const langOverride = searchParams.get("lang");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [org, setOrg] = useState<Org | null>(null);
@@ -47,7 +48,7 @@ export function QuoteProposalPrint() {
         }
         if (!q) throw new Error("not_found");
         setQuote(q);
-        try { setOrg(await api.orgs.get(q.orgId)); } catch { /* header degrades gracefully */ }
+        setOrg(await api.orgs.get(q.orgId));
         if (q.contactId) { try { setContact(await api.contacts.get(q.contactId)); } catch { /* client block degrades */ } }
       } catch {
         setError("العرض غير متاح — تأكد من تسجيل الدخول");
@@ -55,12 +56,13 @@ export function QuoteProposalPrint() {
     })();
   }, [id]);
 
-  const lang: "ar" | "en" = langOverride === "en" ? "en" : "ar";
   // Template: ?templateId= → quote.templateId → org default for QUOTE (BOTH counts)
   const { template, bank, ready } = useBrandTemplate("QUOTE", templateParam || quote?.templateId || null, !!quote);
 
+  const lang = resolveDocumentLanguage(langOverride, quote ? docFromQuote(quote) : null, template, org);
+
   const input = useMemo<RenderInput | null>(() => {
-    if (!quote || !ready) return null;
+    if (!quote || !org || !ready) return null;
     const orgParty = partyFromOrg(org);
     return {
       lang,
@@ -97,8 +99,9 @@ export function QuoteProposalPrint() {
       <div className="no-print" style={{ position: "sticky", top: 0, background: "#1A1E48", color: "#fff", padding: "9px 16px", display: embed ? "none" : "flex", justifyContent: "space-between", alignItems: "center", zIndex: 5 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>{quote.quoteNumber} · {quote.title || ""}</span>
         <span style={{ display: "flex", gap: 8 }}>
+          <select aria-label="Document language" value={lang} onChange={e => { const next = new URLSearchParams(searchParams); next.set('lang', e.target.value); next.set('noprint', '1'); setSearchParams(next); }} style={{ color: '#1A1E48', background: '#fff', borderRadius: 6, padding: 6 }}><option value="en">English</option><option value="ar">العربية</option></select>
           <button onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#5875DB", border: "none", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 12.5, cursor: "pointer" }}>
-            <Printer style={{ width: 14, height: 14 }} /> طباعة / PDF
+            <Printer style={{ width: 14, height: 14 }} /> {lang === "ar" ? "طباعة / PDF" : "Print / PDF"}
           </button>
           <button onClick={() => window.close()} style={{ background: "transparent", border: "1px solid rgba(255,255,255,.3)", color: "#fff", borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>
             <X style={{ width: 14, height: 14 }} />
