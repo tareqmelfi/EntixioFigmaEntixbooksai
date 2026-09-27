@@ -58,6 +58,18 @@ test('saved credit note prints recorded amounts, all lines and linked footer',as
   const output=page.getByTestId('report-output-pages');await expect(output).toHaveAttribute('data-ready','true');
   await expect(output).toContainText('Credit note · CN-TEST');await expect(output).toContainText('INV-TEST');await expect(output).toContainText('100.00');
   expect(await output.locator('tbody tr').count()).toBe(47);
+  await expect(output.locator('.document-social-footer:visible a')).toHaveCount(7);
+  // A late settings refresh may rebuild the preview while PDF images render.
+  await output.evaluate(root => {
+    const observer = new MutationObserver(() => {
+      if (!document.querySelector('.html2canvas-container')) return;
+      observer.disconnect();
+      root.replaceChildren(...Array.from(root.children, child => child.cloneNode(true)));
+    });
+    observer.observe(document.body, { childList: true });
+  });
   const download=page.waitForEvent('download');await page.getByTestId('report-download-pdf').click();const path=info.outputPath('credit-note.pdf');await(await download).saveAs(path);
-  expect(((await readFile(path)).toString('latin1').match(/\/URI \(https:\/\/example.com\//g)||[]).length).toBe(7);
+  const pdfText = (await readFile(path)).toString('latin1');
+  expect((pdfText.match(/\/URI \(https:\/\/example.com\//g)||[]).length).toBe(7);
+  expect((pdfText.match(/\/Type \/Page\b/g)||[]).length).toBe(await output.locator('.report-output-sheet').count());
 });

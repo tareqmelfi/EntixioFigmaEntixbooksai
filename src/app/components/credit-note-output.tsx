@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, bootstrapOrgIdFromStorage, getOrgId, type ReportPayload } from '../lib/api';
 import { useLanguage } from './LanguageContext';
 import { ReportOutput } from './report-output';
@@ -42,5 +42,6 @@ export function CreditNoteOutput({ id, onClose }: { id: string; onClose: () => v
     })();
     return () => { cancelled = true; };
   },[id,language]);
-  return <div className="space-y-4"><Button variant="outline" onClick={onClose}>{t('الرجوع إلى الإشعار','Back to credit note')}</Button>{error?<p role="alert">{error}</p>:report?<ReportOutput report={report} settings={normalizeReportSettings({...(report.org.paymentSettings?.reports||{}),language,bilingual:false})}/>:<p role="status">{t('تجهيز الإشعار…','Preparing credit note…')}</p>}</div>;
+  const printSettings = useMemo(() => normalizeReportSettings({...(report?.org.paymentSettings?.reports||{}),language,bilingual:false}), [report, language]);
+  return <div className="space-y-4"><Button variant="outline" onClick={onClose}>{t('الرجوع إلى الإشعار','Back to credit note')}</Button>{error?<p role="alert">{error}</p>:report?<ReportOutput report={report} settings={printSettings}/>:<p role="status">{t('تجهيز الإشعار…','Preparing credit note…')}</p>}</div>;
 }

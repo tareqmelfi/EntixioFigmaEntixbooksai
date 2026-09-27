@@ -174,6 +174,27 @@ async function embedReportFonts(root: HTMLElement) {
 }
 
 export async function downloadReportPdf(root: HTMLElement, settings: ReportPrintSettings, filename: string) {
+  // A settings/context refresh can replace preview sheets during async rasterization.
+  // Keep a mounted snapshot for the entire export, including link measurements.
+  const snapshot = root.cloneNode(true) as HTMLElement;
+  for (const element of [snapshot, ...Array.from(snapshot.querySelectorAll<HTMLElement>('*'))]) {
+    element.removeAttribute('id');
+    element.removeAttribute('data-testid');
+  }
+  const inherited = getComputedStyle(root);
+  for (const property of ['font-family', 'font-size', 'line-height', 'direction', 'color']) {
+    snapshot.style.setProperty(property, inherited.getPropertyValue(property));
+  }
+  const mount = document.createElement('div');
+  mount.setAttribute('aria-hidden', 'true');
+  mount.style.cssText = 'position:fixed;left:-100000px;top:0;pointer-events:none;width:max-content;';
+  mount.append(snapshot);
+  document.body.append(mount);
+  try { await downloadReportSnapshot(snapshot, settings, filename); }
+  finally { mount.remove(); }
+}
+
+async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSettings, filename: string) {
   const pages = Array.from(root.querySelectorAll<HTMLElement>('.report-output-sheet'));
   if (!pages.length) throw new Error('report_not_ready');
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
