@@ -37,7 +37,7 @@ for(const kind of ['quotes','invoices'] as const) test(`existing ${kind} signing
  await page.route('**/api/sign/requests?**',r=>{const u=new URL(r.request().url());expect(u.searchParams.get('docId')).toBe('doc-1');expect(u.searchParams.get('docType')).toBe(kind==='quotes'?'QUOTE':'INVOICE');return r.fulfill({json:{items:[{id:'sr1',docId:'doc-1',createdAt:'2026-09-27',status:count++?'SIGNED':'SENT',docusealEmbedUrl:'https://sign.ensidex.com/s/synthetic-only',signedPdfUrl:'https://sign.ensidex.com/synthetic.pdf',auditTrailUrl:'https://sign.ensidex.com/audit.pdf'}]}})});
  await page.route('**/api/sign/**/send',r=>{sendCount++;return r.fulfill({status:500,json:{error:'must_not_send'}})});
  await page.goto(`/app/${kind}`);
- if(kind==='quotes') { await page.goto('/app/quotes/doc-1'); await page.getByRole('button',{name:'Send',exact:true}).first().click(); } else await page.getByTitle('Send for signing',{exact:true}).first().click();
+ if(kind==='quotes') { await page.goto('/app/quotes/doc-1'); await page.getByTestId('quote-request-signature').click(); } else await page.getByTitle('Send for signing',{exact:true}).first().click();
  await expect(page.getByRole('link',{name:'Open signing link',exact:true})).toHaveAttribute('href','https://sign.ensidex.com/s/synthetic-only');
  await expect(page.getByRole('button',{name:'Send for signing',exact:true})).toBeDisabled();
  await page.getByRole('region',{name:'Signature tracking'}).getByRole('button',{name:'Refresh',exact:true}).click();

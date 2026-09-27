@@ -9,8 +9,8 @@ const quote = {
   lines: [{ id: 'line-1', description: 'Consulting', quantity: 1, unitPrice: 100, total: 100, taxRate: 0 }],
 }
 
-async function quotesFixture(page: Page) {
-  await prepareVisualApp(page, 'en')
+async function quotesFixture(page: Page, language: 'en' | 'ar' = 'en') {
+  await prepareVisualApp(page, language)
   await page.route('https://api.entix.io/api/contacts**', r => r.fulfill({ json: { items: [quote.contact] } }))
   await page.route('https://api.entix.io/api/payment-plans/templates', r => r.fulfill({ json: { items: [] } }))
   await page.route('https://api.entix.io/api/quotes**', r => {
@@ -182,8 +182,35 @@ test('ambiguous signature delivery explains support review without success', asy
   await page.route('https://api.entix.io/api/sign/requests?**', r => r.fulfill({ json: { items: [] } }))
   await page.route('https://api.entix.io/api/sign/quotes/quote-edg/send', r => r.fulfill({ status: 502, json: { error: 'signature_delivery_unknown' } }))
   await page.goto('/app/quotes/quote-edg')
-  await page.getByRole('button', { name: 'Sign', exact: true }).click()
+  await page.getByTestId('quote-request-signature').click()
   await page.getByRole('button', { name: 'Send for signing', exact: true }).click()
   await expect(page.getByText(/Signature delivery could not be confirmed · ask support to review its status before resending to avoid duplicates/)).toBeVisible()
   await expect(page.getByText(/Quote sent for signing to/)).toHaveCount(0)
 })
+
+for (const language of ['en', 'ar'] as const) {
+  test(`quote actions distinguish email, approval and signature without sending (${language})`, async ({ page }) => {
+    await quotesFixture(page, language)
+    const posts: string[] = []
+    page.on('request', r => { if (r.method() === 'POST' && new URL(r.url()).hostname === 'api.entix.io') posts.push(new URL(r.url()).pathname) })
+    await page.route('**/api/sign/requests?**', r => r.fulfill({ json: { items: [] } }))
+    await page.goto('/app/quotes/quote-edg')
+    const actions = page.getByTestId('quote-workflow-actions')
+    await expect(actions.getByRole('button', { name: language === 'ar' ? 'نسخ رابط موافقة العميل' : 'Copy customer approval link', exact: true })).toBeVisible()
+    await expect(actions).toContainText(language === 'ar' ? 'الموافقة تنشئ مشروعًا' : 'Approval creates a project')
+    for (const width of [390, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 1000 })
+      expect(await actions.evaluate(el => el.scrollWidth <= el.clientWidth + 1)).toBe(true)
+    }
+    await actions.screenshot({ path: `test-results/quote-actions-${language}.png` })
+    await page.getByRole('button', { name: language === 'ar' ? 'إرسال' : 'Send', exact: true }).first().click()
+    await expect(page.getByTestId('send-compose-to')).toHaveValue('customer@example.test')
+    await expect(page.getByTestId('send-compose-submit')).toBeVisible()
+    expect(posts).toEqual([])
+    await page.goto('/app/quotes/quote-edg')
+    await page.getByTestId('quote-request-signature').click()
+    await expect(page.getByRole('button', { name: language === 'ar' ? 'إرسال للتوقيع' : 'Send for signing', exact: true })).toBeEnabled()
+    await expect(page.getByTestId('send-compose-submit')).toHaveCount(0)
+    expect(posts).toEqual([])
+  })
+}
