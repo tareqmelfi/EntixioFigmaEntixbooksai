@@ -66,14 +66,17 @@ for(const language of ['en','ar'] as const) test(`vouchers keep recorded issuer 
   await page.goto(`/print/voucher/receipt-test?lang=${language}`);
   await expect(page.getByTestId('voucher-issuer')).toHaveText('Recorded Issuer');
   await expect(page.getByText(/Recipient signature|توقيع المستلم/)).toHaveCount(0);
-  await expect(page.locator('article svg')).toBeVisible();
+  await expect(page.locator('article svg').first()).toBeVisible();
   await expect(page.getByTestId('voucher-social-links').getByRole('link')).toHaveAttribute('href','https://instagram.com/example');
+  const pdf = await page.pdf({ preferCSSPageSize: true });
+  expect((pdf.toString('latin1').match(/\/Type \/Page\b/g) || []).length).toBe(1);
+  expect(pdf.toString('latin1')).toContain('/URI (https://instagram.com/example)');
   await page.screenshot({path:`/tmp/entix-voucher-${language}.png`,fullPage:true});
 });
 
 for (const language of ['ar', 'en'] as const) test(`social links stay within printable quote pages (${language})`, async ({page}) => {
   const base = sampleInput('QUOTE', language, {themePreset:'ink-white', headerStyle:'centered'});
-  const socialLinks = Array.from({length:10},(_,i)=>({platform:'linkedin',label:`Team ${i+1}`,url:`https://linkedin.com/company/${'long-name-'.repeat(25)}${i}`}));
+  const socialLinks = Array.from({length:10},(_,i)=>({platform:'linkedin',label:`فريق المشاريع والتصميم والتطوير ${i+1} Team`,url:`https://linkedin.com/company/${'long-name-'.repeat(25)}${i}`}));
   const result = renderDocument({...base,org:{...base.org,socialLinks},fontBase:'/fonts'});
   await page.route('**/profile-document-preview',r=>r.fulfill({contentType:'text/html',body:result.html}));
   await page.goto('/profile-document-preview');
