@@ -1,3 +1,4 @@
+import { BarcodeLabel } from "../components/barcode-label";
 /**
  * Product / Service full-page form — the app-wide standard (like invoices):
  * creating or editing an item opens its OWN page (/app/products/new or
@@ -46,6 +47,7 @@ export function ProductDetail() {
   const isNew = !id || id === "new";
 
   const { toasts, push, dismiss } = useToasts();
+  const [savedSku, setSavedSku] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(!isNew);
@@ -107,6 +109,7 @@ export function ProductDetail() {
     setLoading(true);
     try {
       const item = await api.products.get(id!) as any;
+      setSavedSku(item.sku || "");
       setForm({
         sku: item.sku || "",
         name: item.name || "",
@@ -258,8 +261,8 @@ export function ProductDetail() {
                 <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("الأساسيات", "Basics")}</div>
                 <div className="space-y-2">
                   <Label>{t("النوع", "Type")}</Label>
-                  <div className="flex gap-1 rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("النوع", "Type")}>
-                    {([["SERVICE", t("خدمة", "Service")], ["GOOD", t("بضاعة", "Good")], ["INVENTORY", t("مخزون", "Inventory")]] as const).map(([val, label]) => (
+                  <div className="flex flex-wrap gap-1 rounded-lg bg-muted/50 p-1" role="radiogroup" aria-label={t("النوع", "Type")}>
+                    {([["SERVICE", t("خدمة", "Service")], ["GOOD", t("بضاعة", "Good")], ["INVENTORY", t("مخزون", "Inventory")], ["DIGITAL", t("منتج رقمي", "Digital")], ["SUBSCRIPTION", t("اشتراك", "Subscription")], ["PACKAGE", t("باقة", "Package")], ["BUNDLE", t("مجموعة", "Bundle")]] as const).map(([val, label]) => (
                       <button
                         key={val}
                         type="button"
@@ -355,7 +358,7 @@ export function ProductDetail() {
                 )}
               </CardContent>
             </Card>
-            {!isNew && (form.type === "GOOD" || form.type === "INVENTORY") && <BarcodesCard productId={id!} push={push} />}
+            {!isNew && <BarcodesCard sku={savedSku} productId={id!} push={push} />}
           </div>
         </div>
 
@@ -373,7 +376,7 @@ export function ProductDetail() {
 
 
 /** B3.2 · alias scan codes: a carton barcode with multiplier 12 sells 12 units in one POS scan. */
-function BarcodesCard({ productId, push }: { productId: string; push: (kind: "success" | "error" | "info", msg: string) => void }) {
+function BarcodesCard({ productId, sku, push }: { productId: string; sku: string; push: (kind: "success" | "error" | "info", msg: string) => void }) {
   const { t } = useLanguage();
   const [items, setItems] = useState<ProductBarcode[]>([]);
   const [barcode, setBarcode] = useState("");
@@ -382,11 +385,13 @@ function BarcodesCard({ productId, push }: { productId: string; push: (kind: "su
   const [busy, setBusy] = useState(false);
   const load = useCallback(() => { api.products.barcodes(productId).then((r) => setItems(r.items || [])).catch(() => setItems([])); }, [productId]);
   useEffect(() => { load(); }, [load]);
-  const add = async () => {
-    if (!barcode.trim()) return;
+  const add = async (generated?: string) => {
+    const value = generated || barcode.trim();
+    if (!value) return;
+    if (!Number.isFinite(Number(mult)) || Number(mult) <= 0) { push("error", t("عدد الوحدات يجب أن يكون أكبر من صفر", "Units must be greater than zero")); return; }
     setBusy(true);
     try {
-      await api.products.addBarcode(productId, { barcode: barcode.trim(), unitMultiplier: Number(mult) || 1, label: label.trim() || null });
+      await api.products.addBarcode(productId, { barcode: value, unitMultiplier: generated ? 1 : Number(mult), label: label.trim() || null });
       setBarcode(""); setMult("1"); setLabel(""); load();
       push("success", t("أُضيف الباركود", "Barcode added"));
     } catch (e: any) {
@@ -396,24 +401,27 @@ function BarcodesCard({ productId, push }: { productId: string; push: (kind: "su
   return (
     <Card className="border-border">
       <CardContent className="p-5 space-y-3">
-        <div className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><ScanBarcode className="h-4 w-4 text-muted-foreground" />{t("باركودات إضافية (كرتون · عبوة)", "Extra barcodes (carton · pack)")}</div>
-        <p className="text-[11px] text-muted-foreground leading-5">{t("SKU الصنف هو الكود الأساسي. أضف هنا باركود الكرتون مع عدد الوحدات — مسحة واحدة في الكاشير تبيع الكمية كاملة.", "The item SKU is the primary code. Add the carton barcode with its unit count — one POS scan sells the whole quantity.")}</p>
+        <div className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><ScanBarcode className="h-4 w-4 text-muted-foreground" />{t("الباركود", "Barcodes")}</div>
+        <p className="text-[11px] text-muted-foreground leading-5">{t("للخدمات والمنتجات الرقمية والسلع. سجّل كودًا موجودًا أو أنشئ كودًا داخليًا، ثم استخدمه في الفاتورة أو الكاشير. عدد الوحدات يحدد كمية المسحة الواحدة.", "For services, digital items and goods. Register an existing code or generate an internal code, then scan it into an invoice or POS. Units set the quantity per scan.")}</p>
+        {sku && <BarcodeLabel code={sku} />}
+        <Button type="button" variant="outline" className="h-auto w-full min-w-0 whitespace-normal py-2 text-center" disabled={busy} onClick={() => void add(`EN-${crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase()}`)}>{t("إنشاء وحفظ باركود داخلي", "Generate and save internal barcode")}</Button>
         {items.length > 0 && (
           <ul className="divide-y divide-border/60 rounded-lg border border-border">
             {items.map((b) => (
-              <li key={b.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+              <li key={b.id} className="flex flex-wrap items-center gap-3 px-3 py-2 text-sm">
                 <span className="font-english" dir="ltr">{b.barcode}</span>
                 <span className="text-xs text-muted-foreground">× {Number(b.unitMultiplier)}{b.label ? ` · ${b.label}` : ""}</span>
                 <button type="button" onClick={async () => { try { await api.products.removeBarcode(productId, b.id); load(); } catch { push("error", t("فشل الحذف", "Delete failed")); } }} className="ms-auto text-muted-foreground hover:text-danger" title={t("حذف", "Delete")}><Trash2 className="h-3.5 w-3.5" /></button>
+                <div className="w-full"><BarcodeLabel code={b.barcode} /></div>
               </li>
             ))}
           </ul>
         )}
-        <div className="grid grid-cols-[1fr_72px_1fr_auto] gap-2 items-end">
+        <div className="grid grid-cols-2 xl:grid-cols-[1fr_72px_1fr_auto] gap-2 items-end">
           <div className="space-y-1"><Label className="text-xs">{t("الباركود", "Barcode")}</Label><Input value={barcode} onChange={(e) => setBarcode(e.target.value)} dir="ltr" className="font-english h-9" placeholder="628…" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void add(); } }} /></div>
           <div className="space-y-1"><Label className="text-xs">{t("وحدات", "Units")}</Label><Input value={mult} onChange={(e) => setMult(e.target.value)} dir="ltr" className="font-english h-9" inputMode="numeric" /></div>
           <div className="space-y-1"><Label className="text-xs">{t("وصف", "Label")}</Label><Input value={label} onChange={(e) => setLabel(e.target.value)} className="h-9" placeholder={t("كرتون 12", "Carton of 12")} /></div>
-          <Button type="button" variant="outline" onClick={add} disabled={busy || !barcode.trim()} className="h-9 border-border"><Plus className="h-4 w-4" /></Button>
+          <Button type="button" variant="outline" onClick={() => void add()} disabled={busy || !barcode.trim()} className="h-9 border-border"><Plus className="h-4 w-4" /></Button>
         </div>
       </CardContent>
     </Card>
