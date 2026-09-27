@@ -35,6 +35,7 @@ import { useReturnTo } from "../lib/use-return-to";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
 import { useOrgRegion } from "../lib/use-org-region";
+import { InvoiceAmendmentActions, type InvoiceAction } from "../components/invoice-amendment-panel";
 import { IssuedInvoiceRecord } from "../components/issued-invoice-record";
 import { DocumentPagesEditor } from "../components/document-pages-editor";
 import { normalizePages, type DocPage } from "../lib/document-render";
@@ -189,6 +190,7 @@ export function Invoices() {
   const [signatureBlocked, setSignatureBlocked] = useState(true);
   const [signFor, setSignFor] = useState<Invoice | null>(null);
   const [splittingId, setSplittingId] = useState<string | null>(null);
+  const [invoiceAction, setInvoiceAction] = useState<InvoiceAction | undefined>();
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   // Send compose page (W-SEND · 2026-09-08) · never auto-fires an email — the
   // CEO must see + edit the message before it goes out.
@@ -699,7 +701,8 @@ export function Invoices() {
     navigate(`/app/receipts?${params.toString()}`);
   };
 
-    const openEdit = async (inv: Invoice) => {
+    const openEdit = async (inv: Invoice, action?: InvoiceAction) => {
+      setInvoiceAction(action);
       setSourceFiles([]);
     // List rows don't include lines · fetch the full invoice so edit never opens empty
     if (!inv.lines || !(inv.lines as any[]).length) {
@@ -816,12 +819,12 @@ export function Invoices() {
   }
 
   if (createOpen && editingInvoice && editingInvoice.status !== "DRAFT" && !signFor) {
-    return <><IssuedInvoiceRecord invoice={editingInvoice} onClose={closeCreate}
+    return <><IssuedInvoiceRecord initialAction={invoiceAction} invoice={editingInvoice} onClose={closeCreate}
       onPayment={() => openRecordPayment(editingInvoice)}
       onSend={(prefill) => setSendComposeFor({ invoice: editingInvoice, prefill })}
       sendLogRefreshKey={sendLogRefresh}
       accounts={accounts}
-      onRefresh={async () => { try { setEditingInvoice(await api.invoices.get(editingInvoice.id)); } catch (e) { push("error", humanizeError(e, language)); } }} />
+      onRefresh={async () => { try { setInvoiceAction(undefined); setEditingInvoice(await api.invoices.get(editingInvoice.id)); await refresh(); } catch (e) { push("error", humanizeError(e, language)); } }} />
       <ToastStack toasts={toasts} onDismiss={dismiss} /></>;
   }
 
@@ -886,7 +889,7 @@ export function Invoices() {
                     names the consequence instead of saying "are you sure". */}
                 {pendingEditorApprove ? (
                   <InlineConfirm
-                    label={pendingEditorApprove === "send"
+                    label={isUS ? t("اعتماد الفاتورة وترحيلها؟ تُحفظ التعديلات اللاحقة مع سجلها.", "Issue and post this invoice? Later amendments retain their history.") : pendingEditorApprove === "send"
                       ? t("اعتماد وإرسال؟ الاعتماد يقفل التعديل نهائياً", "Approve and send? Approval locks editing for good")
                       : t("اعتماد الفاتورة؟ بعدها لا تعديل — التصحيح بإشعار دائن", "Approve? No edits afterwards — corrections need a credit note")}
                     onConfirm={() => { const mode = pendingEditorApprove; setPendingEditorApprove(null); handleSubmit(mode); }}
@@ -894,7 +897,7 @@ export function Invoices() {
                   />
                 ) : (
                   <>
-                    <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("approve")} title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                    <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("approve")} title={isUS ? t("اعتماد وترحيل الفاتورة", "Issue and post invoice") : t("اعتماد + قفل التعديل", "Approve + lock editing")}>
                       {busy ? "..." : t("اعتماد", "Approve")}
                     </Button>
                     <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("send")} title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
@@ -1718,10 +1721,8 @@ export function Invoices() {
                   title={t("إرسال للتوقيع", "Send for signing")}
                 ><FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}</button>
               )}
-              {selected.status !== "DRAFT" && (
-                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground" title={t("افتح الفاتورة لمراجعة خيارات التعديل والتصحيح", "Open invoice to review amendment and correction options")}>
-                  {!isUS && <LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />}{isUS ? t("صادرة · افتح لإدارة الفاتورة", "Issued · open to manage") : t("مقفلة", "Locked")}
-                </span>
+              {selected.status !== "DRAFT" && selected.status !== "CANCELLED" && (
+                isUS ? <InvoiceAmendmentActions key={selected.id} invoice={selected} onAction={(action) => openEdit(selected, action)} /> : <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />{t("مقفلة", "Locked")}</span>
               )}
               {selected.status === "DRAFT" && (pendingDelete === selected.id ? (
                 <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
