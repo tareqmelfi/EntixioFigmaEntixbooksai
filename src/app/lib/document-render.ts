@@ -764,10 +764,10 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 .edoc.idn .tot2 .totals .r.grand .lbl{font-weight:700;color:var(--ink)}
 .edoc.idn .tot2 .tafqit{border-radius:var(--radius);margin-top:1.5mm;font-size:9pt;padding:1.8mm 3mm;line-height:1.5}
 /* QR card · full width · text at the start · code at the end */
-.edoc.idn .qrc{display:grid;grid-template-columns:1fr 28mm;gap:5mm;align-items:center;border:1px solid var(--line);border-radius:var(--radius);background:var(--wash);padding:2mm 4.5mm;margin:0 0 3mm;break-inside:avoid}
+.edoc.idn .qrc{display:grid;grid-template-columns:1fr 34mm;gap:5mm;align-items:center;border:1px solid var(--line);border-radius:var(--radius);background:var(--wash);padding:2mm 4.5mm;margin:0 0 3mm;break-inside:avoid}
 .edoc.idn .qrc .t{font-weight:700;font-size:10pt;margin-bottom:.5mm}
 .edoc.idn .qrc p{margin:0 0 1.5mm;font-size:8pt;line-height:1.6;color:var(--muted)}
-.edoc.idn .qrc .qr{width:28mm;height:28mm;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:1.5mm}
+.edoc.idn .qrc .qr{width:34mm;height:34mm;background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:1.5mm}
 .edoc.idn .qrc .qr svg{width:100%;height:100%;display:block}
 .edoc.idn .qrc .qr-data{grid-template-columns:auto 1fr;gap:.3mm 4mm;font-size:8pt;line-height:1.5}
 .edoc.idn .qrc .qr-data dd{font-family:var(--font-mono);font-weight:700}
@@ -1844,7 +1844,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const qrLead = zatca
         ? t("يحمل بيانات المنشأة والمبلغ بصيغة TLV المعتمدة من هيئة الزكاة والضريبة والجمارك، ويُقرأ بتطبيق التحقق من الفواتير.", "Carries core issuer and amount data in TLV format; this QR alone does not prove ZATCA clearance.")
         : t("رمز التحقق من رقم المستند.", "Document verification code.");
-      blocks.push({ kind: "html", h: 37.5, html: `<div class="qrc"><div class="qrc-body"><div class="t">${t("رمز الاستجابة السريعة (QR)", "QR code")}</div><p>${qrLead}</p><dl class="qr-data">${qrRows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div><div class="qr">${qr}</div></div>` });
+      blocks.push({ kind: "html", h: 43.5, html: `<div class="qrc"><div class="qrc-body"><div class="t">${t("رمز الاستجابة السريعة (QR)", "QR code")}</div><p>${qrLead}</p><dl class="qr-data">${qrRows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div><div class="qr">${qr}</div></div>` });
     }
     const taxNote = String(doc.notes || tpl.notes || "").trim() || (orgTaxRegistered
       ? t("الأسعار بالريال السعودي وغير شاملة ضريبة القيمة المضافة 15% المبيَّنة أعلاه. وتُصدَر الفاتورة الضريبية النظامية عند اعتماد العرض وتنفيذ الأعمال.", "Prices are in Saudi Riyals and exclude the 15% VAT shown above. The statutory tax invoice is issued on approval of this offer and execution of the works.")

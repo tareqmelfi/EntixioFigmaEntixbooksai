@@ -6,7 +6,7 @@ import { prepareVisualApp, visualOrgId } from './fixtures/visual-app';
 const template = { themePreset: 'custom', theme: { navy: '#0C2F61', fill: '#CCDDEE' }, headerStyle: 'centered', docLang: 'en', amountInWords: false, coverTitleEn: 'Services', coverTitle: 'خدمات' };
 function input(kind: 'QUOTE'|'INVOICE', lang: 'en'|'ar') {
  const base = sampleInput(kind,lang,template);
- return {...base,qr:qrSvg,org:{name:'ENSIDEX LLC',country:'US',email:'test@example.com'},contact:{name:'Synthetic client'},doc:{...base.doc,number:'EN-TEST-1200',title:null,notes:null,currency:'USD',paymentLinkUrl:null,paymentPlan:null,discountTotal:0,subtotal:1200,taxTotal:0,total:1200,lines:[{description:'Annual subscription',quantity:1,unitPrice:1200,subtotal:1200}]},bank:{bankName:'Mercury Bank',name:'Mercury Checking',accountNumber:'12345678901234567890',routingNumber:'123456789',swiftCode:'SYNTHETIC',currency:'USD'}};
+ return {...base,qr:qrSvg,org:{name:'ENSIDEX LLC',country:'US',email:'test@example.com'},contact:{name:'Synthetic client'},doc:{...base.doc,number:'EN-QTE-202609-0001',title:null,notes:null,currency:'USD',paymentLinkUrl:null,paymentPlan:null,discountTotal:0,subtotal:1200,taxTotal:0,total:1200,lines:[{description:'Annual subscription',quantity:1,unitPrice:1200,subtotal:1200}]},bank:{bankName:'Mercury Bank',name:'Mercury Checking',accountNumber:'12345678901234567890',routingNumber:'123456789',swiftCode:'SYNTHETIC',currency:'USD'}};
 }
 for (const lang of ['en','ar'] as const) for(const kind of ['QUOTE','INVOICE'] as const) test(`ENSIDEX ${kind} ${lang} totals, bank layout and printable pages`,async({page},info)=>{
  const out=renderDocument(input(kind,lang));
@@ -42,7 +42,7 @@ test('explicit language overrides template; saved preference and country default
 test('proposal route defaults to English for US issuer and switches to Arabic explicitly',async({page})=>{
  await prepareVisualApp(page,'ar');
  const base=input('QUOTE','en');
- await page.route('**/api/quotes/quote-test',r=>r.fulfill({json:{...base.doc,id:'quote-test',orgId:visualOrgId,quoteNumber:'EN-TEST-1200'}}));
+ await page.route('**/api/quotes/quote-test',r=>r.fulfill({json:{...base.doc,id:'quote-test',orgId:visualOrgId,quoteNumber:'EN-QTE-202609-0001'}}));
  await page.route(`**/orgs/${visualOrgId}`,r=>r.fulfill({json:{...base.org,id:visualOrgId}}));
  await page.route('**/api/document-templates/defaults',r=>r.fulfill({json:{QUOTE:template}}));
  await page.goto('/print/proposal/quote-test?noprint=1');
