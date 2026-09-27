@@ -9,7 +9,9 @@ import { displayLocale } from "../lib/number-display";
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, getOrgId, setOrgId } from "../lib/api";
+import { bindTabOrgUser } from "../lib/tab-org-selection";
+import { readActAs, stopActAs } from "../lib/act-as";
 import { authStore } from "../components/auth-store";
 import { useLanguage } from "../components/LanguageContext";
 import { CheckCircle2, Loader2, MailWarning, XCircle, Building2 } from "lucide-react";
@@ -33,7 +35,7 @@ export function InvitePage() {
   const [phase, setPhase] = useState<"loading" | "ready" | "accepted" | "declined" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [mismatchEmail, setMismatchEmail] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
+  const [busy, setBusy] = useState<"accept" | "decline" | "open" | null>(null);
 
 
   useEffect(() => {
@@ -80,6 +82,31 @@ export function InvitePage() {
         : e?.message || t("تعذّر قبول الدعوة", "Could not accept the invite");
       setError(msg);
       setPhase("error");
+    } finally { setBusy(null); }
+  };
+
+  const openInvitedCompany = async () => {
+    if (!info?.org.id || !auth.user) return;
+    setBusy("open");
+    setError(null);
+    try {
+      const support = readActAs();
+      if (support) {
+        try { await api.admin.impersonateStop(support.orgId); } catch { /* end the local override even if auditing is unavailable */ }
+        stopActAs();
+      }
+      // Select the company explicitly, then verify the accepted membership.
+      // A fresh login with zero companies has no stored tab binding yet.
+      bindTabOrgUser(auth.user.id);
+      setOrgId(info.org.id);
+      await authStore.refresh();
+      const fresh = authStore.getState();
+      if (!fresh.isAuthenticated || fresh.organizationError || getOrgId() !== info.org.id) {
+        throw new Error(t("تعذّر التحقق من عضويتك في الشركة. أعد المحاولة أو تواصل مع مالكها.", "Could not verify your company membership. Try again or contact its owner."));
+      }
+      window.location.assign("/app");
+    } catch (e: any) {
+      setError(e?.message || t("تعذّر فتح الشركة", "Could not open the company"));
     } finally { setBusy(null); }
   };
 
@@ -167,8 +194,9 @@ export function InvitePage() {
               {t("أهلًا بك في", "Welcome to")} «{info?.org.name}»
             </h1>
             <p className="text-sm text-muted-foreground mb-6">{t("تم تفعيل عضويتك — ستجد الشركة في قائمة الشركات.", "Your membership is active — find the company in your company switcher.")}</p>
-            <button onClick={() => navigate("/app")} className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-              {t("فتح التطبيق", "Open the app")}
+            {error && <p role="alert" className="mb-3 text-sm text-destructive">{error}</p>}
+            <button onClick={openInvitedCompany} disabled={busy !== null} className="w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+              {busy === "open" ? <Loader2 className="h-4 w-4 animate-spin inline" /> : t("فتح الشركة", "Open company")}
             </button>
           </>
         )}
