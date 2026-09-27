@@ -688,7 +688,7 @@ export function Quotes() {
       setItems(prev => prev.map(x => x.id === q.id ? { ...x, acceptToken: r.token } : x));
       try {
         await navigator.clipboard.writeText(r.url);
-        push("success", t("نُسخ رابط القبول — لم يُرسل بريد", "Accept link copied — no email sent"));
+        push("success", t("نُسخ رابط موافقة العميل — شاركه معه؛ لم يُرسل بريد", "Customer approval link copied — share it with them; no email sent"));
       } catch {
         push("info", t("الرابط جاهز أدناه — حدده وانسخه", "The link is ready below — select it to copy"));
       }
@@ -1122,7 +1122,7 @@ export function Quotes() {
       <>
         <FullPageForm
           title={t(`إرسال ${signFor.quoteNumber} للتوقيع`, `Send ${signFor.quoteNumber} for signing`)}
-          subtitle={t("DocuSeal · sign.ensidex.com · صلاحية الرابط 30 يوم", "DocuSeal · sign.ensidex.com · link valid for 30 days")}
+          subtitle={t("راجع بيانات الموقّع ثم أرسل دعوة التوقيع · صلاحية الرابط 30 يومًا", "Review the signer’s details, then send the signing invitation · link valid for 30 days")}
           onClose={closeSign}
           disableEscape={busy}
           footer={
@@ -1177,60 +1177,81 @@ export function Quotes() {
   const quoteEditable = (q: Quote) => q.status !== "CONVERTED" && q.status !== "REJECTED";
 
   const workflowActions = (q: Quote) => (
-    <div className="flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-      {quoteEditable(q) && (
-        <button onClick={() => openEdit(q)} disabled={busy} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-primary hover:border-border-strong" title={t("تعديل العرض", "Edit quote")} data-testid="quote-edit">
-          <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تعديل", "Edit")}
-        </button>
-      )}
+    <div className="space-y-4" onClick={(e) => e.stopPropagation()} data-testid="quote-workflow-actions">
+      <section aria-label={t("مشاركة العرض", "Share quote")} className="space-y-2">
+        <h3 className="text-sm font-semibold">{t("مشاركة العرض", "Share quote")}</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
+            <Button type="button" size="sm" onClick={() => setSendComposeFor({ quote: q })} data-testid="quote-send-email">
+              <Mail className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {t("إرسال العرض بالبريد", "Email quote")}
+            </Button>
+          )}
       <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:border-border-strong" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
-        <Printer className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("العرض", "Proposal")}
+        <Printer className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("معاينة / طباعة العرض", "Preview / print quote")}
       </a>
       {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
         <button onClick={() => handleSendLink(q)} disabled={linkBusy} data-testid="quote-accept-link" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إنشاء ونسخ رابط القبول بدون إرسال بريد", "Create and copy an accept link without sending email")}>
-          <Link2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("رابط القبول", "Accept link")}
+          <Link2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("نسخ رابط موافقة العميل", "Copy customer approval link")}
         </button>
+      )}
+      {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
+      <p className="basis-full text-xs leading-relaxed text-content-secondary">{t("شارك الرابط عبر واتساب أو البريد ليوافق العميل أو يرفض. الموافقة تنشئ مشروعًا؛ التوقيع الإلكتروني له طلب منفصل.", "Share the link by WhatsApp or email for the customer to approve or decline. Approval creates a project; electronic signing uses a separate request.")}</p>
       )}
       {acceptLink?.quoteId === q.id && (
         <div className="basis-full space-y-1" data-testid="quote-accept-link-result">
-          <Label htmlFor={`accept-link-${q.id}`} className="text-xs text-content-secondary">{t("رابط القبول · لم يُرسل بريد", "Accept link · no email sent")}</Label>
+          <Label htmlFor={`accept-link-${q.id}`} className="text-xs text-content-secondary">{t("رابط موافقة العميل · لم يُرسل بريد", "Customer approval link · no email sent")}</Label>
           <Input id={`accept-link-${q.id}`} readOnly dir="ltr" value={acceptLink.url} onFocus={(e) => e.target.select()} className="text-xs" />
           <Button type="button" size="sm" variant="outline" onClick={() => setSendComposeFor({ quote: q })}>{t("مراجعة رسالة البريد", "Review email message")}</Button>
         </div>
       )}
+        </div>
+      </section>
+      {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
+        <section aria-label={t("التوقيع الإلكتروني", "Electronic signature")} className="space-y-2 border-t border-border pt-4">
+        <button data-testid="quote-request-signature" onClick={() => openSign(q)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إرسال للتوقيع", "Send for signing")}>
+          <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("طلب توقيع إلكتروني", "Request electronic signature")}
+        </button>
+          <p className="text-xs leading-relaxed text-content-secondary">{t("يفتح صفحة مراجعة اسم الموقّع وبريده قبل إرسال دعوة لتوقيع المستند. يمكنك متابعة الطلب وفتح رابط التوقيع من الصفحة نفسها.", "Review the signer’s name and email before sending an invitation to sign the document. Track the request and open its signing link on the same page.")}</p>
+        </section>
+      )}
+      {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
+        <section aria-label={t("تسجيل رد العميل يدويًا", "Record customer response")} className="space-y-2 border-t border-border pt-4">
+          <h3 className="text-sm font-semibold">{t("ردّ العميل خارج المنصة؟", "Customer replied outside Entix?")}</h3>
+          <p className="text-xs leading-relaxed text-content-secondary">{t("سجّل رده الذي وصلك بالهاتف أو البريد. الموافقة تنشئ مشروعًا تلقائيًا؛ الرفض يتطلب السبب. لا يُرسل أي منهما رسالة للعميل.", "Record a response received by phone or email. Approval creates a project; decline requires a reason. Neither action sends a customer message.")}</p>
+          <div className="flex flex-wrap items-center gap-2">
       {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
         pendingAccept === q.id ? (
           <InlineConfirm onConfirm={() => handleManualAccept(q)} onCancel={() => setPendingAccept(null)} label={t("تسجيل موافقة العميل وإنشاء المشروع؟", "Record approval + create project?")} />
         ) : (
           <button onClick={() => setPendingAccept(q.id)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-success hover:border-border-strong" title={t("موافقة يدوية (حوالة/هاتف) → مشروع تلقائي", "Manual approval → auto project")}>
-            <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("ترسية", "Award")}
+            <CheckCircle2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تسجيل موافقة العميل", "Record customer approval")}
           </button>
         )
       )}
       {(q.status === "SENT" || q.status === "VIEWED" || q.status === "DRAFT") && (
         rejectFor === q.id ? (
           <span className="inline-flex flex-wrap items-center gap-1">
-            <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب الخسارة (إلزامي)...", "Loss reason (required)...")} className="h-7 w-44 border-danger-border text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
+            <Input autoFocus value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder={t("سبب رفض العميل (إلزامي)...", "Customer decline reason (required)...")} className="h-7 w-44 border-danger-border text-xs" onKeyDown={(e) => { if (e.key === "Enter") handleReject(q); if (e.key === "Escape") { setRejectFor(null); setRejectReason(""); } }} />
             <button onClick={() => handleReject(q)} className="rounded-full bg-danger px-2.5 py-1 text-xs text-primary-foreground">{t("تأكيد", "OK")}</button>
             <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="rounded-full px-2.5 py-1 text-xs text-muted-foreground">{t("إلغاء", "Cancel")}</button>
           </span>
         ) : (
           <button onClick={() => { setRejectFor(q.id); setRejectReason(""); }} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-danger hover:border-border-strong" title={t("اعتذار/خسارة مع تسجيل السبب", "Decline with a reason")}>
-            <XCircle className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("رفض", "Decline")}
+            <XCircle className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تسجيل رفض العميل", "Record customer decline")}
           </button>
         )
       )}
-      {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
-        <button onClick={() => openSign(q)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:border-border-strong" title={t("إرسال للتوقيع", "Send for signing")}>
-          <FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}
-        </button>
+          </div>
+        </section>
       )}
+      <section aria-label={t("الفوترة", "Invoicing")} className="space-y-2 border-t border-border pt-4">
+        <div className="flex flex-wrap items-center gap-2">
       {q.status !== "CONVERTED" && (
         pendingConvert === q.id ? (
           <InlineConfirm onConfirm={() => handleConvert(q)} onCancel={() => setPendingConvert(null)} label={t("تحويل لفاتورة؟", "Convert to invoice?")} />
         ) : (
           <button onClick={() => setPendingConvert(q.id)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-success hover:border-border-strong" title={t("تحويل لفاتورة", "Convert to invoice")}>
-            <ArrowLeftRight className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("تحويل", "Convert")}
+            <ArrowLeftRight className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("إنشاء فاتورة من العرض", "Create invoice from quote")}
           </button>
         )
       )}
@@ -1239,6 +1260,10 @@ export function Quotes() {
           <FileText className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("فتح الفاتورة", "Open invoice")}
         </Link>
       )}
+        </div>
+        <p className="text-xs leading-relaxed text-content-secondary">{t("يبقى العرض محفوظًا بعد إنشاء الفاتورة، وتُراجع الفاتورة وتُرسل بشكل مستقل.", "The quote stays saved after an invoice is created. Review and send the invoice separately.")}</p>
+      </section>
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-3">
       {pendingDelete === q.id ? (
         <InlineConfirm onConfirm={() => handleDelete(q.id)} onCancel={() => setPendingDelete(null)} />
       ) : (
@@ -1246,6 +1271,7 @@ export function Quotes() {
           <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("حذف", "Delete")}
         </button>
       )}
+      </div>
     </div>
   );
 
@@ -1301,7 +1327,7 @@ export function Quotes() {
                 docTypeLabel={t("عرض سعر", "Quotation")}
                 statusLabel={statusWord(q)}
                 statusMeta={[String(q.issueDate || "").slice(0, 10), q.validUntil ? `→ ${String(q.validUntil).slice(0, 10)}` : ""].filter(Boolean).join(" ")}
-                onSend={q.status !== "CONVERTED" && q.status !== "REJECTED" ? () => openSign(q) : undefined}
+                onSend={q.status !== "CONVERTED" && q.status !== "REJECTED" ? () => setSendComposeFor({ quote: q }) : undefined}
                 onPdf={() => window.open(`/print/proposal/${q.id}`, "_blank", "noopener")}
               />
             </div>
@@ -1341,14 +1367,7 @@ export function Quotes() {
                 </dl>
               </div>
               <div className="rounded-lg border border-border bg-card p-5">
-                <h2 className="mb-3 text-section font-semibold text-foreground">{t("إجراءات", "Actions")}</h2>
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  {q.status !== "CONVERTED" && q.status !== "REJECTED" && (
-                    <Button type="button" size="sm" onClick={() => setSendComposeFor({ quote: q })} data-testid="quote-send-email">
-                      <Mail className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {t("إرسال بالبريد", "Send by email")}
-                    </Button>
-                  )}
-                </div>
+                <h2 className="mb-3 text-section font-semibold text-foreground">{t("مشاركة العرض ومتابعته", "Share & follow up")}</h2>
                 {workflowActions(q)}
               </div>
             </aside>
