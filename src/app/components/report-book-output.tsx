@@ -72,7 +72,8 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
         const cover = source.current.querySelector('.report-book-cover')!.cloneNode(true) as HTMLElement;
         target.append(cover);
         const articles = source.current.querySelectorAll<HTMLElement>('.entix-report-paper');
-        const buckets = Array.from(articles, article => {
+        const buckets = Array.from(articles, original => {
+          const article = original.cloneNode(true) as HTMLElement;
           article.classList.add('report-book-page');
           const footerTitle = article.querySelector(':scope > footer > span');
           if (footerTitle) footerTitle.textContent = `${title} · ${first.org.name}`;
