@@ -1,4 +1,4 @@
-import { InvoiceAmendmentPanel } from './invoice-amendment-panel';
+import { InvoiceAmendmentPanel, type InvoiceAction } from './invoice-amendment-panel';
 import { InvoiceDocuments } from './invoice-documents';
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { useState } from 'react';
@@ -13,8 +13,9 @@ import { SendLogSection } from './send-log-section';
 import { InvoiceReclassifyPanel } from './invoice-reclassify-panel';
 import { CheckCircle2, Clock3, Mail } from 'lucide-react';
 
-/** Issued document view: never mounts editable invoice controls. */
-export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey, accounts }: {
+/** Issued document view: amendments use the server-authorized, audited workflow. */
+export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey, accounts, initialAction }: {
+  initialAction?: InvoiceAction;
   invoice: Invoice; onClose: () => void; onRefresh: () => Promise<void>; onPayment: () => void;
   /** Chart of accounts · enables the limited post-issue reclassification. */
   accounts?: Array<{ id: string; code?: string | null; name: string; type?: string }>;
@@ -61,7 +62,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         {!stripeManaged && <Button variant="outline" disabled={paymentBusy || !canRelease} onClick={preparePayment}>{paymentBusy ? t('جارٍ التحقق…', 'Checking…') : t('تجهيز / تحديث رابط الدفع', 'Prepare / refresh payment link')}</Button>}
         {paymentError && <p role="alert" className="text-sm text-warning">{paymentError}</p>}
       </section>}
-      <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} />
+      <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} initialAction={initialAction} />
       {/* An issued invoice is locked for its MONEY, not for its bookkeeping —
           the account a line landed on can still be corrected (2026-09-21). */}
       {!stripeManaged && invoice.status !== 'CANCELLED' && !!accounts?.length && (
