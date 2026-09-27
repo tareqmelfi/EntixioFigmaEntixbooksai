@@ -17,7 +17,6 @@ import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
 import { useLegalType } from "../lib/use-legal-type";
-import { authStore } from "./auth-store";
 
 const EN_TEXT: Record<string, string> = {
   "لوحة التحكم": "Dashboard",
@@ -371,8 +370,6 @@ export function AppSidebar({
   className?: string;
 }) {
   const location = useLocation();
-  const [isPlatformAdmin, setIsPlatformAdmin] = useState(!!authStore.getState().user?.isPlatformAdmin);
-  useEffect(() => authStore.subscribe((s) => setIsPlatformAdmin(!!s.user?.isPlatformAdmin)), []);
   const routerNavigate = useNavigate();
   const navigate = (path: string) => routerNavigate(path, { state: { sidebarSectionEntry: true } });
   const tr = useSidebarText();
@@ -510,7 +507,6 @@ export function AppSidebar({
           navigate={navigate}
           collapsed={collapsed}
           setCollapsed={setCollapsed}
-          isPlatformAdmin={isPlatformAdmin}
         />
       </aside>
     );
@@ -549,7 +545,6 @@ export function AppSidebar({
         searchResults={searchResults}
         navigate={navigate}
         onClose={onClose}
-        isPlatformAdmin={isPlatformAdmin}
       />
     </aside>
   );
@@ -560,7 +555,7 @@ function SidebarContent({
   cycleMode, modeLabel, ModeIcon,
   openMenus, toggleMenu, openGroups, toggleGroup, isActive, isLeafActive, hasActiveChild, isParentPathActive,
   searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
-  navigate, onClose, collapsed, setCollapsed, isPlatformAdmin,
+  navigate, onClose, collapsed, setCollapsed,
 }: {
   cycleMode: () => void;
   modeLabel: string;
@@ -583,7 +578,6 @@ function SidebarContent({
   onClose?: () => void;
   collapsed?: boolean;
   setCollapsed?: (c: boolean) => void;
-  isPlatformAdmin?: boolean;
 }) {
   const { language, toggleLanguage, t } = useLanguage();
   const tr = useSidebarText();
@@ -621,10 +615,7 @@ function SidebarContent({
         </div>
 
         {/* Active org switcher · Wafeq-style with logo + search + "مختارة حالياً" tag */}
-        {/* Platform-admin accounts never own/belong to a company (owner
-         * directive 2026-08-25) — showing an empty/broken switcher here is
-         * worse than showing nothing. */}
-        {!collapsed && !isPlatformAdmin && <OrgSwitcher />}
+        {!collapsed && <OrgSwitcher />}
 
         {!collapsed && (
         <div className="relative" ref={searchRef}>

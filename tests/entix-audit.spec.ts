@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-async function setup(page: Page) {
+async function setup(page: Page, saveResponse?: Promise<void>) {
   const orgs = ['a', 'b'].map(id => ({ id: `tenant-${id}`, name: `Synthetic Company ${id.toUpperCase()}`, slug: `test-${id}`, role: 'OWNER', country: 'SA', baseCurrency: 'SAR', vatNumber: '310000000000003', zatcaEnabled: true, fiscalYearEnd: 12, industry: 'Test services', subscription: { status: 'ACTIVE', plan: { tier: 'PRO', name: 'Pro' } } }))
   const updates: any[] = []
   await page.addInitScript(() => { localStorage.setItem('entix-language', 'en'); if (!localStorage.getItem('entix_org_id')) localStorage.setItem('entix_org_id', 'tenant-a'); localStorage.setItem('entix_cookie_consent_v1', JSON.stringify({ v: 1, choice: 'essential', analytics: false, marketing: false, at: '2026-09-06T00:00:00Z' })); })
@@ -15,7 +15,7 @@ async function setup(page: Page) {
     if (/^\/orgs\/[^/]+\/members$/.test(path)) return route.fulfill({ json: { members: [] } });
     if (/^\/orgs\/[^/]+$/.test(path) && req.method() === 'PATCH') { const data = req.postDataJSON(); updates.push(data); return route.fulfill({ json: { ...orgs.find(o => path.endsWith(o.id)), ...data } }); }
     if (path === '/api/vat-registration') {
-      if (req.method() === 'PUT') { const data = req.postDataJSON(); updates.push({ tenant, registration: data }); return route.fulfill({ json: { registration: { ...data, revision: data.revision + 1 }, issuesCertificates: false } }); }
+      if (req.method() === 'PUT') { const data = req.postDataJSON(); updates.push({ tenant, registration: data }); await saveResponse; return route.fulfill({ json: { registration: { ...data, revision: data.revision + 1 }, issuesCertificates: false } }); }
       return route.fulfill({ json: { registration: tenant === 'tenant-b' ? { revision: 2, status: 'DRAFT', path: 'EXISTING_CERTIFICATE', identityEvidence: 'company-b-evidence' } : null, issuesCertificates: false } });
     }
     if (path === '/api/zatca/onboarding/status') return route.fulfill({ json: { status: 'NONE', mode: 'simulation', vatConfigured: true, zatcaEnabled: true } });
@@ -51,6 +51,24 @@ test('company save preserves activation; existing certificate workflow is separa
   await page.getByLabel('Evidence-supported status', { exact: true }).selectOption('CERTIFICATE_VERIFIED');
   await expect(page.getByRole('button', { name: 'Save tracking', exact: true })).toBeDisabled();
   await page.getByTestId('vat-registration-panel').screenshot({ path: testInfo.outputPath('vat-registration-workflow.png') });
+});
+
+test('a pending tracking save preserves edits made before its response', async ({ page }) => {
+  let release!: () => void;
+  const updates = await setup(page, new Promise<void>(resolve => { release = resolve; }));
+  await page.goto('/app/settings?tab=zatca');
+  const evidence = page.getByLabel('Entity identity / registry evidence', { exact: true });
+  await evidence.fill('saved evidence');
+  await page.getByRole('button', { name: 'Save tracking', exact: true }).click();
+  await expect.poll(() => updates.length).toBe(1);
+  await evidence.fill('new unsaved evidence');
+  await page.getByLabel('Evidence-supported status', { exact: true }).selectOption('CERTIFICATE_VERIFIED');
+  release();
+  await expect(page.getByRole('status').filter({ hasText: 'Tracking record saved' })).toBeVisible();
+  await expect(evidence).toHaveValue('new unsaved evidence');
+  await expect(page.getByLabel('Evidence-supported status', { exact: true })).toHaveValue('CERTIFICATE_VERIFIED');
+  await expect(page.getByRole('button', { name: 'Save tracking', exact: true })).toBeDisabled();
+  expect(updates[0].registration.status).toBe('DRAFT');
 });
 
 test('switching company reloads its evidence and clears unsaved CSR fields', async ({ page }) => {
