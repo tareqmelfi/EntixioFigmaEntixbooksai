@@ -1,3 +1,4 @@
+import { SignatureHistory } from "../components/signature-history";
 import { InvoiceDocuments } from "../components/invoice-documents";
 import type { SourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
@@ -313,6 +314,8 @@ export function Quotes() {
     return () => { alive = false; };
   }, []);
 
+  const [signatureRevision, setSignatureRevision] = useState(0);
+  const [signatureBlocked, setSignatureBlocked] = useState(true);
   const [signFor, setSignFor] = useState<Quote | null>(null);
   const [signForm, setSignForm] = useState({ name: "", email: "", message: "" });
   const [signError, setSignError] = useState<string | null>(null);
@@ -722,6 +725,7 @@ export function Quotes() {
 
   const openSign = (q: Quote) => {
     const customer = customers.find((c) => c.id === q.contactId);
+    setSignatureBlocked(true);
     setSignFor(q);
     setSignForm({
       name: customer?.displayName || "",
@@ -733,7 +737,7 @@ export function Quotes() {
   const closeSign = () => { setSignFor(null); setSignError(null); };
 
   const handleSignSubmit = async () => {
-    if (!signFor) return;
+    if (!signFor || signatureBlocked) return;
     setSignError(null);
     if (!signForm.email.trim()) { setSignError(t("البريد الإلكتروني مطلوب", "Email is required")); return; }
     if (!signForm.name.trim()) { setSignError(t("اسم الموقّع مطلوب", "Signer name is required")); return; }
@@ -752,8 +756,9 @@ export function Quotes() {
           setItems(prev => prev.map(x => x.id === signFor.id ? { ...x, status: "SENT" } : x));
         }
       }
-      closeSign();
+      setSignatureRevision(n => n + 1);
     } catch (e: any) {
+      setSignatureRevision(n => n + 1);
       setSignError(humanizeError(e, language, { ar: "فشل الإرسال", en: "Send failed" }));
     } finally { setBusy(false); }
   };
@@ -1123,13 +1128,14 @@ export function Quotes() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={closeSign} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button type="button" disabled={busy} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
+              <Button type="button" disabled={busy || signatureBlocked} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
                 <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : t("إرسال للتوقيع", "Send for signing")}
               </Button>
             </div>
           }
         >
           <div className="max-w-2xl mx-auto space-y-4">
+            <SignatureHistory key={signFor.id} docId={signFor.id} docType="QUOTE" revision={signatureRevision} onBlocked={setSignatureBlocked} />
             {signError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{signError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("اسم الموقّع", "Signer name")} *</Label>

@@ -1178,6 +1178,9 @@ export const api = {
   },
 
   fixedAssets: {
+    intake: () => request<{ items: AssetIntakeCandidate[] }>('/api/fixed-assets/intake'),
+    registerIntake: (data: any) => request<any>('/api/fixed-assets/intake/register', { method: 'POST', body: data }),
+    dismissIntake: (data: { sourceKey: string; fingerprint: string }) => request<{ok:boolean}>('/api/fixed-assets/intake/dismiss', { method: 'POST', body: data }),
     list: () => request<{ items: any[]; total: number; totalCost: number; netBookValue: number; totalDepreciation: number }>('/api/fixed-assets'),
     get: (id: string) => request<any>(`/api/fixed-assets/${id}`),
     nextCode: () => request<{ code: string }>('/api/fixed-assets/next-code'),
@@ -1351,7 +1354,7 @@ export const api = {
       request<SignSendResult>(`/api/sign/quotes/${quoteId}/send`, { method: 'POST', body: data }),
     sendInvoice: (invoiceId: string, data: SignSendInput) =>
       request<SignSendResult>(`/api/sign/invoices/${invoiceId}/send`, { method: 'POST', body: data }),
-    listRequests: (params?: { status?: string; docType?: 'QUOTE' | 'INVOICE' }) =>
+    listRequests: (params?: { status?: string; docType?: 'QUOTE' | 'INVOICE'; docId?: string }) =>
       request<{ items: SignatureRequest[] }>('/api/sign/requests', { query: params }),
     getRequest: (id: string) => request<SignatureRequest>(`/api/sign/requests/${id}`),
     health: () => request<{ base: string; tokenSet: boolean; publicApiUrl: string }>('/api/sign/health'),
@@ -3914,7 +3917,7 @@ export interface SignatureRequest {
   docType: 'QUOTE' | 'INVOICE' | 'CONTRACT'
   docId: string
   docNumber: string
-  status: 'PENDING' | 'SENT' | 'VIEWED' | 'SIGNED' | 'DECLINED' | 'EXPIRED'
+  status: 'SENDING' | 'UNKNOWN' | 'FAILED' | 'PENDING' | 'SENT' | 'VIEWED' | 'SIGNED' | 'DECLINED' | 'EXPIRED'
   docusealSubmissionId: string | null
   docusealEmbedUrl: string | null
   signers: string // JSON-encoded array
@@ -4043,4 +4046,11 @@ export interface PublicBoardPayload {
 export interface SupportTicket {
   id: string; subject: string; status: string; category: string; priority: string; channel: string; createdAt: string; updatedAt: string;
   messages?: Array<{ id: string; authorType: string; body: string; createdAt: string }>;
+}
+
+export interface AssetIntakeCandidate {
+ sourceKey: string; fingerprint: string; name: string; accountId: string | null;
+ acquisitionDate: string; acquisitionCost: string; currency: string; baseCurrency: string;
+ sourceNumber: string; sourceKind: 'bill' | 'expense' | 'journal'; sourceId: string;
+ sourceJournalId: string | null; existingAssetId: string | null; code: string;
 }

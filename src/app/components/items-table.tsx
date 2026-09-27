@@ -371,6 +371,8 @@ export function ItemsTable({
   const suggestInFlightRef = useRef<Set<string>>(new Set());
   const linesRef = useRef(lines);
   linesRef.current = lines;
+  const [scanError, setScanError] = useState<string | null>(null);
+  const scanQueue = useRef(Promise.resolve());
   const [colsOpen, setColsOpen] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -540,6 +542,38 @@ export function ItemsTable({
       accountId: product.accountId || existing?.accountId,
       accountSuggested: product.accountId ? false : existing?.accountSuggested,
       taxRate: product.taxRate ?? existing?.taxRate ?? defaultTaxRate,
+    });
+  };
+
+  const scanProductCode = (rawCode: string) => {
+    const code = rawCode.trim();
+    if (!code) return;
+    // Serialize scans, but use functional updates so a slow lookup never overwrites edits.
+    scanQueue.current = scanQueue.current.then(async () => {
+      setScanError(null);
+      try {
+        let match = products.find(p => (p.sku || "").toLowerCase() === code.toLowerCase() || p.id === code || p.name.toLowerCase() === code.toLowerCase());
+        let quantity = 1;
+        if (!match) {
+          const result = await api.products.lookup(code);
+          match = products.find(p => p.id === result.product.id);
+          quantity = Number(result.unitMultiplier);
+        }
+        if (!match || !Number.isFinite(quantity) || quantity <= 0) throw new Error("not_found");
+        const item = match;
+        const row: InvoiceLine = {
+          ...newLine(defaultTaxRate, mode === "all-inclusive"), productId: item.id,
+          description: mergeProductDescription(item.name), quantity: String(quantity),
+          unitPrice: String(item.unitPrice ?? 0), accountId: item.accountId,
+          taxRate: item.taxRate ?? defaultTaxRate,
+        };
+        setLines(previous => {
+          const empty = previous.findIndex(l => !l.productId && !l.description.trim() && !Number(l.unitPrice) && !l.accountId && !l.notes);
+          return empty < 0 ? [...previous, row] : previous.map((l, i) => i === empty ? { ...row, id: l.id } : l);
+        });
+      } catch {
+        setScanError(t(`تعذّر العثور على الصنف للكود ${code}. تحقق من تسجيل الباركود واتصالك ثم أعد المسح.`, `Could not resolve code ${code}. Check the saved barcode and connection, then scan again.`));
+      }
     });
   };
 
@@ -956,6 +990,7 @@ export function ItemsTable({
                     <Input
                       type="text"
                       inputMode="decimal"
+                      aria-label={t("كمية السطر", "Line quantity")}
                       value={isReal ? line.quantity : ""}
                       onChange={(e) => updateLine(i, { quantity: normalizeDigits(e.target.value) })}
                       onKeyDown={(e) => handleKeyDown(e, i, false)}
@@ -1159,74 +1194,23 @@ export function ItemsTable({
                   placeholder={t("ادخل الكود + Enter", "Enter code + Enter")}
                   className="w-40 rounded-full border border-border bg-card px-3 py-1 font-english text-xs focus:outline-none"
                   dir="ltr"
+                  aria-label={t("مسح باركود أو إدخال كود", "Scan barcode or enter code")}
                   onKeyDown={(e) => {
                     if (e.key !== "Enter") return;
                     e.preventDefault();
-                    const code = (e.target as HTMLInputElement).value.trim();
-                    if (!code) return;
-                    // Try SKU match first · then by id · then by name
-                    const match = products.find(p =>
-                      (p.sku || "").toLowerCase() === code.toLowerCase() ||
-                      p.id === code ||
-                      p.name.toLowerCase() === code.toLowerCase()
-                    );
-                    if (match) {
-                      const emptyIdx = lines.findIndex(l => !l.description.trim() && !l.unitPrice);
-                      if (emptyIdx >= 0) {
-                        onProductPick(emptyIdx, match);
-                      } else {
-                        const inclusive = mode === "all-inclusive";
-                        const newLineWithProduct: InvoiceLine = {
-                          ...newLine(defaultTaxRate, inclusive),
-                          productId: match.id,
-                          description: mergeProductDescription(match.name),
-                          unitPrice: String(match.unitPrice),
-                          accountId: match.accountId,
-                          taxRate: match.taxRate ?? defaultTaxRate,
-                        };
-                        setLines([...lines, newLineWithProduct]);
-                      }
-                      (e.target as HTMLInputElement).value = "";
-                    } else {
-                      console.warn("[cashier] no match for:", code);
-                      (e.target as HTMLInputElement).select();
-                    }
+                    scanProductCode(e.currentTarget.value);
+                    e.currentTarget.value = "";
                   }}
                 />
               </div>
             )}
             {products.length > 0 && (
               <BarcodeScannerButton
-                onScanned={(code) => {
-                  // Find product by SKU/barcode match · case-insensitive
-                  const match = products.find(
-                    (p) => (p.sku || "").toLowerCase() === code.toLowerCase(),
-                  );
-                  if (match) {
-                    // Find first empty line · or add new
-                    const emptyIdx = lines.findIndex((l) => !l.description.trim() && !l.unitPrice);
-                    if (emptyIdx >= 0) {
-                      onProductPick(emptyIdx, match);
-                    } else {
-                      const inclusive = mode === "all-inclusive";
-                      const newLineWithProduct: InvoiceLine = {
-                        ...newLine(defaultTaxRate, inclusive),
-                        productId: match.id,
-                        description: mergeProductDescription(match.name),
-                        unitPrice: String(match.unitPrice),
-                        accountId: match.accountId,
-                        taxRate: match.taxRate ?? defaultTaxRate,
-                      };
-                      setLines([...lines, newLineWithProduct]);
-                    }
-                  } else {
-                    // Could trigger product creation with SKU pre-filled · for now alert via toast pattern
-                    console.warn("[barcode] no product matched SKU:", code);
-                  }
-                }}
+                onScanned={scanProductCode}
               />
             )}
           </div>
+          {scanError && <p role="alert" className="w-full text-sm text-danger">{scanError}</p>}
           <div className="relative flex items-center gap-3">
             <span className="text-muted-foreground">{t("{n} بنود", "{n} lines").replace("{n}", String(realLineCount))}</span>
             <button

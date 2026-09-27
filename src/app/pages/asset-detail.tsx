@@ -6,11 +6,11 @@ import { displayLocale } from "../lib/number-display";
  *                      dispose/restore, edit, delete)
  *
  * Xero-style behavior note: posting a purchase (bill/expense) to an account
- * inside the assets branch of the chart registers the asset automatically —
+ * inside the assets branch of the chart queues the asset for review —
  * manual registration here is for assets acquired outside purchases.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   Archive, ArrowRight, Building2, Edit2, ExternalLink, Loader2, RotateCcw,
   Save, Sparkles, Trash2,
@@ -23,7 +23,7 @@ import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { SearchableCombobox } from "../components/searchable-combobox";
-import { api, ApiError, Account } from "../lib/api";
+import { api, ApiError, Account, type AssetIntakeCandidate } from "../lib/api";
 import { displayName, secondaryName } from "../lib/display-name";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -38,6 +38,9 @@ const EMPTY_FORM = {
 export function AssetDetail() {
   const { t } = useLanguage();
   const { id } = useParams();
+  const [params] = useSearchParams();
+  const intakeKey = params.get("intake");
+  const [candidate, setCandidate] = useState<AssetIntakeCandidate | null>(null);
   const navigate = useNavigate();
   const isNew = !id || id === "new";
 
@@ -75,6 +78,17 @@ export function AssetDetail() {
         const { code } = await api.fixedAssets.nextCode();
         setForm((f) => ({ ...f, code }));
       } catch { /* keep manual */ }
+      if (intakeKey) {
+        setLoading(true);
+        try {
+          const pending = await api.fixedAssets.intake();
+          const source = pending.items.find(item => item.sourceKey === intakeKey);
+          if (!source) throw new Error("source_unavailable");
+          setCandidate(source);
+          setForm(f => ({...f, code:source.code || f.code, name:source.name, accountId:source.accountId || "", acquisitionDate:source.acquisitionDate.slice(0,10), acquisitionCost:source.currency === source.baseCurrency ? source.acquisitionCost : "", usefulLifeYears:""}));
+        } catch { setError(t("البند غير متاح أو تمت مراجعته. ارجع لقائمة الأصول وحدّثها.", "The source is unavailable or already reviewed. Return to assets and refresh.")); }
+        finally { setLoading(false); }
+      }
       return;
     }
     setLoading(true);
@@ -84,7 +98,7 @@ export function AssetDetail() {
     } catch (e: any) {
       setError(e instanceof ApiError ? e.message : t("فشل تحميل الأصل", "Failed to load asset"));
     } finally { setLoading(false); }
-  }, [id, isNew, applyAsset, t]);
+  }, [id, isNew, intakeKey, applyAsset, t]);
   useEffect(() => { load(); }, [load]);
 
   const assetAccounts = accounts.filter(a => a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: secondaryName(a) || undefined }));
@@ -99,6 +113,7 @@ export function AssetDetail() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.code || !form.name || !form.acquisitionCost) { setError(t("الرمز والاسم والتكلفة مطلوبة", "Code, name and cost are required")); return; }
+    if (intakeKey && !candidate) return;
     setBusy(true); setError(null);
     try {
       const payload = {
@@ -106,7 +121,7 @@ export function AssetDetail() {
         acquisitionDate: form.acquisitionDate,
         acquisitionCost: Number(form.acquisitionCost),
         salvageValue: Number(form.salvageValue) || 0,
-        usefulLifeYears: Number(form.usefulLifeYears) || 5,
+        usefulLifeYears: Number(form.usefulLifeYears),
         accountId: form.accountId || null,
         depreciationExpenseAccountId: form.depreciationExpenseAccountId || null,
         accumulatedDepreciationAccountId: form.accumulatedDepreciationAccountId || null,
@@ -114,7 +129,7 @@ export function AssetDetail() {
         purchaseExpenseId: form.purchaseExpenseId || null,
         notes: form.notes || null,
       };
-      const saved = isNew ? await api.fixedAssets.create(payload) : await api.fixedAssets.update(id!, payload);
+      const saved = candidate ? await api.fixedAssets.registerIntake({...payload, sourceKey:candidate.sourceKey, fingerprint:candidate.fingerprint}) : isNew ? await api.fixedAssets.create(payload) : await api.fixedAssets.update(id!, payload);
       push("success", isNew ? t("تم تسجيل الأصل", "Asset registered") : t("تم تحديث الأصل", "Asset updated"));
       if (isNew) navigate("/app/assets");
       else { applyAsset(saved); setEditMode(false); }
@@ -161,6 +176,7 @@ export function AssetDetail() {
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
+      {candidate && <InlineAlert tone="info">{t("من المستند", "From document")} {candidate.sourceNumber} · {candidate.acquisitionCost} {candidate.currency}. {t("أكد تكلفة الأصل بعملة الشركة", "Confirm asset cost in company currency")} ({candidate.baseCurrency}). {t("التسجيل هنا لا ينشئ قيدًا ماليًا آخر.", "Registration does not create another journal entry.")}</InlineAlert>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -185,8 +201,8 @@ export function AssetDetail() {
             </div>
             <div className="space-y-2"><Label>{t("اسم الأصل", "Asset name")} *</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("جهاز كمبيوتر مكتبي", "Desktop computer")} /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>{t("تاريخ الاقتناء", "Acquisition date")} *</Label><DateInput value={form.acquisitionDate} onChange={(iso) => setForm({ ...form, acquisitionDate: iso })} required inputClassName="" /></div>
-              <div className="space-y-2"><Label>{t("العمر الإنتاجي (سنوات)", "Useful life (years)")} *</Label><Input type="number" min="1" required value={form.usefulLifeYears} onChange={(e) => setForm({ ...form, usefulLifeYears: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label>{t("تاريخ الاقتناء", "Acquisition date")} *</Label><DateInput disabled={!!candidate} value={form.acquisitionDate} onChange={(iso) => setForm({ ...form, acquisitionDate: iso })} required inputClassName="" /></div>
+              <div className="space-y-2"><Label>{t("العمر الإنتاجي (سنوات)", "Useful life (years)")} *</Label><Input aria-label={t("العمر الإنتاجي (سنوات)", "Useful life (years)")} type="number" min="1" max="200" required value={form.usefulLifeYears} onChange={(e) => setForm({ ...form, usefulLifeYears: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label>{t("التكلفة", "Cost")} *</Label><Input type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
@@ -201,12 +217,12 @@ export function AssetDetail() {
             <div>
               <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("الربط المحاسبي", "Accounting links")}</div>
               <p className="text-[11px] text-muted-foreground mt-1 leading-5">
-                {t("الإهلاك السنوي يقيد تلقائياً بين حساب مصروف الإهلاك ومجمع الإهلاك، وعند الإخراج تُغلق التكلفة والمجمع.", "Annual depreciation posts automatically between the depreciation expense and accumulated accounts; on disposal, cost and accumulated close out.")}
+                {t("حدد حسابات الإهلاك للربط والمراجعة. تسجيل الأصل وتعديل بياناته لا ينشئ قيود إهلاك أو إخراج تلقائيًا.", "Choose depreciation accounts for reference and review. Registering or editing an asset does not automatically post depreciation or disposal entries.")}
               </p>
             </div>
             <div className="space-y-2">
               <Label>{t("حساب الأصل", "Asset account")}</Label>
-              <SearchableCombobox value={form.accountId} onChange={(accountId) => setForm({ ...form, accountId })} items={assetAccounts} placeholder={t("اختر حساب الأصل...", "Choose asset account...")} />
+              <SearchableCombobox disabled={!!candidate} value={form.accountId} onChange={(accountId) => setForm({ ...form, accountId })} items={assetAccounts} placeholder={t("اختر حساب الأصل...", "Choose asset account...")} />
             </div>
             <div className="space-y-2">
               <Label>{t("حساب مصروف الإهلاك", "Depreciation expense account")}</Label>
@@ -222,7 +238,7 @@ export function AssetDetail() {
 
       <div className="flex items-center justify-end gap-2 pt-2 border-t border-border sticky bottom-0 bg-background py-3">
         <Button type="button" variant="outline" onClick={() => (isNew ? navigate("/app/assets") : setEditMode(false))}>{t("إلغاء", "Cancel")}</Button>
-        <Button type="submit" disabled={busy} className="min-w-[140px]">
+        <Button type="submit" disabled={busy || (!!intakeKey && !candidate)} className="min-w-[140px]">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="me-2 h-4 w-4" />{isNew ? t("تسجيل الأصل", "Register asset") : t("حفظ التغييرات", "Save changes")}</>}
         </Button>
       </div>
@@ -231,6 +247,7 @@ export function AssetDetail() {
 
   const detailView = asset && (
     <div className="space-y-5">
+      {asset.sourceJournal && <p className="rounded-lg border border-border p-3 text-sm">{t("القيد المصدر", "Source journal")}: <span dir="ltr">{asset.sourceJournal.entryNumber}</span> · {asset.sourceJournal.isPosted ? t("مرحّل", "Posted") : t("يحتاج مراجعة", "Needs review")}</p>}
       {(asset.purchaseBillId || asset.purchaseExpenseId) && (
         <button
           type="button"
@@ -329,7 +346,7 @@ export function AssetDetail() {
             {isNew && (
               <span className="flex items-center gap-1.5">
                 <Building2 className="h-4 w-4 shrink-0" strokeWidth={1.75} />
-                {t("التسجيل اليدوي للأصول المقتناة خارج المشتريات · الشراء على حساب أصل يسجّل تلقائياً", "Manual registration for assets acquired outside purchases · buying on an asset account auto-registers")}
+                {t("سجل الأصل أو راجع البيانات القادمة من المشتريات والقيود", "Register an asset or review source information from purchases and journals")}
               </span>
             )}
           </>

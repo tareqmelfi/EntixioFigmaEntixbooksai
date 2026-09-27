@@ -8,10 +8,12 @@ import { Building2, Plus, Loader2, ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router";
 import { EmptyState, InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, StatusBadge } from "../components/product";
 import { Button } from "../components/ui/button";
-import { api, ApiError, Account } from "../lib/api";
+import { api, ApiError, Account, type AssetIntakeCandidate } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 
 export function FixedAssets() {
+  const [intake, setIntake] = useState<AssetIntakeCandidate[]>([]);
+  const [reviewBusy, setReviewBusy] = useState<string | null>(null);
   const [items, setItems] = useState<any[]>([]);
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -23,9 +25,10 @@ export function FixedAssets() {
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const d = await api.fixedAssets.list();
-      setItems(d.items);
-      setStats({ totalCost: d.totalCost, netBookValue: d.netBookValue, totalDepreciation: d.totalDepreciation });
+      const [listed, pending] = await Promise.allSettled([api.fixedAssets.list(), api.fixedAssets.intake()]);
+      if (listed.status === 'fulfilled') { const d = listed.value; setItems(d.items); setStats({ totalCost: d.totalCost, netBookValue: d.netBookValue, totalDepreciation: d.totalDepreciation }); }
+      if (pending.status === 'fulfilled') setIntake(pending.value.items);
+      if (listed.status === 'rejected' || pending.status === 'rejected') setError(t("تعذّر تحميل بعض بيانات الأصول. أعد المحاولة.", "Some asset information could not be loaded. Please retry."));
     } catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load")); }
     finally { setLoading(false); }
   }, []);
@@ -46,7 +49,7 @@ export function FixedAssets() {
       <PageHeader
         eyebrow={t("المحاسبة", "Accounting")}
         title={t("الأصول الثابتة", "Fixed Assets")}
-        description={t("تسجيل الأصول وربطها بالمشتريات والحسابات مع الإهلاك والإخراج التلقائي", "Register assets linked to purchases and accounts, with depreciation and auto-disposal")}
+        description={t("مراجعة الأصول وربطها بالمشتريات والقيود المحاسبية", "Review assets linked to purchases and journal entries")}
         actions={<Button onClick={() => navigate("/app/assets/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("أصل جديد", "New Asset")}</Button>}
       />
 
@@ -58,6 +61,23 @@ export function FixedAssets() {
 
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
+      <section aria-label={t("أصول تحتاج تسجيلًا", "Assets awaiting registration")} className="rounded-lg border border-border p-4 space-y-3">
+        <h2 className="font-semibold">{t("أصول تحتاج تسجيلًا", "Assets awaiting registration")} · {intake.length}</h2>
+        <p className="text-sm text-muted-foreground">{t("بنود من القيود المرحّلة والمشتريات. راجع التكلفة والعمر الإنتاجي قبل التسجيل. الاستبعاد لا يحذف القيد أو الفاتورة.", "Items from posted journals and purchases. Review cost and useful life before registering. Dismissal does not delete the journal or purchase.")}</p>
+        {!loading && !error && !intake.length && <p className="text-sm">{t("لا توجد بنود معلقة.", "No items awaiting review.")}</p>}
+        {intake.map(item => <div key={item.sourceKey} className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
+          <div className="flex-1 min-w-0"><p className="font-medium break-words">{item.name}</p><p className="text-xs text-muted-foreground">{item.sourceNumber} · {item.acquisitionDate.slice(0,10)} · {accountLabel(item.accountId)}</p></div>
+          <span dir="ltr" className="text-sm">{formatMoney(item.acquisitionCost)} {item.currency}</span>
+          <Button type="button" variant="outline" onClick={() => navigate(`/app/assets/new?intake=${encodeURIComponent(item.sourceKey)}`)}>{t("مراجعة وتسجيل", "Review and register")}</Button>
+          <Button type="button" variant="ghost" disabled={reviewBusy !== null} onClick={async () => {
+            setReviewBusy(item.sourceKey); setError(null);
+            try { await api.fixedAssets.dismissIntake({sourceKey:item.sourceKey,fingerprint:item.fingerprint}); await refresh(); }
+            catch { setError(t("تعذّر استبعاد البند. حدّث القائمة وحاول مجددًا.", "Could not dismiss this item. Refresh and try again.")); }
+            finally { setReviewBusy(null); }
+          }}>{t("استبعاد", "Dismiss")}</Button>
+        </div>)}
+      </section>
+
       <section className="space-y-3">
         <h2 className="text-section font-semibold text-foreground">{t("قائمة الأصول", "Assets List")} · <span className="font-english tabular-nums">{items.length}</span></h2>
         {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
@@ -65,7 +85,7 @@ export function FixedAssets() {
           <EmptyState
             icon={<Building2 className="h-10 w-10" strokeWidth={1.5} />}
             title={t("لا توجد أصول ثابتة", "No fixed assets")}
-            description={t("سجّل أصلاً يدوياً أو فعّل خيار الأصل في سطر فاتورة مشتريات ليُسجّل تلقائياً", "Register an asset manually, or flag a purchase bill line as an asset to register it automatically")}
+            description={t("سجّل أصلاً يدوياً أو راجع البنود المكتشفة من المشتريات والقيود", "Register manually or review items discovered from purchases and journals")}
             action={<Button onClick={() => navigate("/app/assets/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("أصل جديد", "New Asset")}</Button>}
           />
          ) :
