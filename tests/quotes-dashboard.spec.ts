@@ -24,11 +24,16 @@ async function prepare(page: Page, language: 'ar'|'en', failSecond=false) {
 }
 for(const lang of ['ar','en'] as const) test(`quote dashboard shows complete lifecycle and independent currencies (${lang})`,async({page})=>{
   await prepare(page,lang);await page.setViewportSize({width:1440,height:1000});await page.goto('/app/quotes');
-  await expect(page.getByTestId('quote-metric-ALL')).toContainText('8');
-  await expect(page.getByTestId('quote-metric-WAITING')).toContainText('2');
-  await expect(page.getByTestId('quote-metric-EXPIRED')).toContainText('2');
+  await expect(page.getByTestId('quote-count-ALL')).toHaveText('8');
+  await expect(page.getByTestId('quote-count-WAITING')).toHaveText('2');
+  await expect(page.getByTestId('quote-count-EXPIRED')).toHaveText('2');
   await expect(page.getByTestId('quote-currency-totals')).toContainText('700.00 USD');
   await expect(page.getByTestId('quote-currency-totals')).toContainText('100.00 SAR');
+  await expect(page.getByTestId('quote-total-WAITING')).toContainText('200.00 USD');
+  await expect(page.getByTestId('quote-total-CONVERTED')).toContainText('100.00 SAR');
+  await expect(page.getByTestId('quote-total-ACCEPTED')).toContainText('100.00 USD');
+  await expect(page.getByTestId('quote-clients-accepted')).not.toBeVisible();
+  await page.getByTestId('quote-insights-toggle').click();
   await expect(page.getByTestId('quote-clients-accepted')).toContainText('Alpha');
   await expect(page.getByTestId('quote-clients-rejected')).toContainText('Beta');
   await expect(page.getByTestId('quote-clients-overdue')).toContainText('Beta');
@@ -38,6 +43,7 @@ for(const lang of ['ar','en'] as const) test(`quote dashboard shows complete lif
   await expect(page.getByTestId('quote-date-invoiced')).not.toHaveClass(/text-danger/);
   await expect(page.getByTestId('quote-row-accepted').getByRole('link',{name:/P-1/})).toHaveAttribute('href','/app/projects/project-1');
   await expect(page.getByTestId('quote-group-converted').getByRole('link',{name:'INV-1'})).toHaveAttribute('href','/app/invoices/invoice-1');
+  await page.getByTestId('quote-insights-toggle').click();
   await page.screenshot({path:`/tmp/entix-quotes-dashboard-${lang}.png`,fullPage:true});
   await page.getByTestId('quote-metric-WAITING').click();
   await expect(page.getByTestId('quote-row-viewed')).toBeVisible();await expect(page.getByTestId('quote-row-today')).toBeVisible();await expect(page.getByTestId('quote-row-late')).toHaveCount(0);
@@ -47,12 +53,13 @@ for(const lang of ['ar','en'] as const) test(`quote dashboard shows complete lif
 });
 test('dashboard date/customer/search filters and mobile fit',async({page})=>{
   await prepare(page,'en');await page.setViewportSize({width:390,height:844});await page.goto('/app/quotes');
-  await expect(page.getByTestId('quote-metric-ALL')).toContainText('8');
+  await expect(page.getByTestId('quote-count-ALL')).toHaveText('8');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth+1)).toBe(true);
   await page.screenshot({path:'/tmp/entix-quotes-dashboard-phone.png',fullPage:true});
+  await page.getByTestId('quote-insights-toggle').click();
   await page.getByTestId('quote-clients-rejected').getByRole('button',{name:/Beta/}).click();await expect(page.getByTestId('quote-row-declined')).toBeVisible();await expect(page.getByTestId('quote-row-late')).toHaveCount(0);
   await page.getByRole('button',{name:'Clear filters'}).click();await page.getByLabel('Search quotes',{exact:true}).fill('q-invoiced');await expect(page.getByTestId('quote-row-invoiced')).toBeVisible();await expect(page.getByTestId('quote-row-accepted')).toHaveCount(0);
-  await page.getByRole('button',{name:'Clear filters'}).click();await page.getByLabel('Quote issue date · from').fill('2026-09-02');await expect(page.getByTestId('quote-metric-ALL')).toContainText('0');
+  await page.getByRole('button',{name:'Clear filters'}).click();await page.getByLabel('Quote issue date · from').fill('2026-09-02');await expect(page.getByTestId('quote-count-ALL')).toHaveText('0');
 });
 test('failed subsequent page does not publish partial metrics',async({page})=>{
   await prepare(page,'en',true);await page.goto('/app/quotes');
@@ -61,5 +68,5 @@ test('failed subsequent page does not publish partial metrics',async({page})=>{
 test('more than 200 quotes remain counted and older converted quote remains accessible',async({page})=>{
   await prepareVisualApp(page,'en');
   await page.route('**/api/quotes/overview**',r=>r.fulfill({json:new URL(r.request().url()).searchParams.has('after') ? {items:[rows[4]],nextCursor:null} : {items:Array.from({length:200},(_,i)=>quote(`bulk-${i}`,'DRAFT')),nextCursor:'bulk-199'}}));
-  await page.goto('/app/quotes');await expect(page.getByTestId('quote-metric-ALL')).toContainText('201');await expect(page.getByTestId('quote-row-invoiced')).toBeVisible();
+  await page.goto('/app/quotes');await expect(page.getByTestId('quote-count-ALL')).toHaveText('201');await expect(page.getByTestId('quote-row-invoiced')).toBeVisible();
 });
