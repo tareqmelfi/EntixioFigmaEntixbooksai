@@ -404,7 +404,7 @@ function BarcodesCard({ productId, sku, push }: { productId: string; sku: string
         <div className="flex items-center gap-2 text-sm text-foreground" style={{ fontWeight: 700 }}><ScanBarcode className="h-4 w-4 text-muted-foreground" />{t("الباركود", "Barcodes")}</div>
         <p className="text-[11px] text-muted-foreground leading-5">{t("للخدمات والمنتجات الرقمية والسلع. سجّل كودًا موجودًا أو أنشئ كودًا داخليًا، ثم استخدمه في الفاتورة أو الكاشير. عدد الوحدات يحدد كمية المسحة الواحدة.", "For services, digital items and goods. Register an existing code or generate an internal code, then scan it into an invoice or POS. Units set the quantity per scan.")}</p>
         {sku && <BarcodeLabel code={sku} />}
-        <Button type="button" variant="outline" disabled={busy} onClick={() => void add(`EN-${crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase()}`)}>{t("إنشاء وحفظ باركود داخلي", "Generate and save internal barcode")}</Button>
+        <Button type="button" variant="outline" className="h-auto w-full min-w-0 whitespace-normal py-2 text-center" disabled={busy} onClick={() => void add(`EN-${crypto.randomUUID().replace(/-/g, "").slice(0, 16).toUpperCase()}`)}>{t("إنشاء وحفظ باركود داخلي", "Generate and save internal barcode")}</Button>
         {items.length > 0 && (
           <ul className="divide-y divide-border/60 rounded-lg border border-border">
             {items.map((b) => (
