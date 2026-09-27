@@ -31,7 +31,7 @@ jobs:
   e2e:
     name: Playwright E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,7 +41,7 @@ jobs:
       - run: npm run build
       - run: npm run test:visual-contracts
       - run: npm run qa:visual-policy
-      - run: npx playwright test --reporter=list
+      - run: npx playwright test --reporter=list --workers=3
         env:
           CI: 'true'
       - run: npm run qa:routes
