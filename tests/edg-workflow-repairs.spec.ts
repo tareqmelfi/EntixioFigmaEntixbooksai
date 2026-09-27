@@ -179,6 +179,7 @@ for (const response of [
 
 test('ambiguous signature delivery explains support review without success', async ({ page }) => {
   await quotesFixture(page)
+  await page.route('https://api.entix.io/api/sign/requests?**', r => r.fulfill({ json: { items: [] } }))
   await page.route('https://api.entix.io/api/sign/quotes/quote-edg/send', r => r.fulfill({ status: 502, json: { error: 'signature_delivery_unknown' } }))
   await page.goto('/app/quotes/quote-edg')
   await page.getByRole('button', { name: 'Sign', exact: true }).click()
