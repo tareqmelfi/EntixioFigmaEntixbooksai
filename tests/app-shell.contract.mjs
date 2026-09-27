@@ -45,3 +45,18 @@ test('production nginx routes private surfaces to the same shell', () => {
   assert.match(dockerfile, /location ~ \^\/\(\?:app\|admin[^\n]+try_files \$uri \/app-shell\.html;/)
   assert.match(dockerfile, /location = \/ \{ try_files \/index\.html =404;/)
 })
+
+test('dashboard bookmarks redirect to the protected entry and retain query parameters', async () => {
+  const env = { ASSETS: { fetch: async () => { throw new Error('redirect must not fetch an artifact') } } }
+  for (const route of ['/dashboard', '/dashboard/']) {
+    const response = await worker.fetch(new Request(`https://entix.io${route}?orgId=test-org`), env)
+    assert.equal(response.status, 308)
+    assert.equal(response.headers.get('location'), '/app?orgId=test-org')
+  }
+  for (const route of ['/dashboard-imposter', '/dashboard/unknown']) {
+    assert.equal((await worker.fetch(new Request(`https://entix.io${route}`), env)).status, 404)
+  }
+  const dockerfile = fs.readFileSync(new URL('../Dockerfile', import.meta.url), 'utf8')
+  assert.ok(dockerfile.includes('location = /dashboard { return 308 /app$is_args$args; }'))
+  assert.ok(dockerfile.includes('location = /dashboard/ { return 308 /app$is_args$args; }'))
+})

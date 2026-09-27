@@ -68,6 +68,10 @@ server {
   location = /us/ar { try_files /us/ar/index.html =404; }
   location = /us/en { try_files /us/en/index.html =404; }
 
+  # Existing dashboard bookmarks resolve to the authenticated application entry.
+  location = /dashboard { return 308 /app$is_args$args; }
+  location = /dashboard/ { return 308 /app$is_args$args; }
+
   # Canonical localized URLs have no trailing slash. Relative redirects retain
   # the browser's external HTTPS origin even though Nginx receives proxy HTTP.
   location = /sa/ar/ { return 308 /sa/ar$is_args$args; }

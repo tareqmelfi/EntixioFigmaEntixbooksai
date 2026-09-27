@@ -105,6 +105,10 @@ export default {
     }
 
     // API proxy (cookies/headers/body pass through untouched)
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+      return withSecurityHeaders(new Response(null, { status: 308, headers: { location: `/app${url.search}` } }))
+    }
+
     if (API_PATHS(pathname)) {
       const target = new URL(pathname + url.search, API_ORIGIN)
       return fetch(new Request(target.toString(), request))
