@@ -1,3 +1,4 @@
+import { documentSocialLinks } from "../lib/document-render";
 import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
@@ -13,7 +14,6 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Voucher, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import qrcode from "qrcode-generator";
-import { authStore } from "../components/auth-store";
 import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
 import { BidiText, NumericText } from "../components/bidi-text";
@@ -234,7 +234,7 @@ export function VoucherPrintView() {
   })() : null;
 
   const signatureUrl = printImages?.signature || null;
-  const issuerName = (voucher as any).createdByName || authStore.getState().user?.name || org.name;
+  const issuerName = (voucher as any).createdByName || org.name;
 
   return (
     <>
@@ -335,15 +335,12 @@ export function VoucherPrintView() {
 
           {/* الإصدار الإلكتروني — توقيع صاحب الصلاحية (مرفوع من الإعدادات مثل الختم) أو الاسم */}
           <div style={{ marginTop: 28, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-            {signatureUrl ? (
-              <img src={signatureUrl} alt="توقيع" style={{ maxHeight: 56, maxWidth: 180, objectFit: "contain" }} />
-            ) : (
-              <span style={{ fontFamily: "'Segoe Script','Traditional Arabic',cursive", fontSize: 20, color: "#1A1E48" }}>{issuerName}</span>
-            )}
+            {signatureUrl && <img src={signatureUrl} alt={T("التوقيع الإلكتروني", "Electronic signature")} style={{ maxHeight: 56, maxWidth: 180, objectFit: "contain" }} />}
+            <span data-testid="voucher-issuer" style={{ fontSize: 16, color: "#1A1E48" }}>{issuerName}</span>
             <span style={{ color: "#6B7280", fontSize: 11 }}>{T("· أُصدر إلكترونيًا", "· Issued electronically")}</span>
           </div>
 
-          <div style={{ marginTop: 32, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "end", gap: 20 }}>
+          <div style={{ marginTop: 32, display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "end", gap: 32 }}>
             <div style={{ textAlign: "center" }}>
               {qrSvg ? (
                 <>
@@ -365,10 +362,10 @@ export function VoucherPrintView() {
                 <div style={{ color: "#9CA3AF", fontSize: 11 }}>{T("ختم الشركة", "Company stamp")}</div>
               )}
             </div>
-            <div style={{ borderTop: "1px solid #9CA3AF", paddingTop: 8, textAlign: "center", color: "#6B7280", fontSize: 12 }}>
-              {T("توقيع المستلم", "Recipient signature")}
-            </div>
           </div>
+          {documentSocialLinks(org.socialLinks).length > 0 && <div data-testid="voucher-social-links" style={{ marginTop: 20, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, fontSize: 10, overflowWrap: "anywhere" }}>
+            {documentSocialLinks(org.socialLinks).map((link, i) => <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>{link.label || link.platform} · <bdi dir="ltr">{link.url.replace(/^https?:\/\//, "")}</bdi></a>)}
+          </div>}
         </article>
       </div>
     </>

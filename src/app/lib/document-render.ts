@@ -255,6 +255,23 @@ export interface TemplateSpec {
   docLang?: string | null;
 }
 
+export interface DocumentSocialLink { platform: string; url: string; label?: string | null }
+
+/** Public document links are always HTTP(S), credential-free and escaped on output. */
+export function documentSocialLinks(raw: unknown): DocumentSocialLink[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 10).flatMap((entry) => {
+    if (!entry || typeof entry.url !== "string") return [];
+    const value = entry.url.trim();
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value) && !/^https?:\/\//i.test(value)) return [];
+    try {
+      const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value.replace(/^\/+/, "")}`);
+      if (!url.hostname.includes(".") || url.username || url.password || !["https:", "http:"].includes(url.protocol)) return [];
+      return [{ platform: String(entry.platform || "other").slice(0, 40), url: url.href, label: String(entry.label || "").trim().slice(0, 40) || null }];
+    } catch { return []; }
+  });
+}
+
 export interface PartySpec {
   name: string;
   nameEn?: string | null;
@@ -270,6 +287,7 @@ export interface PartySpec {
   phone?: string | null;
   email?: string | null;
   website?: string | null;
+  socialLinks?: DocumentSocialLink[] | null;
   logoUrl?: string | null;
   /** Reverse ("light") logo variant, for dark grounds. LOGO FRAME LAW: a logo is never
    *  boxed — a dark sheet either carries this variant or the sheet itself turns light. */
@@ -2045,6 +2063,13 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (on("company") && !identity) blocks.push(companyBlock());
   }
 
+  const socials = documentSocialLinks(org.socialLinks);
+  if (socials.length) {
+    const labels = socials.map(link => link.label || link.platform);
+    const links = socials.map((link, i) => `<a href="${esc(link.url)}" title="${esc(link.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;overflow-wrap:anywhere">${bdi(labels[i])}</a>`).join(' · ');
+    blocks.push({ kind: "html", h: 12 + textHeight(labels.join(' · '), 150, 6, 2.5), html: `<div style="margin-top:3mm;font-size:10pt;line-height:1.7"><strong>${t("روابط التواصل", "Social links")}</strong><div>${links}</div></div>` });
+  }
+
   for (const page of paginate(blocks, CAP)) {
     // identity sheets: a flex column so `bottom` blocks sit above the footer band · budget stamped for QA
     const body = identity ? `<div class="pgflow">${page.flow}${page.bottom ? `<div class="pgbottom">${page.bottom}</div>` : ""}</div>` : page.flow;
@@ -2116,6 +2141,7 @@ export function partyFromOrg(org: any): PartySpec {
     phone: org.phone || null,
     email: org.email || null,
     website: org.website || null,
+    ...(documentSocialLinks(org.socialLinks).length ? { socialLinks: documentSocialLinks(org.socialLinks) } : {}),
     logoUrl: org.printLogoUrl || org.logoUrl || null,
     logoLightUrl: org.printLogoLightUrl || null,
     stampUrl: org.stampUrl || null,

@@ -33,10 +33,10 @@ const MAX = 10;
 /** Mirrors the server's normaliser (api lib/social-links.ts) so the row is flagged before saving. */
 export function socialUrlValid(raw: string): boolean {
   const t = String(raw || "").trim();
-  if (!t) return false;
+  if (!t || (/^[a-z][a-z0-9+.-]*:/i.test(t) && !/^https?:\/\//i.test(t))) return false;
   try {
     const u = new URL(/^https?:\/\//i.test(t) ? t : `https://${t.replace(/^\/+/, "")}`);
-    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.includes(".");
+    return (u.protocol === "http:" || u.protocol === "https:") && u.hostname.includes(".") && !u.username && !u.password;
   } catch { return false; }
 }
 
@@ -81,7 +81,7 @@ export function SocialLinksCard({ org, setOrg, push }: {
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Link2 className="h-4 w-4" />{t("روابط التواصل", "Social links")}</CardTitle>
         <CardDescription>
-          {t("حسابات الشركة العامة — تظهر مع هوية المخرجات المشتركة (اللوحات المشاركة).", "The company's public profiles — shown with the shared-output identity (public boards).")}
+          {t("تظهر روابط الشركة في العروض والفواتير والسندات واللوحات المشاركة.", "Company links appear in quotes, invoices, vouchers and public boards.")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
