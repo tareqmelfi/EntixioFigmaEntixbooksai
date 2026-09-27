@@ -5,7 +5,7 @@ import {
   CreditCard, Users, Lock, Activity, Star, ChevronDown, Mail, Menu, CheckCheck,
   ShieldCheck,
 } from "lucide-react";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { authStore } from "./auth-store";
 import { useOrgRegion } from "../lib/use-org-region";
 import { useZatcaStatus, type ZatcaStatus } from "../lib/use-zatca-status";
@@ -239,6 +239,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   <div className="font-english text-[11px] leading-4 text-muted-foreground">{authState.user?.email || "user@entix.io"}</div>
                 </div>
                 <Avatar className="h-[34px] w-[34px]">
+                  <AvatarImage src={authState.user?.avatar} alt={authState.user?.name || ""} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-[13px]" style={{ fontWeight: 600 }}>{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} />
@@ -250,6 +251,7 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                   <div className="px-4 py-3 border-b border-border">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10">
+                        <AvatarImage src={authState.user?.avatar} alt={authState.user?.name || ""} />
                         <AvatarFallback className="bg-primary text-primary-foreground text-lg">{(authState.user?.name || "U").trim().charAt(0).toUpperCase()}</AvatarFallback>
                       </Avatar>
                       <div>
@@ -264,6 +266,9 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
                       switcher is the single place to change company. */}
                   {/* Menu Items */}
                   <div className="py-1">
+                    <Link to="/app/settings?tab=account" onClick={() => setShowProfile(false)} className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
+                      <Settings className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span>{t("ملفي الشخصي وأمان الحساب", "Profile & account security")}</span>
+                    </Link>
                     <Link to="/app/settings?tab=company" onClick={() => setShowProfile(false)}>
                       <button className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">
                         <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 whitespace-normal">{t("إعدادات المنشأة", "Company settings")}</span>

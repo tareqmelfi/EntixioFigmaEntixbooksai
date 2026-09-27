@@ -26,6 +26,7 @@ import { ApiKeysTab } from "../components/api-keys-tab";
 import { ExternalSourcesTab } from "../components/external-sources-tab";
 import { BrandThemeCard } from "../components/brand-theme-card";
 import { SocialLinksCard } from "../components/social-links-card";
+import { AccountProfile } from "../components/account-profile";
 
 /**
  * CONTACT-FIELD VALIDATION (CEO 2026-09-20 · readiness pass).
@@ -739,7 +740,7 @@ export function Settings() {
       {/* SPEC-06 §8 · identity for shared outputs (/b/:token + print) · additive · never applied inside /app/* */}
       {tab === "branding" && org && <BrandThemeCard org={org} push={push} />}
       {/* Public profiles · asked for by several tenants (CEO 2026-09-20) · lives with the public-facing identity */}
-      {tab === "branding" && org && <SocialLinksCard org={org} setOrg={setOrg} push={push} />}
+      {tab === "branding" && org && <SocialLinksCard key={org.id} org={org} setOrg={setOrg} push={push} />}
       {tab === "plans" && org && <PlansTab org={org} />}
 
       {/* الأدوات — account-level utilities live here, not in the main sidebar
@@ -780,6 +781,7 @@ export function Settings() {
         <Card className="border-border">
           <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Shield className="h-5 w-5" /> {t("حسابي", "My account")}</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <AccountProfile />
             <NumberPreferences />
             <div className="rounded-lg border border-border p-4">
               <p className="text-sm text-muted-foreground">{t("جلسة آمنة · 30 يوم · مشفّرة بكوكي HttpOnly على", "Secure session · 30 days · encrypted via HttpOnly cookie on")} <span className="font-english">.entix.io</span></p>
