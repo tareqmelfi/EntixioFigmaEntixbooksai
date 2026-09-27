@@ -12,6 +12,7 @@ import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchFilter } from "../components/branch-field";
 import { ProjectFilter } from "../components/project-field";
+import { ManagementReportBook } from "./management-report-book";
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -61,6 +62,11 @@ function ExportMenu({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () =
 }
 
 export function ReportView() {
+  const { id } = useParams();
+  return id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView />;
+}
+
+function SingleReportView() {
   const { t, language } = useLanguage();
   const { id = "income-statement" } = useParams();
   const navigate = useNavigate();
