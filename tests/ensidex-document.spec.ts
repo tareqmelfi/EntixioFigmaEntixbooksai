@@ -50,3 +50,13 @@ test('proposal route defaults to English for US issuer and switches to Arabic ex
  await page.getByLabel('Document language').selectOption('ar');
  await expect(page.locator('.edoc')).toHaveAttribute('lang','ar');
 });
+
+test('station layout prints only saved payment terms',()=>{
+ const base=input('QUOTE','en');
+ const styled={...base,template:{...base.template,paymentPlanStyle:'stations'}};
+ const without=renderDocument(styled);
+ expect(without.body).not.toMatch(/Advance payment|On supply and installation|Payment plan/);
+ const saved=renderDocument({...styled,doc:{...styled.doc,paymentPlan:[{label:'Full payment before activation',percent:100,net:0,tax:0,total:1200}]}});
+ expect(saved.body).toContain('Full payment before activation');
+ expect(saved.body).not.toContain('On supply and installation');
+});

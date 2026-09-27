@@ -1854,17 +1854,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   /** Payment plan page · stations · «كيف تُحتسب الدفعات» · bottom note */
   const identityPlanPage = () => {
-    let plan = doc.paymentPlan && doc.paymentPlan.length ? doc.paymentPlan.slice(0, 8) : null;
-    if (!plan && stations) {
-      // default 30 / 60 / 10 stations · the last one absorbs rounding
-      const r2 = (v: number) => Math.round(v * 100) / 100;
-      const a = r2(doc.total * 0.3), b = r2(doc.total * 0.6);
-      plan = [
-        { label: t("دفعة مقدّمة", "Advance payment"), note: t("عند الاعتماد الكتابي وقبل بدء التنفيذ", "On written approval, before work starts"), percent: 30, net: 0, tax: 0, total: a },
-        { label: t("عند التوريد والتركيب", "On supply and installation"), note: t("بعد إتمام التوريد والتركيب في الموقع", "After supply and installation on site"), percent: 60, net: 0, tax: 0, total: b },
-        { label: t("عند التسليم النهائي", "On final handover"), note: t("بعد الفحص النهائي وتوقيع محضر التسليم", "After the final inspection and the handover report"), percent: 10, net: 0, tax: 0, total: r2(doc.total - a - b) },
-      ];
-    }
+    const plan = doc.paymentPlan?.length ? doc.paymentPlan.slice(0, 8) : null;
     if (!plan || !plan.length) return;
     blocks.push(pageTitle(t("خطة الدفع", "Payment plan"), "PAYMENT PLAN"));
     const pct = (p: PaymentPlanRow) => p.percent ? qty(p.percent) : (doc.total > 0 ? qty(Math.round((p.total / doc.total) * 1000) / 10) : "");
