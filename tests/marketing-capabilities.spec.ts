@@ -43,6 +43,13 @@ for (const language of ['en', 'ar'] as const) {
       await expect.poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     }
+    await page.goto('/contact');
+    const contact = page.locator('main[data-page=contact]');
+    await expect(contact.getByRole('link', { name: 'support@entix.io', exact: true })).toHaveAttribute('href', 'mailto:support@entix.io');
+    await expect(contact.getByRole('link', { name: language === 'ar' ? 'افتح بوابة الدعم' : 'Open support portal' })).toHaveAttribute('href', '/app/help');
+    await expect(contact).not.toContainText(/Coming soon|قريباً/);
+    await page.goto('/roadmap');
+    await expect(page.locator('main[data-page=features]').getByRole('status')).toContainText('80');
     expect(crashes).toEqual([]);
   });
 }
