@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 import { EntixWordmark } from "../components/entix-brand";
 /**
  * Admin Console shell (Z2.1 · 2026-08-26) — standalone /admin/* layout.
@@ -34,10 +35,9 @@ export function AdminRoot() {
   const { language, t, toggleLanguage } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
-  const [auth, setAuth] = useState(authStore.getState());
+  const auth = useAuthState();
   const [menuOpen, setMenuOpen] = useState(false);
   const adminMe = useAdminMe();
-  useEffect(() => authStore.subscribe(setAuth), []);
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   if (auth.loading) return <div className="flex h-dvh items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;

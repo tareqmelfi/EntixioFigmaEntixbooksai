@@ -63,3 +63,24 @@ test('bank account includes a paid expense with its actual account currency',asy
  await expect(page.getByRole('link',{name:'EXP-10',exact:true})).toHaveAttribute('href','/app/expenses/openrouter');
  await expect(page.getByText('−10.80 USD',{exact:true})).toBeVisible();
 });
+
+test('bank activity preserves successful source and retry fills missing movements',async({page})=>{
+ await ready(page); let attempts=0;
+ await page.route('**/api/vouchers**',r=>r.fulfill({json:{items:[{id:'receipt',type:'RECEIPT',number:'RCP-42',date:'2026-09-26',amount:42,currency:'USD'}]}}));
+ await page.route('**/api/bank-accounts/mercury/activity',r=>++attempts===1 ? r.fulfill({status:503,json:{error:'unavailable'}}) : r.fulfill({json:{items:[{id:'expense',type:'PAYMENT',number:'EXP-10',date:'2026-09-26',amount:10.8,currency:'USD',detailPath:'/app/expenses/expense'}]}}));
+ await page.goto('/app/bank-accounts/mercury');
+ await expect(page.getByText('RCP-42',{exact:true})).toBeVisible();
+ await expect(page.getByRole('alert')).toContainText('غير مكتمل');
+ await page.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();
+ await expect(page.getByRole('link',{name:'EXP-10',exact:true})).toBeVisible();
+ await expect(page.getByText('RCP-42',{exact:true})).toBeVisible();
+ await expect(page.getByRole('alert')).toHaveCount(0);
+});
+test('failed bank sources show an error rather than an empty-account claim',async({page})=>{
+ await ready(page);
+ await page.route('**/api/vouchers**',r=>r.fulfill({status:503,json:{error:'unavailable'}}));
+ await page.route('**/api/bank-accounts/mercury/activity',r=>r.fulfill({status:503,json:{error:'unavailable'}}));
+ await page.goto('/app/bank-accounts/mercury');
+ await expect(page.getByText('تعذر تحميل العمليات',{exact:true})).toBeVisible();
+ await expect(page.getByText('لا توجد عمليات على هذا الحساب بعد',{exact:true})).toHaveCount(0);
+});

@@ -135,6 +135,7 @@ export function Invoices() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const consumingNewQuery = useRef(false);
   const [items, setItems] = useState<Invoice[]>([]);
   const [billingTotals, setBillingTotals] = useState<Record<string, { total: number; paid: number; outstanding: number }> | null>(null);
   const [invoiceCount, setInvoiceCount] = useState(0);
@@ -199,6 +200,7 @@ export function Invoices() {
    */
   useEffect(() => {
     if (location.pathname === "/app/invoices" && !searchParams.get("new")) {
+      if (consumingNewQuery.current) { consumingNewQuery.current = false; return; }
       setCreateOpen(false);
       setEditingInvoice(null);
       setSignFor(null);
@@ -314,7 +316,10 @@ export function Invoices() {
       setEditingInvoice(null);
       setCreateOpen(true);
       // Clean the query URL after opening, but keep canonical /new routes stable.
-      if (searchParams.get("new") === "1") setSearchParams({}, { replace: true });
+      if (searchParams.get("new") === "1") {
+        consumingNewQuery.current = true;
+        setSearchParams({}, { replace: true });
+      }
     }
   }, [location.pathname, searchParams, setSearchParams]);
 

@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 import { displayLocale } from "../lib/number-display";
 /**
  * /invite/:token — invitation landing (consent-first, 2026-08-21)
@@ -27,14 +28,13 @@ export function InvitePage() {
   const { token = "" } = useParams();
   const navigate = useNavigate();
   const { t, language } = useLanguage();
-  const [auth, setAuth] = useState(authStore.getState());
+  const auth = useAuthState();
   const [info, setInfo] = useState<InviteInfo | null>(null);
   const [phase, setPhase] = useState<"loading" | "ready" | "accepted" | "declined" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [mismatchEmail, setMismatchEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState<"accept" | "decline" | null>(null);
 
-  useEffect(() => authStore.subscribe(setAuth), []);
 
   useEffect(() => {
     if (auth.loading) return;

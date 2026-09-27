@@ -6,7 +6,7 @@ async function setup(page: Page) {
   await page.addInitScript(() => { localStorage.setItem('entix-language', 'en'); if (!localStorage.getItem('entix_org_id')) localStorage.setItem('entix_org_id', 'tenant-a'); localStorage.setItem('entix_cookie_consent_v1', JSON.stringify({ v: 1, choice: 'essential', analytics: false, marketing: false, at: '2026-09-06T00:00:00Z' })); })
   await page.route('**/*', async route => {
     const req = route.request(); const url = new URL(req.url());
-    if (url.origin === 'http://127.0.0.1:5279') return route.continue();
+    if (['localhost', '127.0.0.1'].includes(url.hostname) && url.port === (process.env.ENTIX_DEV_PORT || '5173')) return route.continue();
     if (url.hostname !== 'api.entix.io') return route.abort();
     const path = url.pathname; const tenant = req.headers()['x-org-id'] || 'tenant-a';
     if (path === '/api/auth/get-session') return route.fulfill({ json: { user: { id: 'test-user', email: 'test@example.test', name: 'Test Owner', createdAt: '2026-09-06T00:00:00Z' } } });
@@ -27,7 +27,7 @@ async function setup(page: Page) {
   return updates;
 }
 
-test('company save preserves activation; existing certificate workflow is separate and manually verified', async ({ page }) => {
+test('company save preserves activation; existing certificate workflow is separate and manually verified', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1800 });
   const updates = await setup(page);
   await page.goto('/app/settings?tab=company&__qa_auth=1');
@@ -50,7 +50,7 @@ test('company save preserves activation; existing certificate workflow is separa
   expect(updates[1].registration.status).toBe('DRAFT');
   await page.getByLabel('Evidence-supported status', { exact: true }).selectOption('CERTIFICATE_VERIFIED');
   await expect(page.getByRole('button', { name: 'Save tracking', exact: true })).toBeDisabled();
-  await page.getByTestId('vat-registration-panel').screenshot({ path: '../../EN-TEC-IMG-01-Vat-Workflow-EN-V01.png' });
+  await page.getByTestId('vat-registration-panel').screenshot({ path: testInfo.outputPath('vat-registration-workflow.png') });
 });
 
 test('switching company reloads its evidence and clears unsaved CSR fields', async ({ page }) => {
@@ -59,8 +59,8 @@ test('switching company reloads its evidence and clears unsaved CSR fields', asy
   await page.getByLabel('Entity identity / registry evidence', { exact: true }).fill('unsaved-company-a');
   await page.getByLabel('Branch / VAT group member TIN', { exact: true }).fill('branch-a');
   // Switch through the product control: it persists company choice and reloads the app.
-  await page.evaluate(() => { localStorage.setItem('entix_org_id', 'tenant-b'); localStorage.setItem('entix_org_explicit', String(Date.now())); });
-  await page.reload();
+  await page.getByRole('button', { name: /Synthetic Company A.*SA/ }).click();
+  await page.getByRole('button', { name: /Synthetic Company B/ }).click();
   await expect(page.getByLabel('Entity identity / registry evidence', { exact: true })).toHaveValue('company-b-evidence');
   await expect(page.getByLabel('Branch / VAT group member TIN', { exact: true })).toHaveValue('');
 });

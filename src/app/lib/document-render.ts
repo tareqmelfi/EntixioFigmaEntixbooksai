@@ -1021,10 +1021,11 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .hdr-meta .l1{font-weight:700;font-size:8.5pt;color:var(--ink)}
 .edoc .hdr-meta .l2{font-family:var(--font-mono);font-size:7pt;color:var(--muted);direction:ltr}
 .edoc .ftr{position:absolute;bottom:9mm;left:14mm;right:14mm;display:flex;align-items:center;justify-content:space-between;direction:ltr;font-size:7pt;color:var(--muted);border-top:.5pt solid var(--rule);padding-top:2.5mm;gap:6mm}
-.edoc .ftr .f-left{font-family:var(--font-mono);white-space:nowrap}
+.edoc .ftr>span{min-width:0;overflow-wrap:anywhere}
+.edoc .ftr .f-left{font-family:var(--font-mono);flex:1;white-space:normal}
 .edoc .ftr .f-left bdi{font-family:${lang === "ar" ? "var(--font-arabic)" : "var(--font-latin)"}}
-.edoc .ftr .f-mid{font-family:var(--font-mono);white-space:nowrap}
-.edoc .ftr .f-right{direction:${lang === "ar" ? "rtl" : "ltr"};text-align:right;white-space:nowrap}
+.edoc .ftr .f-mid{font-family:var(--font-mono);flex:0 1 auto;max-width:38%;text-align:center;white-space:normal}
+.edoc .ftr .f-right{direction:${lang === "ar" ? "rtl" : "ltr"};text-align:right;flex:1;white-space:normal}
 .edoc .dark .ftr{border-top-color:rgba(255,255,255,.16)}
 /* cover */
 /* cover rhythm follows the reference sheets (SpecPros / ENSIDEX cover PDFs, measured
@@ -1811,7 +1812,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
         ? [[t("اسم البائع", "Seller"), bdi(org.legalName || org.name)], [t("الرقم الضريبي", "VAT no."), num(org.vatNumber || "")], [t("الإجمالي شامل الضريبة", "Total incl. VAT"), num(`${money(doc.total)} ${cur}`)], [t("مقدار الضريبة", "VAT amount"), num(`${money(doc.taxTotal)} ${cur}`)]]
         : [[t("رقم المستند", "Document no."), num(doc.number)], [t("التاريخ", "Date"), num(issue)], [t("الإجمالي", "Total"), num(`${money(doc.total)} ${cur}`)]];
       const qrLead = zatca
-        ? t("يحمل بيانات المنشأة والمبلغ بصيغة TLV المعتمدة من هيئة الزكاة والضريبة والجمارك، ويُقرأ بتطبيق التحقق من الفواتير.", "Carries the issuer and amount data in the ZATCA-approved TLV format and reads with the invoice verification app.")
+        ? t("يحمل بيانات المنشأة والمبلغ بصيغة TLV المعتمدة من هيئة الزكاة والضريبة والجمارك، ويُقرأ بتطبيق التحقق من الفواتير.", "Carries core issuer and amount data in TLV format; this QR alone does not prove ZATCA clearance.")
         : t("رمز التحقق من رقم المستند.", "Document verification code.");
       blocks.push({ kind: "html", h: 37.5, html: `<div class="qrc"><div class="qrc-body"><div class="t">${t("رمز الاستجابة السريعة (QR)", "QR code")}</div><p>${qrLead}</p><dl class="qr-data">${qrRows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div><div class="qr">${qr}</div></div>` });
     }

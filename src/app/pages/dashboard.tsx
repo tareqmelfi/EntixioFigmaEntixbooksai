@@ -1,3 +1,4 @@
+import { authStore } from "../components/auth-store";
 import { HistoricalReportSummary, useHistoricalReports } from "../components/historical-reports-access";
 import { DashboardFinancialOverview } from "../components/dashboard-financial-overview";
 import { HistoricalStatements } from "../components/historical-statements";
@@ -141,13 +142,12 @@ useEffect(() => {
   // admin account must not look like a customer account (owner directive
   // 2026-08-24). The org workspace stays reachable via the sidebar/switcher.
   useEffect(() => {
-    let alive = true;
-    api.me().then((me: any) => {
-      // Z2.3 · an admin acting on behalf of a company stays in the workspace.
-      if (alive && me?.isPlatformAdmin && !readActAs()) navigate("/admin", { replace: true });
-    }).catch(() => {});
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const redirectAdmin = () => {
+      const state = authStore.getState();
+      if (!state.loading && state.user?.isPlatformAdmin && !readActAs()) navigate("/admin", { replace: true });
+    };
+    redirectAdmin();
+    return authStore.subscribe(redirectAdmin);
   }, []);
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 import { displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 /**
@@ -16,12 +17,11 @@ export function AdminJoinPage() {
   const { token = "" } = useParams();
   const { t, language } = useLanguage();
   const navigate = useNavigate();
-  const [auth, setAuth] = useState(authStore.getState());
+  const auth = useAuthState();
   const [info, setInfo] = useState<Awaited<ReturnType<typeof api.admin.inviteInfo>> | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
-  useEffect(() => authStore.subscribe(setAuth), []);
   useEffect(() => { api.admin.inviteInfo(token).then(setInfo).catch((e) => setErr(e instanceof ApiError && e.status === 404 ? t("الدعوة غير موجودة", "Invitation not found") : (e as any)?.message || "failed")); }, [token, t]);
   const accept = async () => {
     setBusy(true);

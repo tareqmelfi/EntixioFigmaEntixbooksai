@@ -13,7 +13,7 @@ preserveAppShell(DIST)
 const REQUESTED_PORT = Number(process.env.PRERENDER_PORT || 0)
 const SOLUTION_ROUTES = new Set([
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
-  '/solutions/restaurants', '/solutions/ecommerce',
+  '/solutions/restaurants', '/solutions/ecommerce', '/solutions/contracting', '/solutions/freelancers', '/solutions/agencies',
 ])
 const PLACEHOLDER_SIGNATURES = [/قريباً/i, /قريبًا/i, /coming soon/i]
 
@@ -47,6 +47,9 @@ const META = {
   '/solutions/accountants': ['Accounting Workspace for Accountants · Entix Books', 'Review client documents, entries, controls, and Saudi VAT or US sales-tax reports. ZATCA Phase 2 integration remains under validation and unavailable for production reliance.'],
   '/solutions/enterprises': ['Enterprise Accounting Controls · Entix Books', 'Organize branches, cost centers, user access, and exportable financial reports in a bilingual workspace.'],
   '/solutions/restaurants': ['Accounting for Restaurants and Cafés · Entix Books', 'Review restaurant sales, purchases, operating expenses, inventory movements, and financial reports.'],
+  '/solutions/contracting': ["Contracting and engineering · Entix Books", "Track design and construction quotes, project progress, expenses and contractors in one workspace."],
+  '/solutions/freelancers': ["Freelancers and consultants · Entix Books", "Organize service quotes, clients, projects and expenses, with Arabic or English documents and transaction currencies."],
+  '/solutions/agencies': ["Agencies and services · Entix Books", "Connect campaign, design and development quotes with project delivery, tool and freelancer costs, and reports."],
   '/solutions/ecommerce': ['Accounting for Ecommerce · Entix Books', 'Organize store sales, payment fees, inventory, bank reconciliation, and profitability reporting.'],
   '/login': ['تسجيل الدخول · Entix Books', 'ادخل إلى حسابك في Entix Books.'],
   '/register': ['إنشاء حساب · Entix Books', 'ابدأ تجربتك المجانية في Entix Books.'],

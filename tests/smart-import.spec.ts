@@ -37,7 +37,7 @@ const accounts = [
 ]
 
 test.use({
-  launchOptions: { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' },
+  
   baseURL: `http://localhost:${PORT}`,
   viewport: { width: 1440, height: 1000 },
 })

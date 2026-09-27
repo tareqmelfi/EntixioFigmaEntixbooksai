@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 import { Outlet, useLocation } from "react-router";
 import { AppSidebar, SidebarMode } from "../components/app-sidebar";
 import { AppHeader } from "../components/app-header";
@@ -19,10 +20,9 @@ import { setOrgId } from "../lib/api";
  */
 function UnverifiedEmailBanner() {
   const { t } = useLanguage();
-  const [auth, setAuth] = useState(authStore.getState());
+  const auth = useAuthState();
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
-  useEffect(() => authStore.subscribe(setAuth), []);
 
   if (auth.loading || !auth.isAuthenticated || auth.user?.emailVerified !== false) return null;
   const email = auth.user!.email;
@@ -95,8 +95,7 @@ export function Root() {
 
   // Zero-org accounts (fresh signup) belong to the /welcome chooser, not the
   // app shell — deep links included.
-  const [authState, setAuthState] = useState(authStore.getState());
-  useEffect(() => authStore.subscribe(setAuthState), []);
+  const authState = useAuthState();
   useEffect(() => {
     if (!authState.loading && authState.isAuthenticated && authState.needsOnboarding) {
       window.location.replace("/welcome");

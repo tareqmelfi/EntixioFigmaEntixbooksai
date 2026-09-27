@@ -35,7 +35,7 @@ const langs = (process.env.LANGS || 'ar,en').split(',') as Array<'ar' | 'en'>
 const shots = !!process.env.SHOTS
 const shotDir = '/tmp/claude-0/shots/rest'
 
-test.use({ launchOptions: { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' }, baseURL: process.env.BASE_URL || 'http://localhost:5182' })
+test.use({  baseURL: process.env.BASE_URL || `http://localhost:${process.env.ENTIX_DEV_PORT || '5173'}` })
 
 for (const lang of langs) {
   test(`rest pages · zero overflow · ${lang}`, async ({ page }) => {

@@ -60,11 +60,14 @@ test.describe('Auth Flow', () => {
     await page.fill('input[type="email"]', 'test@nonexistent.com')
     await page.fill('input[type="password"]', 'wrongpassword123')
     await page.press('input[type="password"]', 'Enter')
-    await expect(page.locator('.text-red-700, .bg-red-50').first()).toBeVisible({ timeout: 30000 })
+    await expect(page.getByText('Invalid credentials', { exact: true })).toBeVisible({ timeout: 30000 })
   })
 })
 
 test.describe('Protected Routes · Redirect', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route('https://api.entix.io/api/**', route => route.fulfill({ status: 401, json: { error: 'unauthorized' } }));
+  });
   test('/app redirects to login when unauthenticated', async ({ page }) => {
     await page.goto('/app')
     await page.waitForURL(/\/login/, { timeout: 10000 })

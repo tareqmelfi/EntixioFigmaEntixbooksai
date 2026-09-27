@@ -840,8 +840,8 @@ export function Quotes() {
             </div>
           }
         >
-          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
-          <div className="w-full max-w-none mx-auto space-y-4">
+          <div className="grid min-w-0 grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+          <div className="min-w-0 w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
 
             <div className="space-y-1.5">

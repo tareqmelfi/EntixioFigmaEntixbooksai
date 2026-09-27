@@ -2,7 +2,6 @@ import { Link } from "react-router";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
-import { MarketingChat } from "./marketing-chat";
 import { useMarketingRegion } from "./marketing-region";
 import { usePublicRoute } from "../lib/public-route";
 import { PublicPreferenceSelector } from "./public-preference-selector";
@@ -284,7 +283,6 @@ export function SharedFooter() {
         </div>
       </div>
       {/* Marketing assistant bubble (Azure agent wired later via VITE_MARKETING_CHAT_URL) */}
-      <MarketingChat />
     </footer>
   );
 }

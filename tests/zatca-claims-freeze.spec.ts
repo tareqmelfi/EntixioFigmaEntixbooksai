@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import ts from 'typescript'
+import { modules } from '../src/app/lib/feature-catalog'
 
 type ClaimRule = { id: string; pattern: RegExp }
 
@@ -290,34 +291,34 @@ test('all runtime and public sources reject unsupported ZATCA production claims'
   expect(failures, failures.join('\n')).toEqual([])
 })
 
-test('roadmap marks unsupported ZATCA capabilities planned and not implemented', async () => {
-  const source = await readFile(path.resolve('src/app/pages/feature-roadmap.tsx'), 'utf8')
-  expect(source).not.toMatch(/Official invoice template|قالب فاتورة رسمي|Approved print template|قالب طباعة معتمد/i)
-  for (const feature of ['128-bit UUID per invoice', 'Encrypted sequential linking (Sequential Hash)', 'QR code with 9 TLV elements', 'CSID cryptographic stamp', 'Non-resettable invoice counter', 'XML/UBL 2.1 + PDF/A-3 format', 'API integration with Fatoora platform', 'Phase 1 (Generation): QR for B2C', 'Phase 2 (Integration): API for B2B', 'Sandbox test environment']) {
-    expect(source).toMatch(new RegExp(`nameEn: "${feature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^\n]+status: "planned"`))
-  }
-  expect(source).toMatch(/Not implemented/i)
-  expect(source).toMatch(/غير منفذ/)
+test('public and internal roadmap share conditional ZATCA capabilities rather than universal readiness', async () => {
+  const roadmap = await readFile(path.resolve('src/app/pages/feature-roadmap.tsx'), 'utf8')
+  const publicPage = await readFile(path.resolve('src/app/pages/features.tsx'), 'utf8')
+  expect(roadmap).toContain('feature-catalog')
+  expect(publicPage).toContain('feature-catalog')
+  const features = modules.find(module => module.titleEn === 'E-Invoicing')!.features
+  expect(features).toHaveLength(7)
+  expect(features.every(feature => feature.status === 'partial')).toBe(true)
+  expect(features.find(feature => feature.nameEn === 'Clearance and reporting')?.descEn).toContain('restricted to supported organizations')
+  expect(features.find(feature => feature.nameEn === 'Sandbox and simulation')?.descEn).toContain('does not establish acceptance of production invoices')
 })
 
-test('claims freeze exposes the required non-production ZATCA states', async () => {
-  const root = path.resolve(process.cwd())
-  const [settings, invoicePrint, voucherPrint] = await Promise.all([
-    readFile(path.join(root, 'src/app/pages/settings.tsx'), 'utf8'),
-    readFile(path.join(root, 'src/app/pages/invoice-print-view.tsx'), 'utf8'),
-    readFile(path.join(root, 'src/app/pages/voucher-print-view.tsx'), 'utf8'),
+test('local print and device connection do not imply production submission', async () => {
+  const [hook, invoicePrint, voucherPrint] = await Promise.all([
+    readFile(path.resolve('src/app/lib/use-zatca-status.ts'), 'utf8'),
+    readFile(path.resolve('src/app/pages/invoice-print-view.tsx'), 'utf8'),
+    readFile(path.resolve('src/app/pages/voucher-print-view.tsx'), 'utf8'),
   ])
-  expect(settings).toContain('LOCAL_UNVERIFIED')
-  expect(settings).toContain('zatca_pipeline_not_ready')
-  expect(settings).toContain('Credentials saved · clearance not enabled')
-  expect(invoicePrint).toMatch(/QR contains core invoice data/i)
-  expect(invoicePrint).toMatch(/not ZATCA-stamped/i)
-  expect(voucherPrint).toMatch(/QR contains core invoice data/i)
+  expect(hook).toContain('raw?.deviceProof?.deviceLinked === true')
+  expect(hook).toContain('raw?.mode === "production"')
+  expect(hook).toContain('raw?.environmentVerified === true')
+  expect(hook).toContain('connected && raw?.deviceProof?.delivery?.ready === true')
+  expect(invoicePrint).toMatch(/local QR is not a ZATCA stamp/i)
   expect(voucherPrint).toMatch(/not ZATCA-stamped/i)
 })
 
 test('ZATCA plan comparison cells use neutral under-validation text instead of included ticks', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('entix-language', 'en'))
+  await page.addInitScript(() => { localStorage.setItem('entix-language', 'en'); localStorage.setItem('entix-marketing-region', 'SA') })
   await page.goto('/pricing')
   await page.getByRole('button', { name: /view detailed comparison/i }).click()
   const row = page.getByRole('row').filter({ hasText: 'ZATCA Phase 2 — Under validation' }).first()
@@ -332,13 +333,12 @@ test('ZATCA plan comparison cells use neutral under-validation text instead of i
 })
 
 
-test('app header never infers a connected ZATCA state from Saudi country', async () => {
+test('app header uses verified per-organization status rather than country as connection evidence', async () => {
   const source = await readFile(path.resolve('src/app/components/app-header.tsx'), 'utf8')
-  expect(source).not.toMatch(/(?:متصل|Connected|Manage connection|إدارة الربط)/)
-  expect(source).toContain('ZATCA Phase 2 — Under validation')
-  expect(source).toContain('ZATCA Phase 2 — قيد التحقق')
-  expect(source).toMatch(/Review details|مراجعة التفاصيل/)
-  expect(source).not.toMatch(/isSA[\s\S]{0,500}(?:connected|متصل)/i)
+  expect(source).toContain('useZatcaStatus(isSA)')
+  expect(source).toContain('data-zatca-connection={zatca.connection}')
+  expect(source).toContain('zatcaStatusLabel(zatca, t)')
+  expect(source).not.toMatch(/connection:\s*isSA\s*\?/)
 })
 
 test('company profile save does not overwrite ZATCA activation', async () => {
@@ -346,7 +346,7 @@ test('company profile save does not overwrite ZATCA activation', async () => {
   const profileSave = source.slice(source.indexOf('const handleSave ='), source.indexOf('const handleSave =') + 2100)
   expect(profileSave).not.toMatch(/zatcaEnabled:/)
   expect(source).not.toContain('zatcaEnabled: form.zatcaEnabled')
-  expect(source).toMatch(/Gate 0|بوابة المرحلة صفر/)
+  expect(source).toContain('const submissionLive = live.submission === "live"')
 })
 
 test('landing and settings plan cards use neutral ZATCA validation states', async () => {

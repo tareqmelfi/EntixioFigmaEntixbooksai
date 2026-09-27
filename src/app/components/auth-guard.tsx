@@ -14,6 +14,7 @@
  */
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router";
+import { useAuthState } from "./use-auth-state";
 import { authStore } from "./auth-store";
 import { api } from "../lib/api";
 import { OrgSwitcher } from "./org-switcher";
@@ -45,17 +46,13 @@ function writeHint(value: boolean) {
 }
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState(authStore.getState());
+  const state = useAuthState();
   const location = useLocation();
   const localQaAuthBypass = hasLocalQaAuthBypass();
 
   useEffect(() => {
-    return authStore.subscribe((s) => {
-      setState(s);
-      // Cache result for next refresh — avoids login-flash entirely
-      if (!s.loading) writeHint(s.isAuthenticated);
-    });
-  }, []);
+    if (!state.loading) writeHint(state.isAuthenticated);
+  }, [state.loading, state.isAuthenticated]);
 
   if (localQaAuthBypass) return <>{children}</>;
 

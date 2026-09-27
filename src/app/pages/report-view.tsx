@@ -90,7 +90,10 @@ export function ReportView() {
   // user ask 2026-08-19: «Reports should load with all account categories
   // expanded by default for immediate visibility»). «ملخص» collapses the
   // per-account detail sections; the choice persists.
-  const [detailMode, setDetailMode] = useState<"summary" | "full">("full");
+  const [detailMode, setDetailMode] = useState<"summary" | "full">(() => {
+    try { return window.localStorage.getItem(VIEW_MODE_KEY) === "summary" ? "summary" : "full"; }
+    catch { return "full"; }
+  });
   const changeDetailMode = (mode: "summary" | "full") => {
     setDetailMode(mode);
     try { window.localStorage.setItem(VIEW_MODE_KEY, mode); } catch { /* private mode */ }

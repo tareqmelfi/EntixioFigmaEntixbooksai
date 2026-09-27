@@ -5,6 +5,7 @@
  * - Nothing tracks today without consent: session/auth cookies are essential-only.
  */
 import { useEffect, useState } from "react";
+import { setAnalyticsConsent } from "../lib/consent-analytics";
 import { Cookie, X, ShieldCheck, BarChart3, Megaphone } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 
@@ -30,7 +31,7 @@ export function readCookieConsent(): CookieConsentState | null {
   }
 }
 
-/** Gate for any future analytics/marketing loader — only true after explicit consent. */
+/** Gate for optional analytics/marketing loaders — only true after explicit consent. */
 export function hasTrackingConsent(kind: "analytics" | "marketing"): boolean {
   const c = readCookieConsent();
   if (!c) return false;
@@ -46,6 +47,17 @@ export function CookieConsent() {
   const [customizing, setCustomizing] = useState(false);
   const [analytics, setAnalytics] = useState(true);
   const [marketing, setMarketing] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setAnalyticsConsent(hasTrackingConsent("analytics") === true);
+    sync();
+    window.addEventListener("entix:cookie-consent-changed", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("entix:cookie-consent-changed", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
 
   useEffect(() => {
     setVisible(readCookieConsent() === null);
