@@ -87,3 +87,56 @@ for (const language of ['en', 'ar'] as const) test(`profile menu opens and reach
   await expect(page.locator('#profile-email')).toBeVisible();
   await expect(page.locator('#profile-current-password')).toBeVisible();
 });
+
+for (const language of ['en', 'ar'] as const) test(`admin can use accounting and explicitly switch consoles (${language})`, async ({ page }) => {
+  await prepare(page, true, language);
+  await page.setViewportSize({ width: language === 'ar' ? 390 : 1440, height: 1000 });
+  await page.route('**/api/admin/me', r => r.fulfill({ json: { isSuper: true, permissions: ['*'] } }));
+  await page.goto('/login');
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.locator('[data-shell="admin"]')).toHaveCount(0);
+  await page.locator('header').getByRole('button').filter({ has: page.locator('[data-slot="avatar"]') }).click();
+  await page.getByRole('link', { name: language === 'ar' ? 'إدارة النظام' : 'System administration', exact: true }).click();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.locator('[data-shell="admin"]')).toBeVisible();
+  await page.locator('header').getByRole('link', { name: language === 'ar' ? 'المحاسبة وشركاتي' : 'Accounting & my companies' }).click();
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.locator('[data-shell="admin"]')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('header [data-slot="avatar"]')).toBeVisible();
+  await expect(page).toHaveURL(/\/app$/);
+});
+
+test('ordinary member cannot open system administration', async ({ page }) => {
+  await prepare(page, false);
+  await page.goto('/admin');
+  await expect(page).toHaveURL(/\/app$/);
+  await page.locator('header').getByRole('button').filter({ has: page.locator('[data-slot="avatar"]') }).click();
+  await expect(page.getByRole('link', { name: 'System administration', exact: true })).toHaveCount(0);
+});
+
+test('admin without memberships still lands in the admin console', async ({ page }) => {
+  await prepare(page, true);
+  await page.route('**/me', r => r.fulfill({ json: { isPlatformAdmin: true, memberships: [] } }));
+  await page.goto('/login');
+  await expect(page).toHaveURL(/\/admin$/);
+});
+
+test('returning to my accounting ends the separate support context', async ({ page }) => {
+  await prepare(page, true);
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('return-test-initialized')) {
+      localStorage.setItem('entix_act_as', JSON.stringify({ orgId: 'support-company', orgName: 'Support Company', country: 'US', currency: 'USD', reason: 'Synthetic test', until: Date.now() + 600000 }));
+      sessionStorage.setItem('return-test-initialized', '1');
+    }
+  });
+  await page.route('**/api/admin/**', r => r.fulfill({ json: { isSuper: true, permissions: ['*'], ok: true } }));
+  await page.goto('/admin');
+  const stopped = page.waitForRequest(r => r.url().endsWith('/api/admin/impersonate/stop') && r.method() === 'POST');
+  await page.getByRole('link', { name: 'Accounting & my companies' }).click();
+  await stopped;
+  await expect(page).toHaveURL(/\/app$/);
+  await expect(page.locator('header [data-slot="avatar"]')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('entix_act_as'))).toBeNull();
+  await expect(page.getByRole('button', { name: /Invited Company.*US/ }).filter({ visible: true })).toBeVisible();
+});
