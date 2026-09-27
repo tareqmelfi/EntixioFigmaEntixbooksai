@@ -67,7 +67,7 @@ export function FixedAssets() {
         {!loading && !error && !intake.length && <p className="text-sm">{t("لا توجد بنود معلقة.", "No items awaiting review.")}</p>}
         {intake.map(item => <div key={item.sourceKey} className="flex flex-wrap items-center gap-3 border-t border-border pt-3">
           <div className="flex-1 min-w-0"><p className="font-medium break-words">{item.name}</p><p className="text-xs text-muted-foreground">{item.sourceNumber} · {item.acquisitionDate.slice(0,10)} · {accountLabel(item.accountId)}</p></div>
-          <span dir="ltr" className="text-sm">{formatMoney(item.acquisitionCost)} {item.currency}</span>
+          <span dir="ltr" className="text-sm">{item.acquisitionCost === "" ? t("تأكيد التكلفة مطلوب", "Confirm cost") : `${formatMoney(item.acquisitionCost)} ${item.currency}`}</span>
           <Button type="button" variant="outline" onClick={() => navigate(`/app/assets/new?intake=${encodeURIComponent(item.sourceKey)}`)}>{t("مراجعة وتسجيل", "Review and register")}</Button>
           <Button type="button" variant="ghost" disabled={reviewBusy !== null} onClick={async () => {
             setReviewBusy(item.sourceKey); setError(null);

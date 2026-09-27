@@ -48,7 +48,7 @@ for(const kind of ['quotes','invoices'] as const) test(`existing ${kind} signing
 
 for (const language of ['en','ar'] as const) test(`asset intake reviews the source before registering (${language})`, async({page})=>{
  await prepareVisualApp(page,language);
- const candidate={sourceKey:'journal:jl1',fingerprint:'a'.repeat(64),sourceKind:'journal',sourceId:'j1',sourceNumber:'JV-QA-1',sourceJournalId:'j1',name:'QA computer',accountId:'asset-account',acquisitionDate:'2026-09-27',acquisitionCost:'500',currency:'USD',baseCurrency:'USD',code:''};
+ const candidate={sourceKey:'journal:jl1',fingerprint:'a'.repeat(64),sourceKind:'journal',sourceId:'j1',sourceNumber:'JV-QA-1',sourceJournalId:'j1',name:'QA computer',accountId:'asset-account',acquisitionDate:'2026-09-27',acquisitionCost:language==='en'?'':'500',currency:'USD',baseCurrency:'USD',code:''};
  let payload:any=null; let reviewed=false;
  await page.route('**/api/fixed-assets**',route=>{
   const path=new URL(route.request().url()).pathname;
@@ -62,6 +62,7 @@ for (const language of ['en','ar'] as const) test(`asset intake reviews the sour
  await page.getByRole('button',{name:language==='ar'?'مراجعة وتسجيل':'Review and register',exact:true}).click();
  const life=page.getByRole('spinbutton',{name:language==='ar'?'العمر الإنتاجي (سنوات)':'Useful life (years)',exact:true});
  await expect(life).toHaveValue('');
+ if(language==='en'){await expect(page.getByLabel('Cost',{exact:false})).toHaveValue('');await page.getByLabel('Cost',{exact:false}).fill('500');}
  await life.fill('3');
  await page.getByRole('button',{name:language==='ar'?'تسجيل الأصل':'Register asset',exact:true}).click();
  await expect.poll(()=>payload).not.toBeNull();

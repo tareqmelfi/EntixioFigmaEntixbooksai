@@ -176,7 +176,7 @@ export function AssetDetail() {
   const formView = (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
-      {candidate && <InlineAlert tone="info">{t("من المستند", "From document")} {candidate.sourceNumber} · {candidate.acquisitionCost} {candidate.currency}. {t("أكد تكلفة الأصل بعملة الشركة", "Confirm asset cost in company currency")} ({candidate.baseCurrency}). {t("التسجيل هنا لا ينشئ قيدًا ماليًا آخر.", "Registration does not create another journal entry.")}</InlineAlert>}
+      {candidate && <InlineAlert tone="info">{t("من المستند", "From document")} {candidate.sourceNumber} · {candidate.acquisitionCost === "" ? t("تغيّرت بيانات المصدر؛ أدخل التكلفة الحالية.", "Source details changed; enter the current cost.") : `${candidate.acquisitionCost} ${candidate.currency}.`} {t("أكد تكلفة الأصل بعملة الشركة", "Confirm asset cost in company currency")} ({candidate.baseCurrency}). {t("التسجيل هنا لا ينشئ قيدًا ماليًا آخر.", "Registration does not create another journal entry.")}</InlineAlert>}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
@@ -205,7 +205,7 @@ export function AssetDetail() {
               <div className="space-y-2"><Label>{t("العمر الإنتاجي (سنوات)", "Useful life (years)")} *</Label><Input aria-label={t("العمر الإنتاجي (سنوات)", "Useful life (years)")} type="number" min="1" max="200" required value={form.usefulLifeYears} onChange={(e) => setForm({ ...form, usefulLifeYears: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label>{t("التكلفة", "Cost")} *</Label><Input type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label htmlFor="asset-cost">{t("التكلفة", "Cost")} *</Label><Input id="asset-cost" type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>{t("القيمة المتبقية", "Salvage value")}</Label><Input type="number" step="0.01" min="0" value={form.salvageValue} onChange={(e) => setForm({ ...form, salvageValue: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="space-y-2"><Label>{t("ملاحظات", "Notes")}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("اختياري", "Optional")} /></div>
