@@ -84,3 +84,15 @@ test('switching preview does not retain another invoice permission; failed check
   await expect(preview.getByText('Could not check access. Open the invoice to retry.', { exact: true })).toBeVisible();
   await expect(preview.getByRole('button', { name: 'Edit invoice', exact: true })).toHaveCount(0);
 });
+
+
+test('linked credit note explains the restriction and opens the original correction', async ({ page }) => {
+  await prepareVisualApp(page, 'en');
+  await page.route('**/api/invoices/credited', r => r.fulfill({ json: { id: 'credited', invoiceNumber: 'US-CREDITED', status: 'SENT', issueDate: '2026-09-01', currency: 'USD', total: '114', amountPaid: '0', lines: [] } }));
+  await page.route('**/api/invoices/credited/amendment-policy', r => r.fulfill({ json: { canAmend: false, canVoidAdmin: false, reason: 'credit_note', voidReason: 'credit_note', country: 'US', relatedCreditNote: { id: 'cn-test', noteNumber: 'CN-TEST', status: 'ISSUED' } } }));
+  await page.goto('/app/invoices/credited');
+  await expect(page.getByText('This invoice has a linked credit note. Review it before amending or voiding to avoid a duplicate correction.', { exact: false })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Open credit note · CN-TEST' })).toHaveAttribute('href', '/app/credit-notes/cn-test');
+  await expect(page.getByRole('button', { name: 'Edit invoice', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Void invoice', exact: true })).toHaveCount(0);
+});
