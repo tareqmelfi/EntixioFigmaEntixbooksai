@@ -145,7 +145,7 @@ test('optional private full dashboard previews are local and never post to produ
   expect(writes).toEqual([]);
 });
 
-test('report all-time link preserves scope, missing values, full detail default and refresh',async({page})=>{
+test('report all-time link preserves scope, missing values, remembered summary and refresh',async({page})=>{
   await setup(page);
   const calls:string[]=[];
   await page.route('https://api.entix.io/api/reports/income-statement**',route=>{
@@ -155,6 +155,8 @@ test('report all-time link preserves scope, missing values, full detail default 
   await page.getByLabel('فترة الحركات',{exact:true}).selectOption('all_time');
   await page.getByTestId('dashboard-details').locator('summary').click();
   await page.getByRole('link',{name:'قائمة دخل الفترة',exact:true}).click();
+  await expect(page.getByText('Synthetic full detail',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:/تفصيل|Full detail/}).click();
   await expect(page.getByText('Synthetic full detail',{exact:true})).toBeVisible();
   await expect(page.getByText('لا توجد بيانات مسجلة للفترة',{exact:true})).toBeVisible();
   await expect(page.locator('.entix-report-paper')).not.toContainText('0.00');

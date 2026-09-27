@@ -6,10 +6,10 @@ const ORG_NAME = 'Acme Industries'
 const USER_ID = 'user_1'
 const THREAD_ID = 'thread_1'
 
-const ORG_DETAIL_PATH = `/app/admin/orgs/${ORG_ID}`
-const USER_DETAIL_PATH = `/app/admin/users/${USER_ID}`
-const SUBSCRIBER_DETAIL_PATH = `/app/admin/subscribers/${ORG_ID}`
-const SUPPORT_DETAIL_PATH = `/app/admin/support/${THREAD_ID}`
+const ORG_DETAIL_PATH = `/admin/orgs/${ORG_ID}`
+const USER_DETAIL_PATH = `/admin/users/${USER_ID}`
+const SUBSCRIBER_DETAIL_PATH = `/admin/subscribers/${ORG_ID}`
+const SUPPORT_DETAIL_PATH = `/admin/support/${THREAD_ID}`
 
 interface WorkspaceStatusOptions {
   orgDetailStatus?: 200 | 401 | 403 | 404
@@ -406,7 +406,9 @@ function clickModifier(): 'Meta' | 'Control' {
   return process.platform === 'darwin' ? 'Meta' : 'Control'
 }
 
-function stubAdminRoutes(page: Page, options: WorkspaceStatusOptions = {}) {
+async function stubAdminRoutes(page: Page, options: WorkspaceStatusOptions = {}) {
+  // The platform console is separate from accounting memberships.
+  await page.route('https://api.entix.io/me', route => route.fulfill({json:{isPlatformAdmin:true, memberships:[]}}));
   const orgDetailStatus = options.orgDetailStatus ?? 200
   const userDetailStatus = options.userDetailStatus ?? 200
   const subscriberDetailStatus = options.subscriberDetailStatus ?? 200
@@ -419,6 +421,7 @@ function stubAdminRoutes(page: Page, options: WorkspaceStatusOptions = {}) {
     const reqUrl = new URL(route.request().url())
     const { pathname } = reqUrl
 
+    if (pathname === '/api/admin/me') return route.fulfill({json:{isSuper:true, permissions:['*'], roleName:{ar:'إدارة',en:'Administrator'}}});
     if (pathname === '/api/admin/overview') {
       return route.fulfill({
         json: {
@@ -553,8 +556,7 @@ test.describe('admin entity workspaces', () => {
     await prepareVisualApp(page, 'en')
     await stubAdminRoutes(page)
 
-    await page.goto('/app/admin')
-    await page.getByRole('button', { name: 'Orgs' }).click()
+    await page.goto('/admin/orgs')
 
     const rowLink = page.getByTestId(`admin-org-row-link-${ORG_ID}`)
     await expect(rowLink).toBeVisible()
@@ -565,24 +567,24 @@ test.describe('admin entity workspaces', () => {
     await expect(page).toHaveURL(ORG_DETAIL_PATH)
 
     await page.goBack()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
 
     await rowLink.focus()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(ORG_DETAIL_PATH)
 
     await page.goBack()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
 
     await rowLink.focus()
     await page.keyboard.press('Space')
     await expect(page).toHaveURL(ORG_DETAIL_PATH)
 
     await page.goBack()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
 
     await page.getByRole('button', { name: 'Members' }).click()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
     await expect(page.getByText('Org members')).toBeVisible()
   })
 
@@ -590,8 +592,7 @@ test.describe('admin entity workspaces', () => {
     await prepareVisualApp(page, 'en')
     await stubAdminRoutes(page)
 
-    await page.goto('/app/admin')
-    await page.getByRole('button', { name: 'Users' }).click()
+    await page.goto('/admin/users')
 
     const rowLink = page.getByTestId(`admin-user-row-link-${USER_ID}`)
     await expect(rowLink).toBeVisible()
@@ -602,35 +603,35 @@ test.describe('admin entity workspaces', () => {
     await expect(page).toHaveURL(USER_DETAIL_PATH)
 
     await page.goBack()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
 
     await rowLink.focus()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(USER_DETAIL_PATH)
 
     await page.goBack()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
 
     await rowLink.focus()
     await page.keyboard.press('Space')
     await expect(page).toHaveURL(USER_DETAIL_PATH)
 
     await page.goBack()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
 
     await rowLink.click({ button: 'right' })
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
 
     await rowLink.click({ modifiers: [clickModifier()] })
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
     await expect(rowLink).toHaveAttribute('href', USER_DETAIL_PATH)
 
     await rowLink.click({ button: 'middle' })
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
     await expect(rowLink).toHaveAttribute('href', USER_DETAIL_PATH)
 
     await page.getByRole('button', { name: 'Password' }).click()
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/users')
     await expect(page.getByText('New password for')).toBeVisible()
   })
 
@@ -638,21 +639,20 @@ test.describe('admin entity workspaces', () => {
     await prepareVisualApp(page, 'en')
     await stubAdminRoutes(page)
 
-    await page.goto('/app/admin')
-    await page.getByRole('button', { name: 'Orgs' }).click()
+    await page.goto('/admin/orgs')
 
     const rowLink = page.getByTestId(`admin-org-row-link-${ORG_ID}`)
     await expect(rowLink).toHaveAttribute('href', ORG_DETAIL_PATH)
 
     await rowLink.click({ button: 'right' })
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
 
     await rowLink.click({ modifiers: [clickModifier()] })
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
     await expect(rowLink).toHaveAttribute('href', ORG_DETAIL_PATH)
 
     await rowLink.click({ button: 'middle' })
-    await expect(page).toHaveURL('/app/admin')
+    await expect(page).toHaveURL('/admin/orgs')
     await expect(rowLink).toHaveAttribute('href', ORG_DETAIL_PATH)
   })
 
@@ -662,7 +662,7 @@ test.describe('admin entity workspaces', () => {
 
     await page.goto(`${ORG_DETAIL_PATH}?tab=support`)
 
-    await expect(page.getByRole('heading', { name: 'Support threads' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Agent conversations/ })).toBeVisible()
 
     await page.getByRole('link', { name: 'Activity' }).click()
     await expect(page).toHaveURL(`${ORG_DETAIL_PATH}?tab=activity`)
@@ -670,7 +670,7 @@ test.describe('admin entity workspaces', () => {
 
     await page.goBack()
     await expect(page).toHaveURL(`${ORG_DETAIL_PATH}?tab=support`)
-    await expect(page.getByRole('heading', { name: 'Support threads' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Agent conversations/ })).toBeVisible()
   })
 
   test('cross-links connect org, user, subscriber, and support workspaces', async ({ page }) => {
@@ -695,9 +695,9 @@ test.describe('admin entity workspaces', () => {
     await expect(page.getByTestId(`subscriber-org-link-${ORG_ID}`)).toHaveAttribute('href', ORG_DETAIL_PATH)
 
     await page.goto(`${ORG_DETAIL_PATH}?tab=support`)
-    await expect(page.getByTestId(`org-support-thread-link-${THREAD_ID}`)).toHaveAttribute('href', SUPPORT_DETAIL_PATH)
+    await expect(page.locator(`a[href="${SUPPORT_DETAIL_PATH}"]`)).toHaveAttribute('href', SUPPORT_DETAIL_PATH)
 
-    await page.getByTestId(`org-support-thread-link-${THREAD_ID}`).click()
+    await page.locator(`a[href="${SUPPORT_DETAIL_PATH}"]`).click()
     await expect(page).toHaveURL(SUPPORT_DETAIL_PATH)
 
     await expect(page.getByTestId(`support-user-link-${USER_ID}`)).toHaveAttribute('href', USER_DETAIL_PATH)
@@ -749,7 +749,7 @@ test.describe('admin entity workspaces', () => {
     await page.goto(`${ORG_DETAIL_PATH}?tab=support`)
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')
     await expect(page.getByRole('heading', { name: ORG_NAME })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'محادثات الدعم' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /محادثات الوكيل/ })).toBeVisible()
 
     await page.goto(USER_DETAIL_PATH)
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl')

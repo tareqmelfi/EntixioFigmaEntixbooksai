@@ -214,7 +214,9 @@ test('footer selector on an unprefixed legacy page changes context and storage w
 
 test('navbar footer and chat never emit unsupported prefixed links', async ({ page }) => {
   await page.goto('/us/en')
-  await page.getByRole('button', { name: /assistant chat/i }).click()
+  await expect(page.getByRole('button', { name: /assistant chat/i })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Support chat', exact: true }).click()
+  await expect(page.getByLabel('Entix support', { exact: true })).toBeVisible()
   const hrefs = await page.locator('nav a[href], footer a[href]').evaluateAll((links) =>
     links.map((link) => link.getAttribute('href')).filter((href): href is string => Boolean(href)),
   )
@@ -337,7 +339,7 @@ test('client navigation from canonical login to app applies account locale befor
   await expectLocaleState(page, 'US', 'en')
   await page.getByRole('navigation').getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(/\/login$/)
-  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible()
 
   releaseSession()
   await expect(page).toHaveURL(/\/app$/)

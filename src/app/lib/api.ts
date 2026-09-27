@@ -38,7 +38,7 @@ let orgId: string | null = null
 export function setAuthToken(token: string | null) {
   void token
   if (typeof localStorage !== 'undefined') {
-    localStorage.removeItem('entix_token')
+    try { localStorage.removeItem('entix_token') } catch { /* storage may be unavailable; auth uses cookies */ }
   }
 }
 
@@ -78,7 +78,7 @@ export function setOrgId(id: string | null, persist = true) {
 // data. orgId must be set only after authStore.refresh() confirms the
 // current user's membership.
 if (typeof localStorage !== 'undefined') {
-  localStorage.removeItem('entix_token')
+  try { localStorage.removeItem('entix_token') } catch { /* storage may be unavailable; auth uses cookies */ }
   // Intentionally NOT reading entix_org_id here
 }
 

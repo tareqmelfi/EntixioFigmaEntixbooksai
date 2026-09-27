@@ -83,7 +83,7 @@ server {
   location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)/$ {
     return 308 /$1$is_args$args;
   }
-  location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce)|support/ios)/$ {
+  location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce|contracting|freelancers|agencies)|support/ios)/$ {
     return 308 /$1$is_args$args;
   }
 
@@ -92,7 +92,7 @@ server {
   location ~ ^/(?:features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)$ {
     try_files $uri/index.html =404;
   }
-  location ~ ^/solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce)$ {
+  location ~ ^/solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce|contracting|freelancers|agencies)$ {
     try_files $uri/index.html =404;
   }
   location = /support/ios { try_files $uri/index.html =404; }

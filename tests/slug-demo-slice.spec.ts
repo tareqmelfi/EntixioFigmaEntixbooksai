@@ -95,6 +95,8 @@ test('auth store classifies demos only by explicit expiry marker', async () => {
 })
 
 test('real demo-prefixed slug is production while explicit marker is demo', async () => {
+  // Node's Web Storage requires an explicit storage file; these pure helpers do not use it.
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, value: undefined });
   const authStore = await import('../src/app/components/auth-store') as any
   expect(typeof authStore.isDemoMembership).toBe('function')
 

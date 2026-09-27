@@ -59,16 +59,23 @@ export function BankAccounts() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Array<Voucher & { kind?: string; detailPath?: string }>>([]);
   const [txLoading, setTxLoading] = useState(false);
+  const [txFailed, setTxFailed] = useState(false);
+  const [txRevision, setTxRevision] = useState(0);
   useEffect(() => {
-    if (!selectedAccount) { setTransactions([]); return; }
+    if (!selectedAccount) { setTransactions([]); setTxFailed(false); return; }
     let cancelled = false;
     setTxLoading(true);
-    Promise.all([api.vouchers.list({ bankAccountId: selectedAccount.id }), api.bankAccounts.activity(selectedAccount.id)])
-      .then(([v, a]) => { if (!cancelled) setTransactions([...(v.items || []), ...(a.items || [])].sort((x,y) => y.date.localeCompare(x.date))); })
-      .catch(() => { if (!cancelled) setTransactions([]); })
+    setTransactions([]);
+    setTxFailed(false);
+    Promise.allSettled([api.vouchers.list({ bankAccountId: selectedAccount.id }), api.bankAccounts.activity(selectedAccount.id)])
+      .then(results => {
+        if (cancelled) return;
+        setTxFailed(results.some(result => result.status === 'rejected'));
+        setTransactions(results.flatMap(result => result.status === 'fulfilled' ? result.value.items || [] : []).sort((x, y) => y.date.localeCompare(x.date)));
+      })
       .finally(() => { if (!cancelled) setTxLoading(false); });
     return () => { cancelled = true; };
-  }, [selectedAccount]);
+  }, [selectedAccount, txRevision]);
 
   const handleDelete = async (id: string) => {
     setPendingDelete(null);
@@ -144,12 +151,13 @@ export function BankAccounts() {
               </Link>
             )}
           />
+          {txFailed && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning/5 p-3 text-sm text-warning"><span>{t("تعذر تحميل بعض العمليات. المعروض قد يكون غير مكتمل؛ أعد المحاولة.", "Some transactions could not load. The list may be incomplete; retry.")}</span><Button variant="outline" onClick={() => setTxRevision(value => value + 1)}>{t("إعادة المحاولة", "Retry")}</Button></div>}
           {txLoading ? (
             <div className="py-10 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
           ) : transactions.length === 0 ? (
             <EmptyState
               icon={<Wallet className="h-10 w-10" strokeWidth={1.5} />}
-              title={t("لا توجد عمليات على هذا الحساب بعد", "No transactions on this account yet")}
+              title={txFailed ? t("تعذر تحميل العمليات", "Could not load transactions") : t("لا توجد عمليات على هذا الحساب بعد", "No transactions on this account yet")}
               description={t("استورد كشف حساب أو سجل سند قبض/صرف مربوط بهذا الحساب", "Import a statement or record a receipt/payment voucher linked to this account")}
             />
           ) : (

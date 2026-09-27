@@ -62,7 +62,7 @@ test.describe('public auth CAPTCHA lifecycle', () => {
         at: '2026-08-14T00:00:00.000Z',
       }))
     })
-    if (!testInfo.title.includes('script load failure')) await installTurnstileMock(page)
+    if (!/script load failure|finished existing script|slow existing script/.test(testInfo.title)) await installTurnstileMock(page)
     await mockPublicAuth(page)
   })
 
@@ -84,7 +84,7 @@ test.describe('public auth CAPTCHA lifecycle', () => {
     await page.fill('input[type="password"]', 'wrong-password')
     await submit.click()
 
-    await expect(page.locator('.text-red-700').first()).toBeVisible()
+    await expect(page.getByText('Invalid credentials', { exact: true })).toBeVisible()
     expect(submittedHeader).toBe(captchaToken)
     await expect(submit).toBeDisabled()
     await expect.poll(() => page.evaluate(() => (window as any).__turnstileTest.resetCount)).toBe(1)
@@ -168,7 +168,7 @@ test.describe('public auth CAPTCHA lifecycle', () => {
       delete (window as any).turnstile
       delete (window as any).__turnstileScriptPromise
     })
-    await page.route('http://localhost:5173/login', async route => {
+    await page.route(`http://localhost:${process.env.ENTIX_DEV_PORT || '5173'}/login`, async route => {
       const response = await route.fetch()
       const html = await response.text()
       await route.fulfill({

@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 /**
  * /welcome — first-run chooser (2026-08-21 registration redesign)
  *
@@ -77,7 +78,7 @@ export function Welcome() {
       setActivating(false);
     }
   };
-  const [auth, setAuth] = useState(authStore.getState());
+  const auth = useAuthState();
   const [choice, setChoice] = useState<Choice>("company");
   const [companyName, setCompanyName] = useState("");
   const [country, setCountry] = useState<"SA" | "US">(() => {
@@ -87,7 +88,6 @@ export function Welcome() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => authStore.subscribe(setAuth), []);
 
   // Guards: signed-out → login · already has orgs → app.
   useEffect(() => {

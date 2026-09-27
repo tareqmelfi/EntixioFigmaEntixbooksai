@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 import { displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 import { motion } from "motion/react";
@@ -61,7 +62,7 @@ const PLANS: PlanDef[] = [
       en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Core & tax reports", "1 user", "Free first data migration"],
     },
     featuresSa: {
-      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "جاهزية ZATCA + QR", "مستخدم واحد", "نقل بيانات مجاني أول مرة"],
+      ar: ["فواتير ومصروفات غير محدودة", "عملاء وموردون وأصناف", "تقارير أساسية وضريبية", "ربط ZATCA حسب أهلية المنشأة + QR", "مستخدم واحد", "نقل بيانات مجاني أول مرة"],
       en: ["Unlimited invoices & expenses", "Customers, suppliers & items", "Core & tax reports", "ZATCA + QR readiness", "1 user", "Free first data migration"],
     },
   },
@@ -143,8 +144,7 @@ export function PricingPage() {
   // Billing identity must be VISIBLE before checkout — on a shared device the
   // previous person's session/email can otherwise carry into the payment page
   // without the new subscriber noticing.
-  const [authState, setAuthState] = useState(authStore.getState());
-  useEffect(() => authStore.subscribe(setAuthState), []);
+  const authState = useAuthState();
 
   const switchAccount = async () => {
     await authStore.logout();

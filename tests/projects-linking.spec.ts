@@ -12,8 +12,8 @@ import { prepareVisualApp, visualOrgId } from './fixtures/visual-app'
 import { auditOverflow, AUDIT_WIDTHS } from './fixtures/overflow-audit'
 
 test.use({
-  launchOptions: { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' },
-  baseURL: 'http://localhost:5188',
+  
+  baseURL: `http://localhost:${process.env.ENTIX_DEV_PORT || '5173'}`,
 })
 
 const EDG = {
@@ -236,6 +236,7 @@ const PLAN = {
 async function mockSavedProject(page: Page, opts: { budget?: any; orders?: any[] } = {}) {
   await mockProjectApi(page)
   await page.route(`https://api.entix.io/api/projects/${PROJECT.id}`, (r) => r.fulfill({ json: PROJECT }))
+  await page.route(`https://api.entix.io/api/projects/${PROJECT.id}/tasks`, r => r.fulfill({json:{items:[], summary:{byHealth:{GREEN:0,AMBER:0,RED:0},plannedCost:0,actualCost:0}}}));
   await page.route(`https://api.entix.io/api/projects/${PROJECT.id}/links`, (r) => r.fulfill({
     json: { items: [{ id: 'lnk_1', kind: 'QUOTE', documentId: 'qte_1', document: EDG_QUOTES[0] }], total: 1 },
   }))

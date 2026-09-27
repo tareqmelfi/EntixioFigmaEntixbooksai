@@ -184,6 +184,10 @@ test('scoped route audit starts and stops its Vite server promptly', async () =>
       response.writeHead(429, { ...cors, 'content-type': 'application/json' }).end('{}')
       return
     }
+    if (request.url?.startsWith('/api/public/support/health')) {
+      response.writeHead(200, { ...cors, 'content-type': 'application/json' }).end(JSON.stringify({ available: false }))
+      return
+    }
     response.writeHead(404, cors).end('{}')
   })
   await new Promise<void>((resolve) => api.listen(5197, '127.0.0.1', resolve))
@@ -217,6 +221,6 @@ test('scoped route audit starts and stops its Vite server promptly', async () =>
   }).finally(() => new Promise<void>((resolve) => api.close(() => resolve())))
 
   expect(exit, output).toEqual({ code: 0, signal: null })
-  expect(output).toContain('Routes: 5/5 passed')
+  expect(output).toContain('Routes: 8/8 passed')
   expect(Date.now() - startedAt).toBeLessThan(60_000)
 })

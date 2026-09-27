@@ -1,3 +1,4 @@
+import { useAuthState } from "../components/use-auth-state";
 /**
  * /verify-email — verification-link landing (security fix 2026-08-21)
  *
@@ -26,13 +27,12 @@ export function VerifyEmail() {
   const errorParam = params.get("error");
   const verifiedFlag = params.get("verified") === "1";
 
-  const [auth, setAuth] = useState(authStore.getState());
+  const auth = useAuthState();
   const [signedOutOther, setSignedOutOther] = useState<string | null>(null);
   const [resendBusy, setResendBusy] = useState(false);
   const [resendNotice, setResendNotice] = useState<string | null>(null);
   const guardRan = useRef(false);
 
-  useEffect(() => authStore.subscribe(setAuth), []);
 
   // Cross-account guard — runs once, before any status UI is trusted.
   useEffect(() => {

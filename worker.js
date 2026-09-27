@@ -27,7 +27,7 @@ const MARKETING_ROUTES = new Set([
   '/partners', '/changelog', '/roadmap', '/case-studies', '/glossary',
   '/refund', '/sla',
   '/solutions/accountants', '/solutions/small-business', '/solutions/enterprises',
-  '/solutions/restaurants', '/solutions/ecommerce',
+  '/solutions/restaurants', '/solutions/ecommerce', '/solutions/contracting', '/solutions/freelancers', '/solutions/agencies',
 ])
 
 // /print/* is embedded as the editor's side preview iframe. The primary blocker

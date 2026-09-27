@@ -3,7 +3,7 @@ import { prepareVisualApp, visualOrgId } from './fixtures/visual-app'
 import { auditOverflow, AUDIT_WIDTHS } from './fixtures/overflow-audit'
 
 test.use({
-  launchOptions: { executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' },
+  
 })
 
 const invoice = {

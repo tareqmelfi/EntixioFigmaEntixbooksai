@@ -48,15 +48,15 @@ const reportPayload = {
   ],
 }
 
-test('income statement opens FULLY EXPANDED with the equation strip; ملخص فقط collapses the account tree', async ({ page }) => {
+test('income statement opens FULLY EXPANDED with readable totals; ملخص فقط collapses the account tree', async ({ page }) => {
   await prepareVisualApp(page, 'ar')
   await page.route('https://api.entix.io/api/reports/income-statement*', (route) => route.fulfill({ json: reportPayload }))
 
   await page.goto('/app/reports/income-statement')
 
-  // Wave-style equation visible immediately: revenue − expenses = net
-  await expect(page.getByText('12,339.99 SAR').first()).toBeVisible()
-  await expect(page.getByText('66.68 SAR').first()).toBeVisible()
+  // Condensed default presents currency once in the column heading and totals in cells.
+  await expect(page.getByRole('cell', { name: '12,339.99', exact: true }).first()).toBeVisible()
+  await expect(page.getByRole('cell', { name: '66.68', exact: true }).first()).toBeVisible()
 
   // Expanded by default: per-account detail is visible without any click
   await expect(page.getByText('تفصيل قائمة الدخل حسب الحساب')).toBeVisible()

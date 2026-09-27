@@ -10,7 +10,7 @@ const LEGACY_PRERENDER_ROUTES = [
   '/videos', '/glossary', '/case-studies', '/changelog', '/roadmap', '/partners', '/careers', '/team',
   '/integration', '/privacy', '/support/ios', '/terms', '/refund', '/sla',
   '/solutions/small-business', '/solutions/accountants', '/solutions/enterprises',
-  '/solutions/restaurants', '/solutions/ecommerce',
+  '/solutions/restaurants', '/solutions/ecommerce', '/solutions/contracting', '/solutions/freelancers', '/solutions/agencies',
   '/login', '/register', '/forgot-password', '/reset-password',
 ] as const
 
@@ -36,7 +36,7 @@ for (const market of PUBLIC_MARKETS) {
 
 test('all supported legacy routes keep real prerendered artifacts instead of neutral-root shell substitution', async () => {
   const neutralRoot = await readFile(path.join(dist, 'index.html'), 'utf8')
-  expect(LEGACY_PRERENDER_ROUTES).toHaveLength(32)
+  expect(LEGACY_PRERENDER_ROUTES).toHaveLength(35)
 
   for (const route of LEGACY_PRERENDER_ROUTES.filter((item) => item !== '/')) {
     const html = await readFile(artifact(route), 'utf8')
@@ -81,13 +81,16 @@ test('US English raw artifacts contain no Arabic codepoints or Saudi-only concep
   }
 })
 
-test('generated sitemap contains only manifest indexable localized URLs', async () => {
+test('generated sitemap includes supported localized and industry pages without duplicates', async () => {
   const sitemap = await readFile(path.join(dist, 'sitemap.xml'), 'utf8')
   const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
   const expected = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.flatMap((locale) =>
     PUBLIC_PAGES.filter((page) => page.indexable).map((page) => `https://entix.io${localizedPath(market, locale, page.path)}`),
   ))
-  expect(locations).toEqual(expected)
+  expect(new Set(locations).size).toBe(locations.length)
+  for (const url of expected) expect(locations).toContain(url)
+  for (const route of LEGACY_PRERENDER_ROUTES.filter(route => !['/forgot-password', '/reset-password'].includes(route))) expect(locations).toContain(`https://entix.io${route}`)
+  for (const url of locations) expect([...expected, ...LEGACY_PRERENDER_ROUTES.map(route => `https://entix.io${route}`)]).toContain(url)
   expect(sitemap).not.toContain('/marketplace/accountants')
 })
 
@@ -103,7 +106,7 @@ test('production routing serves exact artifacts and rejects unsupported localize
   expect(dockerfile).toContain('return 308 https://entix.io$request_uri;')
   expect(dockerfile).toContain('location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)/$')
   expect(dockerfile).toContain('return 308 /$1$is_args$args;')
-  expect(dockerfile).toContain('location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce)|support/ios)/$')
+  expect(dockerfile).toContain('location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce|contracting|freelancers|agencies)|support/ios)/$')
   expect(dockerfile).toContain('location ~ ^/(?:sa|us)/(?:ar|en)(?:/|$) { return 404; }')
   expect(dockerfile).toContain('try_files $uri/index.html =404;')
   expect(dockerfile).toContain('location / { try_files $uri =404; }')
