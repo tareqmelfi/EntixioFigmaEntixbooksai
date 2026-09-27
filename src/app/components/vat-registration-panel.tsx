@@ -44,7 +44,7 @@ export function VatRegistrationPanel({ orgId }: { orgId: string }) {
       <a href="https://www.zatca.gov.sa/en/eServices/Pages/eservices-001.aspx" target="_blank" rel="noopener noreferrer" className="text-primary underline">{t("خدمة التسجيل الرسمية لدى الهيئة", "Official ZATCA registration service")}</a>
       {loading ? <p>{t("جارٍ التحميل…", "Loading…")}</p> : <form className="space-y-4" onSubmit={async (event) => {
         event.preventDefault(); setBusy(true); setMessage("");
-        try { const out = await api.vatRegistration.save(orgId, form); setForm({ ...form, revision: out.registration.revision, confirmVerified: false }); setMessage(t("حُفظ سجل المتابعة فقط", "Tracking record saved")); }
+        try { const out = await api.vatRegistration.save(orgId, form); setForm(current => ({ ...current, revision: out.registration.revision, confirmVerified: false })); setMessage(t("حُفظ سجل المتابعة فقط", "Tracking record saved")); }
         catch (e: any) { setMessage(e.message); } finally { setBusy(false); }
       }}>
         <div className="grid gap-4 md:grid-cols-2">

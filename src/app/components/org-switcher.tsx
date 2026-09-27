@@ -9,6 +9,8 @@ import { Link } from "react-router";
 import { ChevronDown, Plus, Check, X, Star } from "lucide-react";
 import { api, Org, getOrgId, API_BASE_URL } from "../lib/api";
 import { rememberTabOrgId } from "../lib/tab-org-selection";
+import { readActAs, stopActAs } from "../lib/act-as";
+import { authStore } from "./auth-store";
 import { AddressAutocomplete } from "./address-autocomplete";
 import { SearchableCombobox, type ComboboxItem } from "./searchable-combobox";
 import { LEGAL_TYPES_BY_COUNTRY, LEGAL_TYPES_DEFAULT } from "../lib/legal-types";
@@ -59,7 +61,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const alignItemsClass = isRtl ? "items-end text-end" : "items-start text-start";
 
   const [orgs, setOrgs] = useState<Org[]>([]);
-  const [activeOrg, setActiveOrg] = useState<Org | null>(null);
+  const [activeOrg, setActiveOrg] = useState<Pick<Org, "id" | "name" | "country" | "baseCurrency" | "logoUrl"> | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -95,7 +97,10 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       // Display the same authenticated tab context used by every API request.
       // Listing companies must never change the active company as a side effect.
       const activeId = getOrgId();
-      setActiveOrg(list.find(o => o.id === activeId) || null);
+      const support = authStore.getState().user?.isPlatformAdmin ? readActAs() : null;
+      setActiveOrg(support
+        ? { id: support.orgId, name: support.orgName, country: support.country, baseCurrency: support.currency }
+        : list.find(o => o.id === activeId) || null);
       // Load the starred default company alongside the org list.
       try {
         const meRes = await fetch(`${API_BASE_URL}/me`, { credentials: 'include' });
@@ -139,10 +144,17 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     return () => window.removeEventListener("entix:open-switcher", onOpen);
   }, []);
 
-  const handleSelect = (o: Org) => {
+  const handleSelect = async (o: Org) => {
     if (!rememberTabOrgId(o.id)) {
       setSeedMessage({ kind: "error", text: t("تعذر حفظ اختيار الشركة في هذا التبويب. اسمح بتخزين بيانات الموقع ثم أعد المحاولة.", "Could not save this tab's company. Allow site storage and retry.") });
       return;
+    }
+    // Choosing a membership exits support mode; otherwise its override would
+    // silently restore a different company after the reload.
+    const support = readActAs();
+    if (support) {
+      try { await api.admin.impersonateStop(support.orgId); } catch { /* audit best-effort, as in the support banner */ }
+      stopActAs();
     }
     // This is only a hint for a future tab. Existing tabs keep their selection.
     // Do not change request context beneath a still-mounted invoice form.
