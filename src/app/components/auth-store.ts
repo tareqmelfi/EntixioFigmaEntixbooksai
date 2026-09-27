@@ -38,8 +38,7 @@ export interface User {
   createdAt: string
   /** ISO timestamp when account deletion was requested (null = healthy). */
   deletionRequestedAt?: string | null
-  /** Platform-admin (ADMIN_EMAILS) — never owns/belongs to a company; routed
-   * straight to /admin, never through /welcome onboarding. */
+  /** Platform console access, independent of company membership and role. */
   isPlatformAdmin?: boolean
 }
 
@@ -172,12 +171,8 @@ class AuthStore {
         // LONGER auto-bootstrap a silent «شركتي · SA/SAR» org — that default
         // dropped users into the wrong country/currency and hid their intent.
         // The /welcome page (company with country · or a demo) creates it.
-        // Platform-admin exception (2026-08-25): admin@ensidex.com-style
-        // accounts are DELIBERATELY zero-org (detached from any company by
-        // design) — sending them to /welcome would ask them to create a
-        // company, which is exactly what must never happen. dashboard.tsx
-        // already redirects isPlatformAdmin sessions to /admin once they
-        // land past this gate.
+        // Admins without memberships can use the platform console; admins
+        // with memberships keep the same accounting workspace as any member.
         const isPlatformAdmin = !!me?.isPlatformAdmin
         const needsOnboarding = meKnown && sorted.length === 0 && !isPlatformAdmin
 

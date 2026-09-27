@@ -264,6 +264,13 @@ export function AppHeader({ onMenuClick }: { onMenuClick?: () => void }) {
 
                   {/* Company row + «Change» removed (CEO 2026-08-25): the sidebar
                       switcher is the single place to change company. */}
+                  {authState.user?.isPlatformAdmin && (
+                    <div className="border-b border-border py-1">
+                      <Link to="/admin" onClick={() => setShowProfile(false)} className="flex items-center gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover">
+                        <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground" />{t("إدارة النظام", "System administration")}
+                      </Link>
+                    </div>
+                  )}
                   {/* Menu Items */}
                   <div className="py-1">
                     <Link to="/app/settings?tab=account" onClick={() => setShowProfile(false)} className="w-full flex items-start gap-3 px-4 py-2.5 text-[13px] leading-5 text-foreground hover:bg-surface-hover text-start transition-colors">

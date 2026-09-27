@@ -19,7 +19,7 @@ import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { BidiText } from "../components/bidi-text";
-import { api, ApiError, DashboardSummary, type DashboardPeriodKey } from "../lib/api";
+import { api, getOrgId, ApiError, DashboardSummary, type DashboardPeriodKey } from "../lib/api";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { useLanguage } from "../components/LanguageContext";
 import { useSession } from "../lib/auth-client";
@@ -138,17 +138,16 @@ useEffect(() => {
   const { toasts, dismiss } = useToasts();
   const navigate = useNavigate();
 
-  // Platform admins land on the admin portal, not a company workspace — the
-  // admin account must not look like a customer account (owner directive
-  // 2026-08-24). The org workspace stays reachable via the sidebar/switcher.
+  // Members use their company workspace; only admins without a company
+  // default to the console. Support grants retain their explicit workspace.
   useEffect(() => {
     const redirectAdmin = () => {
       const state = authStore.getState();
-      if (!state.loading && state.user?.isPlatformAdmin && !readActAs()) navigate("/admin", { replace: true });
+      if (!state.loading && state.user?.isPlatformAdmin && !state.organizationError && !getOrgId() && !readActAs()) navigate("/admin", { replace: true });
     };
     redirectAdmin();
     return authStore.subscribe(redirectAdmin);
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     setOnb(null);

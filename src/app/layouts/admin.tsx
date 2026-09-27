@@ -3,8 +3,7 @@ import { EntixWordmark } from "../components/entix-brand";
 /**
  * Admin Console shell (Z2.1 · 2026-08-26) — standalone /admin/* layout.
  *
- * Platform admins never see the accounting sidebar, the company switcher or
- * any invoice/report link: they get an admin-only white sidebar, a compact
+ * The console is separate from members’ accounting workspaces, with a compact
  * top bar with an «Admin» badge and the same session-expiry banner. Sections
  * map 1:1 to URLs so every screen is deep-linkable:
  *   /admin · /admin/orgs · /admin/users · /admin/subscriptions · /admin/support
@@ -17,6 +16,8 @@ import { LayoutDashboard, Building2, Users, CreditCard, MessageSquare, Server, S
 import { useAdminMe, SECTION_PERMISSION } from "../lib/use-admin-me";
 import { useLanguage } from "../components/LanguageContext";
 import { authStore } from "../components/auth-store";
+import { api, getOrgId, setOrgId } from "../lib/api";
+import { readActAs, stopActAs } from "../lib/act-as";
 import { SessionExpiredBanner } from "../components/session-expired-banner";
 
 export const ADMIN_SECTIONS = [
@@ -41,7 +42,7 @@ export function AdminRoot() {
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   if (auth.loading) return <div className="flex h-dvh items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
-  if (!auth.isAuthenticated) return <Navigate to="/login" replace />;
+  if (!auth.isAuthenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
   if (!auth.user?.isPlatformAdmin) return <Navigate to="/app" replace />;
 
   const nav = (
@@ -81,11 +82,25 @@ export function AdminRoot() {
       <div className={`fixed inset-y-0 start-0 z-50 lg:hidden transition-transform ${menuOpen ? "translate-x-0" : language === "ar" ? "translate-x-full" : "-translate-x-full"}`}>{sidebar}</div>
 
       <div className="flex flex-1 flex-col min-w-0 h-full overflow-hidden">
-        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-[#1A1E48] px-4 text-primary-foreground">
+        <header className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border bg-[#1A1E48] px-4 py-2 text-primary-foreground">
           <button type="button" className="lg:hidden" onClick={() => setMenuOpen(true)} aria-label="menu"><Menu className="h-5 w-5" /></button>
           <div className="text-sm font-semibold">{t("وحدة تحكم الإدارة", "Admin Console")}</div>
           <div className="text-xs text-primary-foreground/60 hidden md:block">{t("كل إجراء يُسجَّل في سجل الأثر", "Every action is audit-logged")}</div>
           <div className="ms-auto flex items-center gap-1">
+            <Link to="/app" onClick={async (event) => {
+              event.preventDefault();
+              const grant = readActAs();
+              if (grant) {
+                try { await api.admin.impersonateStop(grant.orgId); } catch { /* local support context must still end */ }
+                stopActAs();
+                setOrgId(null);
+                await authStore.refresh();
+              }
+              const state = authStore.getState();
+              window.location.assign(!getOrgId() && !state.organizationError ? "/welcome" : "/app");
+            }} className="inline-flex items-center gap-1.5 rounded-md border border-current/30 px-2 py-1 text-xs hover:bg-card/10">
+              <Building2 className="h-3.5 w-3.5 shrink-0" />{t("المحاسبة وشركاتي", "Accounting & my companies")}
+            </Link>
             <button type="button" onClick={toggleLanguage} className="rounded-md px-2 py-1 text-xs hover:bg-card/10 inline-flex items-center gap-1" title={t("English", "العربية")}><Languages className="h-3.5 w-3.5" />{language === "ar" ? "EN" : "AR"}</button>
             <button type="button" onClick={async () => { await authStore.logout(); navigate("/login", { replace: true }); }} className="rounded-md px-2 py-1 text-xs hover:bg-card/10 inline-flex items-center gap-1"><LogOut className="h-3.5 w-3.5" />{t("خروج", "Sign out")}</button>
           </div>
