@@ -1722,7 +1722,7 @@ export function Invoices() {
                 ><FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}</button>
               )}
               {selected.status !== "DRAFT" && selected.status !== "CANCELLED" && (
-                <InvoiceAmendmentActions key={selected.id} invoice={selected} onAction={(action) => openEdit(selected, action)} />
+                isUS ? <InvoiceAmendmentActions key={selected.id} invoice={selected} onAction={(action) => openEdit(selected, action)} /> : <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />{t("مقفلة", "Locked")}</span>
               )}
               {selected.status === "DRAFT" && (pendingDelete === selected.id ? (
                 <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
