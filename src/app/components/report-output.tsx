@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Download, Loader2, Printer } from 'lucide-react';
 import type { ReportPayload, ReportPrintSettings } from '../lib/api';
-import { downloadReportPdf, paginateReport, reportPaperSize } from '../lib/report-pagination';
+import { attachReportSocialFooter, downloadReportPdf, paginateReport, reportPaperSize } from '../lib/report-pagination';
 import { reportLayoutSettings } from '../lib/report-layout';
 import { waitForPrintReady } from '../lib/print-image';
 import { ReportDocument } from './report-document';
@@ -39,6 +39,7 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
       try {
         const article = source.current.querySelector<HTMLElement>('.entix-report-paper');
         if (!article) throw new Error('report_content_missing');
+        attachReportSocialFooter(article, report.org, settings.language || language);
         const total = paginateReport(article, pages.current, settings);
         if (!cancelled) setCount(total);
       } catch {

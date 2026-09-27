@@ -1,9 +1,29 @@
+import { socialFooterHtml, socialFooterSettings, socialFooterOnPage } from './document-social';
 import type { ReportPrintSettings } from './api';
 
 export function reportPaperSize(settings: ReportPrintSettings) {
   const portrait = settings.paper === 'Letter' ? [215.9, 279.4] : [210, 297];
   const [width, height] = settings.orientation === 'landscape' ? [...portrait].reverse() : portrait;
   return { width, height };
+}
+
+/** Attach branding independently of the optional report legal footer. */
+export function attachReportSocialFooter(article: HTMLElement, org: any, lang: string) {
+  article.querySelector(':scope > .report-social-source')?.remove();
+  const html = socialFooterHtml(org.socialLinks, org.socialFooter || org.brandTheme?.socialFooter, lang);
+  if (!html) return;
+  const footer = document.createElement('div');
+  footer.className = 'report-social-source';
+  footer.style.cssText = 'padding:2mm 6mm;color:inherit;flex-shrink:0';
+  footer.innerHTML = html;
+  article.append(footer);
+}
+export function applySocialFooterPages(pages: HTMLElement[]) {
+  pages.forEach((page, index) => page.querySelectorAll<HTMLElement>('[data-social-pages]').forEach(footer => {
+    const settings = socialFooterSettings({ pages: footer.dataset.socialPages });
+    // Retain the measured band, so hiding links cannot change pagination.
+    footer.style.visibility = socialFooterOnPage(settings, index + 1, pages.length) ? 'visible' : 'hidden';
+  }));
 }
 
 /** Build physical sheets from rendered rows, never slice a tall screenshot through text. */
@@ -13,6 +33,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
   const originalMain = source.querySelector(':scope > main') as HTMLElement | null;
   if (!originalMain) throw new Error('report_content_missing');
   const footer = source.querySelector(':scope > footer');
+  const social = source.querySelector(':scope > .report-social-source');
   const pages: HTMLElement[] = [];
   let body: HTMLElement;
   const newPage = () => {
@@ -22,7 +43,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     sheet.style.height = `${height}mm`;
     sheet.style.minHeight = '0';
     for (const child of Array.from(source.children)) {
-      if (child === originalMain || child === footer) continue;
+      if (child === originalMain || child === footer || child === social) continue;
       sheet.append(child.cloneNode(true));
     }
     body = originalMain.cloneNode(false) as HTMLElement;
@@ -30,6 +51,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     sheet.append(body);
     const pageFooter = document.createElement('div');
     pageFooter.className = 'report-page-footer';
+    if (social) pageFooter.append(social.cloneNode(true));
     if (footer) pageFooter.append(footer.cloneNode(true));
     const counter = document.createElement('div');
     counter.className = 'report-page-counter';
@@ -93,6 +115,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     page.dataset.pageNumber = String(index + 1);
     page.querySelector('.report-page-counter')!.textContent = `${index + 1} / ${pages.length}`;
   });
+  applySocialFooterPages(pages);
   return pages.length;
 }
 
@@ -180,6 +203,17 @@ export async function downloadReportPdf(root: HTMLElement, settings: ReportPrint
       },
     });
     pdf.addImage(canvas, 'PNG', 0, 0, width, height, undefined, 'FAST');
+    // Rasterized text has no PDF annotations. Add the complete anchor rectangle
+    // so the icon and label both remain clickable in a downloaded PDF.
+    const sheet = pages[index], bounds = sheet.getBoundingClientRect();
+    for (const anchor of sheet.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+      if (!/^https?:\/\//i.test(anchor.href) || getComputedStyle(anchor).visibility === 'hidden') continue;
+      for (const rect of Array.from(anchor.getClientRects())) {
+        if (!rect.width || !rect.height || rect.left < bounds.left || rect.right > bounds.right + 1 || rect.top < bounds.top || rect.bottom > bounds.bottom + 1) continue;
+        pdf.link((rect.left - bounds.left) / bounds.width * width, (rect.top - bounds.top) / bounds.height * height,
+          rect.width / bounds.width * width, rect.height / bounds.height * height, { url: anchor.href });
+      }
+    }
     canvas.width = canvas.height = 0;
   }
   pdf.save(`${filename.replace(/[\\/:*?"<>|]/g, '-')}.pdf`);

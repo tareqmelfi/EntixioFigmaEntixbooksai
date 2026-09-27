@@ -1,3 +1,4 @@
+import { socialFooterHtml, socialFooterSettings, type SocialFooterSettings } from '../lib/document-social';
 /**
  * SocialLinksCard · Settings → العلامة التجارية (CEO 2026-09-20)
  *
@@ -47,6 +48,8 @@ export function SocialLinksCard({ org, setOrg, push }: {
 }) {
   const { t, language } = useLanguage();
   const [rows, setRows] = useState<SocialLink[]>(() => (org.socialLinks || []).map((l) => ({ ...l })));
+  const [footer, setFooter] = useState(() => socialFooterSettings((org as any).brandTheme?.socialFooter));
+  const updateFooter = (patch: Partial<SocialFooterSettings>) => { setFooter({ ...footer, ...patch }); setTouched(true); };
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState(false);
 
@@ -66,8 +69,8 @@ export function SocialLinksCard({ org, setOrg, push }: {
     if (broken.length) return;
     setBusy(true);
     try {
-      const updated = await api.orgs.update(org.id, { socialLinks: filled.length ? filled : null } as any);
-      setOrg({ ...org, socialLinks: updated.socialLinks ?? null });
+      const updated = await api.orgs.update(org.id, { socialLinks: filled.length ? filled : null, socialFooter: footer } as any);
+      setOrg({ ...org, ...updated });
       setRows((updated.socialLinks || []).map((l) => ({ ...l })));
       setTouched(false);
       push("success", t("حُفظت روابط التواصل", "Social links saved"));
@@ -113,12 +116,14 @@ export function SocialLinksCard({ org, setOrg, push }: {
                 />
                 {bad && <div className="mt-1 text-[11px] text-danger">{t("رابط غير صالح — اكتبه هكذا instagram.com/حسابك", "Not a valid link — type it as instagram.com/your-account")}</div>}
               </div>
-              {r.platform === "other" && (
+              {(
                 <input
                   type="text"
                   value={r.label || ""}
                   onChange={(e) => set(i, { label: e.target.value })}
-                  placeholder={t("الاسم الظاهر", "Display name")}
+                  placeholder={t("اسم مختصر (اختياري)", "Short label (optional)")}
+                  maxLength={40}
+                  aria-label={t("الاسم الظاهر", "Display name")}
                   className="h-10 w-36 rounded-md border border-border bg-card px-3 text-sm"
                   data-testid={`social-label-${i}`}
                 />
@@ -129,6 +134,29 @@ export function SocialLinksCard({ org, setOrg, push }: {
             </div>
           );
         })}
+
+        <fieldset className="rounded-md border border-border p-4 space-y-3">
+          <legend className="px-2 text-sm font-semibold">{t("تذييل المطبوعات", "Printed document footer")}</legend>
+          <p className="text-xs text-muted-foreground">{t("إعداد موحّد للفواتير والسندات والعروض والتقارير. الأيقونة والاسم يفتحان الرابط في PDF.", "One setting for invoices, vouchers, quotes and reports. Both icon and name open the link in PDF.")}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="text-sm">{t("الظهور أسفل", "Show at the bottom of")}
+              <select className="mt-1 w-full rounded-md border p-2 bg-card" value={footer.pages} onChange={e => updateFooter({ pages: e.target.value as SocialFooterSettings['pages'] })} data-testid="social-footer-pages">
+                <option value="last">{t("الصفحة الأخيرة", "Last page")}</option><option value="first">{t("الصفحة الأولى", "First page")}</option><option value="all">{t("كل الصفحات", "Every page")}</option><option value="none">{t("إخفاء من المطبوعات", "Hide in print")}</option>
+              </select>
+            </label>
+            <label className="text-sm">{t("الحجم", "Size")}
+              <select className="mt-1 w-full rounded-md border p-2 bg-card" value={footer.size} onChange={e => updateFooter({ size: e.target.value as SocialFooterSettings['size'] })} data-testid="social-footer-size">
+                <option value="small">{t("صغير", "Small")}</option><option value="medium">{t("متوسط", "Medium")}</option><option value="large">{t("كبير", "Large")}</option>
+              </select>
+            </label>
+            <label className="text-sm">{t("المحاذاة", "Alignment")}
+              <select className="mt-1 w-full rounded-md border p-2 bg-card" value={footer.align} onChange={e => updateFooter({ align: e.target.value as SocialFooterSettings['align'] })} data-testid="social-footer-align">
+                <option value="center">{t("وسط", "Center")}</option><option value="start">{t("بداية السطر", "Start")}</option><option value="end">{t("نهاية السطر", "End")}</option>
+              </select>
+            </label>
+          </div>
+          <div className="rounded bg-white p-4 text-slate-700" data-testid="social-footer-preview" dangerouslySetInnerHTML={{ __html: socialFooterHtml(filled, footer, language) }} />
+        </fieldset>
 
         {broken.length > 0 && (
           <InlineAlert tone="critical" data-testid="social-invalid">{t(`${broken.length} رابط غير صالح — صحّحه أو احذفه قبل الحفظ`, `${broken.length} link(s) are not valid — fix or remove them before saving`)}</InlineAlert>

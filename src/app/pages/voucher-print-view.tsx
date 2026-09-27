@@ -1,4 +1,4 @@
-import { documentSocialLinks } from "../lib/document-render";
+import { socialFooterHtml } from "../lib/document-social";
 import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
@@ -234,6 +234,7 @@ export function VoucherPrintView() {
   })() : null;
 
   const signatureUrl = printImages?.signature || null;
+  const socialHtml = socialFooterHtml(org.socialLinks, (org as any).brandTheme?.socialFooter, lang);
   const issuerName = (voucher as any).createdByName || org.name;
 
   return (
@@ -280,7 +281,7 @@ export function VoucherPrintView() {
           </button>
         </div>
 
-        <article className="voucher-page document-paper" style={{ maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+        <article className="voucher-page document-paper" style={{ minHeight: "297mm", boxSizing: "border-box", display: "flex", flexDirection: "column", maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
               <h1 className="document-title" style={{ margin: "0 0 4px 0" }}>{docTitle}</h1>
@@ -363,9 +364,7 @@ export function VoucherPrintView() {
               )}
             </div>
           </div>
-          {documentSocialLinks(org.socialLinks).length > 0 && <div data-testid="voucher-social-links" style={{ marginTop: 20, display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 12, fontSize: 10, overflowWrap: "anywhere" }}>
-            {documentSocialLinks(org.socialLinks).map((link, i) => <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>{link.label || link.platform} · <bdi dir="ltr">{link.url.replace(/^https?:\/\//, "")}</bdi></a>)}
-          </div>}
+          {socialHtml && <footer data-testid="voucher-social-links" style={{ marginTop: "auto", paddingTop: "8mm", color: "#5C6480" }} dangerouslySetInnerHTML={{ __html: socialHtml }} />}
         </article>
       </div>
     </>

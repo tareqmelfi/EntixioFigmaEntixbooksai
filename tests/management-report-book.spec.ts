@@ -11,7 +11,7 @@ async function setup(page: import('@playwright/test').Page, language: 'ar' | 'en
     return route.fulfill({ json: {
       id, title: `التقرير ${id}`, englishTitle: `Report ${id}`, category: 'financial', status: 'live',
       generatedAt: '2026-09-27T17:00:00Z', period: { from: '2026-01-01', to: '2026-09-27' }, currency: 'USD', summary: {},
-      org: { id: visualOrgId, name: 'شركة الاختبار', legalName: 'Report Test LLC', country: 'US', baseCurrency: 'USD' },
+      org: { id: visualOrgId, name: 'شركة الاختبار', legalName: 'Report Test LLC', country: 'US', baseCurrency: 'USD', socialLinks: [{ platform: 'instagram', url: 'https://example.com/social' }] },
       notices: ['Synthetic test data'],
       sections: [{ id: `${id}-detail`, title: 'كامل التفاصيل␟Complete detail',
         columns: [{ key: 'label', label: 'الحساب␟Account' }, { key: 'amount', label: 'الرصيد␟Balance', kind: 'money', align: 'end' }],
@@ -50,6 +50,9 @@ for (const language of ['ar', 'en'] as const) {
     await (await download).saveAs(filename);
     const bytes = await readFile(filename);
     expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+    expect((bytes.toString('latin1').match(/\/URI \(https:\/\/example.com\/social\)/g) || []).length).toBe(1);
+    await expect(sheets.last().locator('.document-social-footer')).toBeVisible();
+    await expect(sheets.first().locator('.document-social-footer')).toBeHidden();
     expect((bytes.toString('latin1').match(/\/Type \/Page\b/g) || []).length).toBe(await sheets.count());
     await expect(page.getByRole('alert')).toHaveCount(0);
     await page.locator('textarea').fill('Changed commentary');

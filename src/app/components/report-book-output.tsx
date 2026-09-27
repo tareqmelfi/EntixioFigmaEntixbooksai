@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import type { ReportPayload, ReportPrintSettings } from '../lib/api';
-import { paginateReport, reportPaperSize, downloadReportPdf } from '../lib/report-pagination';
+import { attachReportSocialFooter, applySocialFooterPages, paginateReport, reportPaperSize, downloadReportPdf } from '../lib/report-pagination';
 import { reportLayoutSettings } from '../lib/report-layout';
 import { readTabOrgId } from '../lib/tab-org-selection';
 import { waitForPrintReady } from '../lib/print-image';
@@ -70,6 +70,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
       try {
         target.replaceChildren();
         const cover = source.current.querySelector('.report-book-cover')!.cloneNode(true) as HTMLElement;
+        attachReportSocialFooter(cover, first.org, language);
         target.append(cover);
         const articles = source.current.querySelectorAll<HTMLElement>('.entix-report-paper');
         const buckets = Array.from(articles, original => {
@@ -78,6 +79,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
           const footerTitle = article.querySelector(':scope > footer > span');
           if (footerTitle) footerTitle.textContent = `${title} · ${first.org.name}`;
           const bucket = document.createElement('div'); target.append(bucket);
+          attachReportSocialFooter(article, first.org, language);
           paginateReport(article, bucket, settings);
           return bucket;
         });
@@ -97,6 +99,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
           const counter = sheet.querySelector('.report-page-counter');
           if (counter) counter.textContent = `${index + 1} / ${sheets.length}`;
         });
+        applySocialFooterPages(Array.from(sheets));
         setCount(sheets.length);
       } catch {
         target.replaceChildren();

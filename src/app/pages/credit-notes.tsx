@@ -1,3 +1,4 @@
+import { CreditNoteOutput } from '../components/credit-note-output';
 import { displayLocale } from "../lib/number-display";
 import { correctionLineAmounts } from "../lib/invoice-correction";
 /**
@@ -11,7 +12,7 @@ import { correctionLineAmounts } from "../lib/invoice-correction";
  */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, useSearchParams, Link } from "react-router";
-import { Plus, Search, Trash2, Loader2, ScrollText, FileText, ScanLine, Mail } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, ScrollText, FileText, ScanLine, Mail, Printer } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { EmptyState, LedgerFigure, Metric, MetricStrip, PageHeader, PageToolbar, StatusBadge } from "../components/product";
@@ -105,6 +106,7 @@ export function CreditNotes() {
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
   const draft = useFormDraft({ key: editId ? `credit-note:${editId}` : "credit-note:new", open: createOpen, snapshot: { form, lines, taxMode }, restore: (s) => { setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode); } });
 
+  const [printId, setPrintId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const { toasts, push, dismiss } = useToasts();
   // Send compose page (W-SEND · 2026-09-08) · «إرسال» opens a page to review
@@ -306,6 +308,8 @@ export function CreditNotes() {
   const customerInvoices = invoices.filter(i => !form.contactId || i.contactId === form.contactId);
   const selectedInvoice = invoices.find((i) => i.id === form.originalInvoiceId);
 
+  if (printId) return <CreditNoteOutput id={printId} onClose={() => setPrintId(null)} />;
+
   // Send compose page (W-SEND · 2026-09-08) · takes over the whole page,
   // above every other view — «إرسال» always lands here, never fires silently.
   if (sendComposeFor) {
@@ -345,6 +349,7 @@ export function CreditNotes() {
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
+              {isEditing && editId && <Button variant="outline" onClick={() => setPrintId(editId)}><Printer className="me-2 h-4 w-4" />{t("طباعة / PDF", "Print / PDF")}</Button>}
               {isEditing && editId && (
                 <Button type="button" variant="outline" className="border-border" disabled={busy} onClick={() => { const cn = items.find((x) => x.id === editId); if (cn) setSendComposeFor({ note: cn }); }} data-testid="credit-note-send">
                   <Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إرسال", "Send")}
@@ -600,6 +605,7 @@ export function CreditNotes() {
                       >
                         <FileText className="h-4 w-4" strokeWidth={1.75} />
                       </button>
+                      <button onClick={() => setPrintId(c.id)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("طباعة / PDF", "Print / PDF")}><Printer className="h-4 w-4" /></button>
                       {pendingDelete === c.id ? (
                         <InlineConfirm onConfirm={() => handleDelete(c.id)} onCancel={() => setPendingDelete(null)} />
                       ) : (

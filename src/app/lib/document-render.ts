@@ -1,3 +1,4 @@
+import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social';
 /**
  * Entix Books · brand document engine (quotes + invoices).
  *
@@ -288,6 +289,7 @@ export interface PartySpec {
   email?: string | null;
   website?: string | null;
   socialLinks?: DocumentSocialLink[] | null;
+  socialFooter?: SocialFooterSettings | null;
   logoUrl?: string | null;
   /** Reverse ("light") logo variant, for dark grounds. LOGO FRAME LAW: a logo is never
    *  boxed — a dark sheet either carries this variant or the sheet itself turns light. */
@@ -1304,7 +1306,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // usable mm per inner sheet (297 − 32 top − 20 bottom) · the 3-line legal footer of the
   // centered header style needs a 27mm bottom band, so the flow capacity drops with it —
   // content never enters the footer band.
-  const CAP = hs ? 238 : 245;
+  const socialSettings = socialFooterSettings(org.socialFooter);
+  const socialHtml = socialFooterHtml(org.socialLinks, socialSettings, lang);
+  const socialBand = socialHtml ? 32 : 0;
+  const CAP = (hs ? 238 : 245) - socialBand;
 
   // ── running header / footer ──
   // The mark is either the uploaded logo (drawn bare) or the company WORDMARK — the
@@ -2063,13 +2068,6 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (on("company") && !identity) blocks.push(companyBlock());
   }
 
-  const socials = documentSocialLinks(org.socialLinks);
-  if (socials.length) {
-    const labels = socials.map(link => link.label || link.platform);
-    const links = socials.map((link, i) => `<a href="${esc(link.url)}" title="${esc(link.url)}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;overflow-wrap:anywhere">${bdi(labels[i])}</a>`).join(' · ');
-    blocks.push({ kind: "html", h: 12 + textHeight(labels.join(' · '), 150, 6, 2.5), html: `<div style="margin-top:3mm;font-size:10pt;line-height:1.7"><strong>${t("روابط التواصل", "Social links")}</strong><div>${links}</div></div>` });
-  }
-
   for (const page of paginate(blocks, CAP)) {
     // identity sheets: a flex column so `bottom` blocks sit above the footer band · budget stamped for QA
     const body = identity ? `<div class="pgflow">${page.flow}${page.bottom ? `<div class="pgbottom">${page.bottom}</div>` : ""}</div>` : page.flow;
@@ -2101,9 +2099,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // sheet.querySelector(".pgflow").scrollHeight <= .clientHeight (the sheet itself carries the
   // bottom-anchored watermark, so the flow element is the thing to measure). Cover/closing: "fixed".
   const coverCount = sheets.filter((s) => s.cover).length;
-  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
+  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? `<div class="social-band">${socialHtml}</div>` : ""}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
   const actions = input.actions ? `<div class="actions no-print"><button class="primary" type="button" onclick="window.print()">${t("طباعة / حفظ PDF", "Print / save PDF")}</button><button type="button" onclick="window.close()">${t("إغلاق", "Close")}</button></div>` : "";
-  const rawCss = buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null);
+  const rawCss = (socialHtml ? `.edoc .sheet{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null);
   // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
   const css = hideBrand ? rawCss.replace(/\/\*[\s\S]*?\*\//g, "") : rawCss;
   const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}`;
@@ -2142,6 +2140,7 @@ export function partyFromOrg(org: any): PartySpec {
     email: org.email || null,
     website: org.website || null,
     ...(documentSocialLinks(org.socialLinks).length ? { socialLinks: documentSocialLinks(org.socialLinks) } : {}),
+    socialFooter: socialFooterSettings(org.brandTheme?.socialFooter || org.socialFooter),
     logoUrl: org.printLogoUrl || org.logoUrl || null,
     logoLightUrl: org.printLogoLightUrl || null,
     stampUrl: org.stampUrl || null,
