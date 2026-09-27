@@ -74,6 +74,8 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
         const articles = source.current.querySelectorAll<HTMLElement>('.entix-report-paper');
         const buckets = Array.from(articles, article => {
           article.classList.add('report-book-page');
+          const footerTitle = article.querySelector(':scope > footer > span');
+          if (footerTitle) footerTitle.textContent = `${title} · ${first.org.name}`;
           const bucket = document.createElement('div'); target.append(bucket);
           paginateReport(article, bucket, settings);
           return bucket;
@@ -91,8 +93,6 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
         const sheets = target.querySelectorAll<HTMLElement>('.report-output-sheet');
         sheets.forEach((sheet, index) => {
           sheet.dataset.pageNumber = String(index + 1);
-          const footerTitle = sheet.querySelector('.report-page-footer footer > span');
-          if (footerTitle) footerTitle.textContent = `${title} · ${first.org.name}`;
           const counter = sheet.querySelector('.report-page-counter');
           if (counter) counter.textContent = `${index + 1} / ${sheets.length}`;
         });

@@ -96,6 +96,7 @@ test('long commentary and wide project tables remain complete on landscape pages
   } }));
   for (const label of ['Income statement', 'Balance sheet', 'Cash flow', 'Trial balance']) await page.getByLabel(label, { exact: true }).uncheck();
   await page.getByLabel('Project profitability', { exact: true }).check();
+  await page.getByLabel('Report title', { exact: true }).fill('Management financial review and project delivery performance for directors and shareholders across all operating divisions');
   await page.locator('textarea').fill('A long author explanation of the results. '.repeat(120) + 'FINAL COMMENT');
   await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
   const output = page.getByTestId('report-book-pages');
