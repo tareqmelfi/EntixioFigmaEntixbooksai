@@ -41,6 +41,11 @@ server {
   index index.html;
   absolute_redirect off;
 
+  # Extensionless prerendered routes (especially /login) stay in their original
+  # location after try_files: the .html rule below does not apply to them.
+  # Never retain a document pointing to an obsolete application bundle.
+  add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+
   # Security headers (SEC-01 · 2026-08-27). These lived in the Cloudflare
   # worker (worker.js) before DNS moved to Coolify; the nginx origin sent none.
   # `always` keeps them on 3xx/4xx. CSP is intentionally NOT set here yet —
