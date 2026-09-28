@@ -396,10 +396,17 @@ function DetailPane({
   const isFinal = detail.status === "APPROVED";
   const [attachment,setAttachment] = useState<any>(null);
   const [attachmentError,setAttachmentError] = useState("");
+  const [loadingAttachment, setLoadingAttachment] = useState<string | null>(null);
   const [reason,setReason] = useState("");
   const [reviewDirty,setReviewDirty] = useState(false);
   const [rejectOpen,setRejectOpen] = useState(false);
-  const openAttachment = async (id: string) => { setAttachment(null); setAttachmentError(""); try { setAttachment(await api.inbox.attachment(detail.id,id)); } catch { setAttachmentError(t("تعذر فتح المرفق. أعد المحاولة.","Could not open attachment. Please retry.")); } };
+  const openAttachment = async (id: string) => {
+    if (loadingAttachment) return;
+    setLoadingAttachment(id); setAttachment(null); setAttachmentError("");
+    try { setAttachment(await api.inbox.attachment(detail.id,id)); }
+    catch { setAttachmentError(t("تعذر فتح المرفق. أعد المحاولة.","Could not open attachment. Please retry.")); }
+    finally { setLoadingAttachment(null); }
+  };
 
   // Proactive duplicate check · when a message is EXTRACTED, look for an existing
   // bill matching vendor + date + total so we can warn BEFORE the user approves.
@@ -431,7 +438,7 @@ function DetailPane({
       {detail.processingError && <p className="p-5 text-warning">{t("تعذر الاستخراج التلقائي. يمكنك إعادة المحاولة أو إدخال البيانات يدويًا.", "Automatic extraction failed. Retry or enter details manually.")}</p>}
       <section className="p-5 space-y-2">
         <h3 className="text-sm font-semibold">{t("الرسالة الأصلية", "Original message")}</h3>
-        {detail.bodyHtml ? <iframe title={t("محتوى البريد", "Email content")} sandbox="" referrerPolicy="no-referrer" className="w-full min-h-[420px] rounded border border-border bg-white" srcDoc={'<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; base-uri \'none\'; form-action \'none\';">'+DOMPurify.sanitize(detail.bodyHtml, {USE_PROFILES:{html:true}, FORBID_TAGS:['meta','base','form','input','button','iframe','object','embed'], FORBID_ATTR:['href','srcset','target','action','formaction']})} /> : <pre className="whitespace-pre-wrap break-words text-sm font-inherit" dir="auto">{detail.bodyText || t("لم يصل محتوى نصي مع هذه الرسالة.", "No message body was received.")}</pre>}
+        {detail.bodyHtml ? <iframe title={t("محتوى البريد", "Email content")} sandbox="" referrerPolicy="no-referrer" className="w-full min-h-[420px] rounded border border-border bg-white" srcDoc={'<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src https: data:; base-uri \'none\'; form-action \'none\';"><meta name="referrer" content="no-referrer"><style>body{margin:12px;overflow-wrap:anywhere}img{max-width:100%;object-fit:contain}</style>'+DOMPurify.sanitize(detail.bodyHtml, {USE_PROFILES:{html:true}, FORBID_TAGS:['meta','base','form','input','button','iframe','object','embed'], FORBID_ATTR:['href','srcset','target','action','formaction']})} /> : <pre className="whitespace-pre-wrap break-words text-sm font-inherit" dir="auto">{detail.bodyText || t("لم يصل محتوى نصي مع هذه الرسالة.", "No message body was received.")}</pre>}
       </section>
       {/* Attachments */}
       {detail.attachments.length > 0 && (
@@ -441,8 +448,8 @@ function DetailPane({
           </div>
           <div className="flex flex-wrap gap-2">
             {detail.attachments.map((a) => (
-              <button onClick={()=>void openAttachment(a.id)} key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/40 text-xs">
-                <FileText className="h-3.5 w-3.5 text-primary" />
+              <button disabled={!!loadingAttachment} aria-busy={loadingAttachment === a.id} onClick={()=>void openAttachment(a.id)} key={a.id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/40 text-xs">
+                <span>{loadingAttachment === a.id ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" /> : <FileText className="h-3.5 w-3.5 text-primary" />}</span>
                 <span className="text-foreground/80 font-english">{a.filename}</span>
                 <span className="text-muted-foreground/60 font-english">· {displayDigits((a.sizeBytes / 1024).toFixed(0))}KB</span>
               </button>

@@ -1,10 +1,12 @@
 import {test,expect,type Page} from '@playwright/test';
 import {prepareVisualApp} from './fixtures/visual-app';
 
-async function setup(page:Page,language:'ar'|'en') {
+async function setup(page:Page,language:'ar'|'en', override:Record<string,unknown> = {}) {
   await prepareVisualApp(page,language);
+  await page.route('https://bad.example/**', route => route.abort());
   const ex={issuer:{name:'OpenRouter, Inc'},documentNumber:'1658-1021',issueDate:'2026-09-26',currency:'USD',lines:[{description:'AI credits',quantity:1,unitPrice:10.8,taxRate:0}],totals:{subtotal:10.8,tax:0,total:10.8}};
   let mail:any={id:'mail-a',subject:'Forwarded receipt',fromAddress:'vendor@example.com',toAddress:'bills@example.com',from:'vendor@example.com',createdAt:'2026-09-26',status:'REJECTED',billId:null,expenseId:null,bodyHtml:'<meta http-equiv="refresh" content="0;url=https://bad.example"><p>OpenRouter receipt USD 10.80</p><script>parent.alert(1)</script><img src="https://bad.example/pixel"><a href="https://bad.example">Payment link</a>',bodyText:'Receipt USD 10.80',attachments:[{id:'file-a',filename:'receipt.pdf',contentType:'application/pdf',sizeBytes:9}],extractedJson:ex,reviewNotes:'',rejectionReason:null};
+  mail = {...mail, ...override};
   const writes:any[]=[];
   await page.route('**/api/inbox**',async r=>{
     const path=new URL(r.request().url()).pathname;
@@ -54,4 +56,44 @@ for(const language of ['ar','en'] as const)test(`read rejected email, reopen, re
   expect(expenses[0].extractedJson.__fromInbox).toBe('mail-a');
   expect(expenses[0].currency).toBe('USD');
   expect(expenses[0].totalAmount).toBe(10.8);
+});
+
+for (const language of ['ar','en'] as const) test(`email displays remote and embedded images safely (${language})`, async ({page}) => {
+  const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+  let imageRequests = 0;
+  const referrers:string[] = [];
+  await page.route('https://mail-images.example/logo.png', route => {
+    imageRequests++;
+    referrers.push(route.request().headers()['referer'] || '');
+    return route.fulfill({contentType:'image/png', body:Buffer.from(png,'base64')});
+  });
+  await setup(page, language, {bodyHtml:`<p>Receipt with images</p><img alt="Supplier logo" src="https://mail-images.example/logo.png" width="80" height="80" onload="parent.document.body.dataset.compromised='true'"><img alt="Embedded receipt" src="data:image/png;base64,${png}"><script>parent.document.body.dataset.compromised='true'</script><iframe src="https://bad.example"></iframe><form action="https://bad.example"><input></form>`});
+  await page.goto('/app/inbox');
+  const frame = page.frameLocator(`iframe[title="${language==='ar'?'محتوى البريد':'Email content'}"]`);
+  await expect(frame.getByAltText('Supplier logo')).toBeVisible();
+  await expect.poll(() => frame.getByAltText('Supplier logo').evaluate((img:HTMLImageElement) => img.naturalWidth)).toBe(1);
+  await expect.poll(() => frame.getByAltText('Embedded receipt').evaluate((img:HTMLImageElement) => img.naturalWidth)).toBe(1);
+  expect(imageRequests).toBeGreaterThan(0);
+  expect(referrers.every(value => !value)).toBe(true);
+  await expect(frame.locator('script,iframe,form,input,[onload]')).toHaveCount(0);
+  await expect(page.locator('body')).not.toHaveAttribute('data-compromised');
+  await expect(page.locator('iframe[title]')).toHaveAttribute('sandbox','');
+  await expect(page.locator('iframe[title]')).toHaveAttribute('referrerpolicy','no-referrer');
+});
+
+test('image attachment opens and failed attachment can be retried', async ({page}) => {
+  await setup(page,'en',{attachments:[{id:'image-a',filename:'receipt.png',contentType:'image/png',sizeBytes:68}]});
+  let attempts=0;
+  await page.route('**/api/inbox/mail-a/attachments/image-a',route=>{
+    if (++attempts===1) return route.fulfill({status:503,json:{error:'unavailable'}});
+    return route.fulfill({json:{name:'receipt.png',type:'image/png',url:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='}});
+  });
+  await page.goto('/app/inbox');
+  await page.getByRole('button',{name:/receipt.png/}).click();
+  await expect(page.getByRole('alert')).toContainText('Could not open attachment');
+  await page.getByRole('button',{name:/receipt.png/}).click();
+  const viewer=page.getByTestId('attachment-viewer');
+  await expect(viewer.getByAltText('receipt.png')).toBeVisible();
+  await expect.poll(()=>viewer.getByAltText('receipt.png').evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBe(1);
+  await expect(viewer.getByRole('link',{name:'Download',exact:true})).toHaveAttribute('download','receipt.png');
 });
