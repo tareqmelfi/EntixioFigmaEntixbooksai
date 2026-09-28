@@ -1,3 +1,4 @@
+import { supportDesk } from '../lib/support-desk-api';
 import { displayLocale } from "../lib/number-display";
 /**
  * Admin v3 · R1.5 — company workspace panels (CEO 27/08):
@@ -160,14 +161,14 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
   const send = async () => {
     if (!open || !reply.trim()) return;
     setBusy(true);
-    try { await api.admin.replyTicket(open.id, reply.trim()); setReply(""); await openTicket(open.id); await load(); push("success", t("أُرسل الرد", "Reply sent")); }
+    try { const r = await supportDesk.message(open.id, reply.trim(), open.channel === "admin"); setReply(""); await openTicket(open.id); await load(); push(open.channel === "whatsapp" && !r.delivery.sent ? "error" : "success", open.channel === "admin" ? t("حُفظت الملاحظة الداخلية", "Internal note saved") : open.channel === "whatsapp" ? r.delivery.sent ? t("قُبل الرد للإرسال إلى واتساب", "Reply accepted for WhatsApp sending") : t("حُفظ الرد وتعذّر تأكيد إرساله إلى واتساب", "Reply saved; WhatsApp sending unconfirmed") : t("الرد متاح في محادثة العميل", "Reply available in the customer conversation")); }
     catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } finally { setBusy(false); }
   };
   const setStatus = async (status: string) => { if (!open) return; try { await api.admin.updateTicket(open.id, { status }); await openTicket(open.id); await load(); } catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } };
   const create = async () => {
     if (!newSubject.trim()) return;
     setBusy(true);
-    try { const r = await api.admin.createTicket({ orgId, subject: newSubject.trim(), message: newBody.trim() || undefined }); setNewSubject(""); setNewBody(""); setCreating(false); await load(); await openTicket(r.id); push("success", t("أُنشئت التذكرة", "Ticket created")); }
+    try { const r = await supportDesk.create({ orgId, subject: newSubject.trim(), message: newBody.trim() || undefined, priority: "NORMAL", category: "support" }); setNewSubject(""); setNewBody(""); setCreating(false); await load(); await openTicket(r.ticket.id); push("success", t("أُنشئت التذكرة", "Ticket created")); }
     catch (e) { push("error", e instanceof ApiError ? e.message : "failed"); } finally { setBusy(false); }
   };
   return (
