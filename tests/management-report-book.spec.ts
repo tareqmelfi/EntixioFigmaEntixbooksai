@@ -30,7 +30,10 @@ for (const language of ['ar', 'en'] as const) {
     await page.locator('textarea').fill('Commentary by the author.\nملاحظات معد التقرير للاختبار فقط.');
     await page.getByRole('button', { name: language === 'ar' ? 'تجهيز الملف والمعاينة' : 'Prepare report book', exact: true }).click();
     const output = page.getByTestId('report-book-pages');
-    await expect(output).toHaveAttribute('data-ready', 'true');
+    // Four full Arabic chapters require font readiness plus physical row measurement.
+    // The pre-existing implementation exceeds 10s on slower CPUs; keep the bounded
+    // preparation budget separate from normal UI assertions and verify every row below.
+    await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     const sheets = output.locator('.report-output-sheet');
     expect(await sheets.count()).toBeGreaterThan(6);
     await expect(sheets.first()).toContainText('Test Analyst');
