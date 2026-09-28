@@ -43,3 +43,30 @@ for (const lang of ['en','ar'] as const) test(`support operator creates, updates
  await page.screenshot({path:`/tmp/entix-support-desk-${lang}.png`,fullPage:true});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
 });
+
+test('late ticket response cannot replace the selected customer', async ({page}) => {
+ await prepareVisualApp(page,'en');
+ await page.route('https://api.entix.io/me',r=>r.fulfill({json:{isPlatformAdmin:true,memberships:[]}}));
+ const make=(id:string)=>({id,subject:`Request ${id}`,contactName:`Customer ${id}`,channel:'web',status:'OPEN',priority:'NORMAL',needsHuman:true,updatedAt:'2026-09-28T10:00:00Z',messages:[],meta:{}});
+ let releaseA!:()=>void;const delayed=new Promise<void>(resolve=>releaseA=resolve);let requestedA=false;let repliedTo='';
+ await page.route('**/api/admin/**',async r=>{
+  const path=new URL(r.request().url()).pathname;
+  if(path.endsWith('/me'))return r.fulfill({json:{permissions:['*'],isSuper:true,assignedOrgIds:null}});
+  if(path==='/api/admin/tickets')return r.fulfill({json:{tickets:[make('A'),make('B')]}});
+  if(path==='/api/admin/tickets/A'){requestedA=true;await delayed;return r.fulfill({json:{ticket:make('A')}});}
+  if(path.endsWith('/messages')){repliedTo=path;return r.fulfill({json:{delivery:{sent:false,reason:'no_dispatch_needed'}}});}
+  if(path==='/api/admin/tickets/B')return r.fulfill({json:{ticket:make('B')}});
+  return r.fulfill({json:{items:[]}});
+ });
+ await page.route('**/api/support/config',r=>r.fulfill({json:{whatsapp:'966593305959'}}));
+ await page.goto('/admin/support?ticket=A');
+ await expect.poll(()=>requestedA).toBe(true);
+ await page.getByRole('button',{name:/Customer B/}).click();
+ await expect(page.getByRole('textbox',{name:'Ticket subject',exact:true})).toHaveValue('Request B');
+ releaseA();
+ await page.waitForResponse(r=>new URL(r.url()).pathname==='/api/admin/tickets/A');
+ await expect(page.getByRole('textbox',{name:'Ticket subject',exact:true})).toHaveValue('Request B');
+ await page.getByRole('textbox',{name:'Follow-up message'}).fill('Reply for B');
+ await page.getByRole('button',{name:'Send reply',exact:true}).click();
+ await expect.poll(()=>repliedTo).toBe('/api/admin/tickets/B/messages');
+});

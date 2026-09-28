@@ -47,11 +47,12 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const [creating, setCreating] = useState(false);
   const [internal, setInternal] = useState(false);
   const [canWrite, setCanWrite] = useState(false);
+  const [scoped, setScoped] = useState(false);
   const [subject, setSubject] = useState("");
   const [assignment, setAssignment] = useState("");
   const [draft, setDraft] = useState({ subject: "", message: "", contactName: "", contactEmail: "", contactPhone: "", priority: "NORMAL", category: "support" });
   const [channels, setChannels] = useState<{ whatsapp?: string | null; email?: string } | null>(null);
-  useEffect(() => { api.admin.me().then(r => setCanWrite(r.permissions.includes("*") || r.permissions.includes("support.write"))).catch(guard); supportDesk.channels().then(setChannels).catch(guard); }, [guard]);
+  useEffect(() => { api.admin.me().then(r => { setCanWrite(r.permissions.includes("*") || r.permissions.includes("support.write")); setScoped(r.assignedOrgIds != null); }).catch(guard); supportDesk.channels().then(setChannels).catch(guard); }, [guard]);
   const [filter, setFilter] = useState<Filter>("needs");
   const [rows, setRows] = useState<AdminTicketRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +61,8 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const threadRequest = useRef(0);
+  const selectedId = useRef<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,24 +84,27 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   useEffect(() => { void load(); }, [load]);
 
   const openThread = useCallback(async (id: string) => {
+    const version = ++threadRequest.current;
+    selectedId.current = id;
     setOpenId(id);
     setThread(null);
     try {
       const ticket = (await api.admin.ticket(id)).ticket;
+      if (version !== threadRequest.current) return;
       setThread(ticket); setSubject(ticket.subject); setAssignment(ticket.assignedAgentEmail || ""); setReply("");
-    } catch (e) { guard(e); }
+    } catch (e) { if (version === threadRequest.current) guard(e); }
   }, [guard]);
 
-  useEffect(() => { const id = params.get("ticket"); if (id) void openThread(id); }, [params, openThread]);
+  useEffect(() => { const id = params.get("ticket"); if (id) void openThread(id); else { ++threadRequest.current; selectedId.current = null; setOpenId(null); setThread(null); } }, [params, openThread]);
   const selectThread = (id: string) => { if (busy) return; setCreating(false); setParams(p => { p.set("ticket", id); return p; }); };
   const update = async (fields: Parameters<typeof supportDesk.update>[1]) => {
-    if (!openId || busy || !canWrite) return;
+    if (!openId || thread?.id !== openId || busy || !canWrite) return;
     setBusy(true);
-    try { await supportDesk.update(openId, fields); await openThread(openId); await load(); push("success", t("تم تحديث التذكرة", "Ticket updated")); } catch (e) { guard(e); } finally { setBusy(false); }
+    try { await supportDesk.update(openId, fields); if (selectedId.current === openId) await openThread(openId); await load(); push("success", t("تم تحديث التذكرة", "Ticket updated")); } catch (e) { guard(e); } finally { setBusy(false); }
   };
   const prepareDraft = async () => {
-    if (!openId || busy || !canWrite || reply.trim()) return; setBusy(true);
-    try { const result = await supportDesk.draft(openId); setReply(result.draft); setInternal(false); push("success", t("مسودة الوكيل جاهزة للمراجعة؛ لم تُرسل", "Agent draft ready for review; not sent")); } catch (e) { guard(e); } finally { setBusy(false); }
+    if (!openId || thread?.id !== openId || busy || !canWrite || reply.trim()) return; setBusy(true);
+    try { const result = await supportDesk.draft(openId); if (selectedId.current !== openId) return; setReply(result.draft); push("success", t("مسودة الوكيل جاهزة للمراجعة؛ لم تُرسل", "Agent draft ready for review; not sent")); } catch (e) { guard(e); } finally { setBusy(false); }
   };
   const create = async (e: React.FormEvent) => {
     e.preventDefault(); if (busy || !canWrite) return; setBusy(true);
@@ -109,12 +115,12 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = reply.trim();
-    if (!body || busy || !openId || !canWrite) return;
+    if (!body || busy || !openId || thread?.id !== openId || !canWrite) return;
     setBusy(true);
     try {
       const res: any = await supportDesk.message(openId, body, internal || thread?.channel === "admin");
-      setReply("");
-      await openThread(openId);
+      if (selectedId.current === openId) setReply("");
+      if (selectedId.current === openId) await openThread(openId);
       await load();
       const sent = res?.delivery?.sent;
       const channel = thread?.channel;
@@ -138,7 +144,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base text-foreground">{t("صندوق الدعم الموحّد", "Unified support inbox")}</CardTitle>
         <div className="flex flex-wrap items-center gap-1.5">
-          {canWrite && <Button variant="outline" size="sm" onClick={() => setCreating(!creating)}>{t("تذكرة جديدة", "New ticket")}</Button>}
+          {canWrite && !scoped && <Button variant="outline" size="sm" disabled={busy} onClick={() => setCreating(!creating)}>{t("تذكرة جديدة", "New ticket")}</Button>}
           {TABS.map(([key, ar, en]) => (
             <button
               key={key}
@@ -160,6 +166,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
           {channels?.email && <a className="text-primary underline" href={`mailto:${channels.email}`}>{channels.email}</a>}
           <a className="text-primary underline" href="/app/help">{t("بوابة تذاكر العميل", "Customer support portal")}</a>
         </div>
+        {canWrite && scoped && <p className="text-xs text-muted-foreground">{t("لإنشاء تذكرة، افتح الشركة المعيّنة لك ثم قسم التذاكر.", "To create a ticket, open an assigned company and its Tickets section.")}</p>}
         {creating && <form onSubmit={create} className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-2">
           <h3 className="font-semibold sm:col-span-2">{t("تسجيل طلب داخلي من مكالمة أو بريد أو متابعة", "Log an internal request from a call, email or follow-up")}</h3>
           <label>{t("موضوع التذكرة", "Ticket subject")}<input required maxLength={200} className="mt-1 w-full rounded border border-border p-2" value={draft.subject} onChange={e => setDraft({...draft, subject:e.target.value})}/></label>
@@ -275,9 +282,10 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
               </div>
               {canWrite && <form onSubmit={send} className="flex flex-wrap gap-2 border-t border-border p-2">
                 <div className="w-full"><Button size="sm" variant="outline" type="button" disabled={busy || !!reply.trim()} onClick={() => void prepareDraft()}>{t("اقتراح رد بالوكيل", "Draft with agent")}</Button><p className="mt-1 text-[11px] text-muted-foreground">{t("راجع الرد قبل إرساله. الوكيل هنا لا يفتح حساب العميل أو يعدّل بياناته.", "Review before sending. This assistant cannot access or modify the customer's account.")}</p></div>
-                <label className="w-full text-xs"><input type="checkbox" checked={internal || thread.channel === "admin"} disabled={thread.channel === "admin"} onChange={e=>setInternal(e.target.checked)}/> {t("ملاحظة داخلية لفريق الدعم فقط", "Internal note for the support team only")}</label>
+                <label className="w-full text-xs"><input type="checkbox" checked={internal || thread.channel === "admin"} disabled={busy || thread.channel === "admin"} onChange={e=>setInternal(e.target.checked)}/> {t("ملاحظة داخلية لفريق الدعم فقط", "Internal note for the support team only")}</label>
                 <input
                   value={reply}
+                  disabled={busy}
                   onChange={(e) => setReply(e.target.value)}
                   aria-label={t("نص المتابعة", "Follow-up message")} placeholder={t("اكتب ردًا أو ملاحظة…", "Write a reply or note…")}
                   className="min-w-0 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs text-foreground outline-none focus:border-primary"

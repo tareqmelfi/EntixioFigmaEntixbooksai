@@ -218,7 +218,7 @@ export function AdminOrgInbox({ orgId, threads, canWrite, push }: { orgId: strin
                 <div key={m.id} className={`flex ${m.authorType === "ADMIN" ? "justify-end" : "justify-start"}`}>
                   <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.authorType === "ADMIN" ? "bg-[#1A1E48] text-primary-foreground" : "bg-muted text-foreground"}`}>
                     <div className="whitespace-pre-wrap">{m.body}</div>
-                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-primary-foreground/60" : "text-muted-foreground"}`} dir="ltr">{m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
+                    <div className={`mt-1 text-[10px] font-english ${m.authorType === "ADMIN" ? "text-primary-foreground/60" : "text-muted-foreground"}`} dir="ltr">{m.authorType === "NOTE" ? t("ملاحظة داخلية", "Internal note") : m.authorEmail || m.authorType} · {new Date(m.createdAt).toLocaleString(displayLocale("en-GB"))}</div>
                   </div>
                 </div>
               ))}
