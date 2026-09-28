@@ -53,21 +53,27 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
       setFullscreenError(true);
     }
   };
-  const type = (attachment.type || "application/octet-stream").toLowerCase();
-  const isHeic = type.includes("heic") || type.includes("heif") || /\.(heic|heif)$/i.test(attachment.name);
-  const isPdf = type.includes("pdf") || /\.pdf$/i.test(attachment.name);
-  const isImage = type.startsWith("image/") && !isHeic;
+  // A data URL can carry a different MIME type from the row metadata.
+  // Never create same-origin active SVG/HTML blobs from either source.
+  const inlineType = /^data:([^;,]+)/i.exec(attachment.url || attachment.base64 || "")?.[1];
+  const type = (inlineType || attachment.type || "application/octet-stream").split(";")[0].trim().toLowerCase();
+  const isPdf = type === "application/pdf" || /\.pdf$/i.test(attachment.name);
+  const isImage = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/avif", "image/bmp", "image/x-icon", "image/vnd.microsoft.icon"].includes(type);
+  const blobType = isPdf ? "application/pdf" : isImage ? type : "application/octet-stream";
 
-  // Resolve to a display URL: prefer blob conversion for base64/data:, else the url as-is
+  // Only blobs created here are trusted; stored URLs must use HTTP(S).
   const src = useMemo(() => {
-    if (attachment.base64) return base64ToBlobUrl(attachment.base64, isPdf ? "application/pdf" : attachment.type);
-    if (attachment.url?.startsWith("data:")) {
-      const comma = attachment.url.indexOf(",");
-      const mime = attachment.url.slice(5, attachment.url.indexOf(";")) || attachment.type;
-      return base64ToBlobUrl(attachment.url.slice(comma + 1), isPdf ? "application/pdf" : mime);
+    if (attachment.base64) return base64ToBlobUrl(attachment.base64, blobType);
+    if (/^data:/i.test(attachment.url || "")) {
+      const comma = attachment.url!.indexOf(",");
+      if (comma < 0 || !/;base64$/i.test(attachment.url!.slice(0, comma))) return null;
+      return base64ToBlobUrl(attachment.url!.slice(comma + 1), blobType);
     }
-    return attachment.url || null;
-  }, [attachment.base64, attachment.url, attachment.type, isPdf]);
+    try {
+      const url = new URL(attachment.url || "");
+      return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password ? url.href : null;
+    } catch { return null; }
+  }, [attachment.base64, attachment.url, blobType]);
 
   // Revoke blob URLs to avoid leaks
   useEffect(() => {
@@ -131,7 +137,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
         download={attachment.name}
         className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs text-primary-foreground hover:bg-primary/90"
       >
-        <Download className="h-3.5 w-3.5" /> تنزيل الملف
+        <Download className="h-3.5 w-3.5" /> {t("تنزيل الملف", "Download file")}
       </a>
     </div>
   );
