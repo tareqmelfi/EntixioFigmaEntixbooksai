@@ -173,7 +173,7 @@ export function ReportDocument({
       <main className="space-y-5 px-6 py-5" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
           <div className="rounded-lg border border-warning-border bg-warning-subtle px-4 py-3 text-sm leading-6 text-warning">
-            {report.notices.join(" · ")}
+            {report.notices.map(one).join(" · ")}
           </div>
         ) : null}
 
