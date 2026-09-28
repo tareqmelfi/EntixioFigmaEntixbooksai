@@ -49,3 +49,19 @@ test('typing a similar contractor offers the existing identity before saving', a
   await expect(page.getByPlaceholder('Freelancer, contractor or agency name')).toHaveValue('Ahmed Abdullah');
   await expect(page.getByLabel('Tax ID (optional for individuals and companies)')).toHaveValue('00123456');
 });
+
+test('read-only identity audit displays the review and sends no mutation', async ({ page }) => {
+  await prepareVisualApp(page, 'en');
+  const writes: string[] = [];
+  await page.route('**/api/contractors**', r => {
+    if (r.request().method() !== 'GET') writes.push(r.request().method());
+    return r.fulfill({ json: r.request().url().endsWith('/identity-audit')
+      ? { dryRun: true, writes: 0, counts: { contacts: 2, contractors: 1, findings: 1 }, findings: [{ issue: 'unlinked', contractorId: 'synthetic', code: 'SYN-1' }] }
+      : { items: [], total: 0, peers: {} } });
+  });
+  await page.goto('/app/contractors');
+  await page.getByRole('button', { name: 'Audit contact links without changes' }).click();
+  await expect(page.getByTestId('contractor-identity-audit').getByText('Contractor without contact')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'SYN-1' })).toHaveAttribute('href', '/app/contractors/synthetic');
+  expect(writes).toEqual([]);
+});

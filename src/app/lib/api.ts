@@ -1243,6 +1243,7 @@ export const api = {
   // Contractors (freelancers · مقاولون) · work logs · direct payments · project performance
   contractors: {
     relinkPreview: (id: string, contactId: string) => request<any>(`/api/contractors/${id}/relink-preview`, { query: { contactId } }),
+    identityAudit: () => request<any>("/api/contractors/identity-audit"),
     relink: (id: string, contactId: string, token: string) => request<any>(`/api/contractors/${id}/relink`, { method: 'POST', body: { contactId, token } }),
     syncContacts: () => request<{ linked: number; review: Array<{ id: string; name: string; reason: string }> }>('/api/contractors/sync-contacts', { method: 'POST' }),
     list: () => request<{ items: any[]; total: number; peers: any }>('/api/contractors'),
