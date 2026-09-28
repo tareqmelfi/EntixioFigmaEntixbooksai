@@ -1,3 +1,4 @@
+import type { SupportMetrics } from './support-presentation';
 import { API_BASE_URL, ApiError, type AdminTicketDetail } from './api';
 export type SupportDeskTicket = AdminTicketDetail & { meta?: { supportAgentMode?: 'auto' | 'human' } };
 async function request<T>(path: string, method: string, body?: unknown): Promise<T> {
@@ -10,6 +11,7 @@ async function request<T>(path: string, method: string, body?: unknown): Promise
   return data as T;
 }
 export const supportDesk = {
+  metrics: (days: string) => request<SupportMetrics>(`/metrics?days=${days}`, 'GET'),
   draft: (id: string) => request<{ draft: string; handoff: boolean }>(`/${id}/draft`, 'POST'),
   channels: async (): Promise<{whatsapp?: string | null; email?: string}> => { const response = await fetch(`${API_BASE_URL}/api/support/config`); if (!response.ok) throw new ApiError(response.status, 'support_config_unavailable'); return response.json(); },
   create: (body: { subject: string; message?: string; contactName?: string; contactEmail?: string; contactPhone?: string; priority: string; category: string; orgId?: string; userId?: string }) => request<{ ticket: SupportDeskTicket }>('', 'POST', body),

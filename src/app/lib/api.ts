@@ -653,6 +653,7 @@ export const api = {
     get: (id: string) => request<{ ticket: SupportTicket }>(`/api/public/support/portal/${id}`),
     create: (body: { subject: string; body: string; category: string; language: string }) => request<{ ticket: SupportTicket }>('/api/public/support/portal', { method: 'POST', body }),
     reply: (id: string, body: string) => request(`/api/public/support/portal/${id}/messages`, { method: 'POST', body: { body } }),
+    rate: (id: string, score: number) => request(`/api/public/support/portal/${id}/rating`, { method: 'POST', body: { score } }),
     status: (id: string, status: 'OPEN' | 'RESOLVED') => request(`/api/public/support/portal/${id}`, { method: 'PATCH', body: { status } }),
   },
 
@@ -4047,6 +4048,7 @@ export interface PublicBoardPayload {
 }
 
 export interface SupportTicket {
+  satisfactionScore?: number | null;
   id: string; subject: string; status: string; category: string; priority: string; channel: string; createdAt: string; updatedAt: string;
   messages?: Array<{ id: string; authorType: string; body: string; createdAt: string }>;
 }
