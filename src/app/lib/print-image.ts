@@ -41,9 +41,9 @@ export function downscaleDataUrl(url: string, maxDim = 640, quality = 0.86): Pro
   });
 }
 
-/** Resolve when fonts are ready and every <img> in the document settled (loaded or errored) — capped. */
-export function waitForPrintReady(timeoutMs = 6000): Promise<void> {
-  const imgs = Array.from(document.images);
+/** Resolve when fonts and the selected print subtree images settle (loaded or errored) — capped. */
+export function waitForPrintReady(timeoutMs = 6000, root: ParentNode = document): Promise<void> {
+  const imgs = Array.from(root.querySelectorAll("img"));
   const imgPromises = imgs.map(
     (img) =>
       img.complete

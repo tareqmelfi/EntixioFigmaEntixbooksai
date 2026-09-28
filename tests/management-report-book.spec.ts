@@ -139,3 +139,53 @@ test('financial snapshot uses recorded income rows and export rejects a changed 
   await page.getByTestId('book-download').click();
   await expect(page.getByRole('alert')).toContainText('Company changed');
 });
+
+
+test('unrelated interface images do not block report book preparation', async ({ page }) => {
+  await setup(page, 'en');
+  await page.route('https://api.entix.io/api/reports/income-statement*', route => route.fulfill({ json: {
+    id: 'income-statement', title: 'قائمة الدخل', englishTitle: 'Income statement', category: 'financial', status: 'live',
+    generatedAt: '2026-09-28T00:00:00Z', period: { to: '2026-09-28' }, currency: 'USD', summary: {},
+    org: { id: visualOrgId, name: 'Readiness Test LLC', country: 'US' }, sections: [], notices: [],
+  } }));
+  for (const label of ['Balance sheet', 'Cash flow', 'Trial balance']) await page.getByLabel(label, { exact: true }).uncheck();
+  await page.evaluate(() => document.fonts.ready.then(() => undefined));
+  await page.route('**/unrelated-avatar.png', () => { /* keep a non-report image pending */ });
+  const requested = page.waitForRequest('**/unrelated-avatar.png');
+  await page.evaluate(() => {
+    const avatar = document.createElement('img');
+    avatar.id = 'unrelated-avatar';
+    avatar.src = '/unrelated-avatar.png';
+    document.body.append(avatar);
+  });
+  await requested;
+  await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
+  await expect(page.getByTestId('report-book-pages')).toHaveAttribute('data-ready', 'true', { timeout: 4000 });
+  expect(await page.locator('#unrelated-avatar').evaluate((img: HTMLImageElement) => img.complete)).toBe(false);
+  await expect(page.getByTestId('book-download')).toBeEnabled();
+});
+
+
+test('report book still waits for its own logo before preparing pages', async ({ page }) => {
+  await setup(page, 'en');
+  let releaseLogo!: () => void;
+  const held = new Promise<void>(resolve => { releaseLogo = resolve; });
+  await page.route('**/held-report-logo.svg', async route => {
+    await held;
+    await route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="40"><rect width="100" height="40" fill="navy"/></svg>' });
+  });
+  await page.route('https://api.entix.io/api/reports/income-statement*', route => route.fulfill({ json: {
+    id: 'income-statement', title: 'قائمة الدخل', englishTitle: 'Income statement', category: 'financial', status: 'live',
+    generatedAt: '2026-09-28T00:00:00Z', period: { to: '2026-09-28' }, currency: 'USD', summary: {},
+    org: { id: visualOrgId, name: 'Readiness Test LLC', country: 'US', logoUrl: '/held-report-logo.svg' }, sections: [], notices: [],
+  } }));
+  for (const label of ['Balance sheet', 'Cash flow', 'Trial balance']) await page.getByLabel(label, { exact: true }).uncheck();
+  const requested = page.waitForRequest('**/held-report-logo.svg');
+  await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
+  await requested;
+  await expect(page.getByTestId('book-download')).toBeDisabled();
+  await expect(page.getByTestId('report-book-pages')).toHaveAttribute('data-ready', 'false');
+  releaseLogo();
+  await expect(page.getByTestId('report-book-pages')).toHaveAttribute('data-ready', 'true');
+  expect(await page.getByTestId('report-book-pages').locator('img').first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(100);
+});

@@ -34,7 +34,8 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
     let cancelled = false;
     setCount(0); setError('');
     const prepare = async () => {
-      await waitForPrintReady();
+      if (!source.current) return;
+      await waitForPrintReady(6000, source.current);
       if (cancelled || !source.current || !pages.current) return;
       try {
         const article = source.current.querySelector<HTMLElement>('.entix-report-paper');

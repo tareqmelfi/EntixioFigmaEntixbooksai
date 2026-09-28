@@ -64,7 +64,8 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
     let cancelled = false;
     setCount(0); setError('');
     void (async () => {
-      await waitForPrintReady();
+      if (!source.current) return;
+      await waitForPrintReady(6000, source.current);
       if (cancelled || !source.current || !pages.current) return;
       const target = pages.current;
       try {
