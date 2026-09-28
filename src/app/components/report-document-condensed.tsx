@@ -120,7 +120,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
       {/* ── body ── */}
       <main className="flex-1 space-y-5 px-8 pb-6 pt-3" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
-          <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : pair.ar; }).join(" · ")}</div>
+          <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : (pair.ar || pair.en); }).join(" · ")}</div>
         ) : null}
         {!report.sections.length && <p role="status">{t("لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.", "No report data is available for the selected period.")}</p>}
         {reportLayoutSections(report, resolved).map((section) => {

@@ -248,4 +248,18 @@ for (const lang of ['ar', 'en'] as const) {
   assert.ok(/إيرادات الخدمات الحكومية/.test(html), 'nested row label renders')
 }
 
+
+// Source notices use the document language, retaining unpaired warnings verbatim.
+for (const template of ['classic', 'condensed']) for (const lang of ['ar', 'en'] as const) {
+  storage.clear(); storage.set('entix-language', lang)
+  const html = renderToStaticMarkup(createElement(LanguageProvider, null, createElement(ReportDocument as any, {
+    report: { ...fixture, notices: ['مصدر موثق للاختبار␟Verified test source', 'Plain source warning', '␟English-only fallback', 'تحذير احتياطي␟'] },
+    settings: { template, language: lang, bilingual: false },
+  })))
+  assert.ok(html.includes(lang === 'ar' ? 'مصدر موثق للاختبار' : 'Verified test source'), `${template}/${lang}: notice uses document language`)
+  assert.ok(!html.includes(lang === 'ar' ? 'Verified test source' : 'مصدر موثق للاختبار'), `${template}/${lang}: alternate notice language is hidden`)
+  assert.ok(!html.includes('␟'), `${template}/${lang}: internal language separator is hidden`)
+  for (const text of ['Plain source warning', 'English-only fallback', 'تحذير احتياطي']) assert.ok(html.includes(text), `${template}/${lang}: missing translation retains available notice`)
+}
+
 console.log('report-document contract: all assertions passed')
