@@ -47,6 +47,9 @@ const PREVIEW_COLUMNS: Record<ImportEntity, Array<{ key: string; ar: string; en:
   ],
   contacts: [
     { key: "displayName", ar: "الاسم", en: "Name" },
+    { key: "entityKind", ar: "فرد / شركة", en: "Individual / company" },
+    { key: "taxId", ar: "الرقم الضريبي", en: "Tax ID", mono: true },
+    { key: "crNumber", ar: "السجل التجاري", en: "CR number", mono: true },
     { key: "email", ar: "البريد", en: "Email" },
     { key: "phone", ar: "الجوال", en: "Phone", mono: true },
     { key: "role", ar: "النوع", en: "Role" },
@@ -138,6 +141,9 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
   const [updateExisting, setUpdateExisting] = useState(false);
   const [withOpening, setWithOpening] = useState(false);
   const [report, setReport] = useState<ImportReport | null>(null);
+  const [previewPage, setPreviewPage] = useState(0);
+  type RowOutcome = { index: number; row: number; status: string; targetId?: string; reason: string };
+  const outcomes = (report as (ImportReport & { outcomes?: RowOutcome[] }) | null)?.outcomes;
 
   const say = useCallback((m?: ImportMsg | null) => (m ? (language === "ar" ? m.ar : m.en) : ""), [language]);
 
@@ -147,6 +153,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
     try {
       const r = await client.analyze({ ...payload, ...overrides });
       setAnalysis(r);
+      setPreviewPage(0);
       setSource(payload);
       if (!r.ok && r.message) setError(r.message);
       setStep("mapping");
@@ -160,6 +167,10 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
   }, [client]);
 
   const onPickFile = useCallback(async (file: File) => {
+    if (file.size > 20 * 1024 * 1024 || (entity !== "accounts" && !/\.(xlsx|xls|xlsm|xlsb|ods|csv|tsv|txt|json)$/i.test(file.name))) {
+      setError({ ar: "اختر جدول Excel أو CSV أو TSV أو JSON أو نصًا بحجم لا يتجاوز 20 MB. مستندات PDF والصور تُراجع من ملف جهة الاتصال.", en: "Choose an Excel, CSV, TSV, JSON or text file up to 20 MB. Review PDFs and images from the contact profile." });
+      return;
+    }
     setBusy(true);
     try {
       const fileBase64 = await fileToBase64(file);
@@ -168,7 +179,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
       setError({ ar: "تعذر قراءة الملف من جهازك", en: "Could not read the file from your device" });
       setBusy(false);
     }
-  }, [runAnalyze]);
+  }, [runAnalyze, entity]);
 
   const remap = useCallback((field: string, column: number) => {
     if (!analysis || !source) return;
@@ -192,7 +203,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
     setBusy(true);
     setError(null);
     try {
-      const rows = analysis.rows.filter((r: any) => r.status === "new" || (r.status === "update" && updateExisting));
+      const rows = entity === "contacts" ? analysis.rows : analysis.rows.filter((r: any) => r.status === "new" || (r.status === "update" && updateExisting));
       const r = await client.commit({
         rows,
         updateExisting,
@@ -205,11 +216,11 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
       onImported?.(r);
     } catch (e) {
       const message = e instanceof ApiError ? e.message : String((e as Error)?.message || e);
-      setError({ ar: `فشل الاستيراد ولم يُحفظ أي شيء: ${message}`, en: `Import failed and nothing was saved: ${message}` });
+      setError({ ar: `تعذر تأكيد نتيجة الاستيراد: ${message}. أعد المحاولة بنفس البيانات للتحقق والاستكمال.`, en: `Could not confirm the import result: ${message}. Retry the same data to verify and resume.` });
     } finally {
       setBusy(false);
     }
-  }, [analysis, client, updateExisting, withOpening, onImported]);
+  }, [analysis, client, updateExisting, withOpening, onImported, entity]);
 
   const counts = analysis?.counts || {};
   const importable = (counts.new || 0) + (updateExisting ? counts.update || 0 : 0);
@@ -255,7 +266,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
   return (
     <FullPageForm
       title={t(ENTITY_TITLE[entity].ar, ENTITY_TITLE[entity].en)}
-      subtitle={t("Excel · CSV · TSV · JSON · نسخ ولصق جدول — أي ملف بلا استثناء", "Excel · CSV · TSV · JSON · pasted table — any file, no exceptions")}
+      subtitle={t("Excel · CSV · TSV · JSON · نسخ ولصق جدول · حتى 20 MB", "Excel · CSV · TSV · JSON · pasted table · up to 20 MB")}
       onClose={onClose}
       disableEscape={busy}
       footer={footer}
@@ -274,7 +285,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
               ref={fileRef}
               type="file"
               className="hidden"
-              accept=".xlsx,.xls,.xlsm,.csv,.tsv,.txt,.json,.pdf,image/*"
+              accept={entity === "accounts" ? ".xlsx,.xls,.xlsm,.csv,.tsv,.txt,.json,.pdf,image/*" : ".xlsx,.xls,.xlsm,.xlsb,.ods,.csv,.tsv,.txt,.json"}
               onChange={(e) => { const f = e.target.files?.[0]; if (f) void onPickFile(f); e.target.value = ""; }}
             />
             <div
@@ -316,7 +327,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
                 className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground"
               />
               <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                <Button variant="outline" disabled={busy || pasted.trim().length < 3} onClick={() => void runAnalyze({ text: pasted, fileName: "pasted.tsv", mimeType: "text/plain" })}>
+                <Button variant="outline" disabled={busy || pasted.trim().length < 3} onClick={() => void runAnalyze({ text: pasted, fileName: pasted.includes("\t") ? "pasted.tsv" : pasted.trimStart().startsWith("[") ? "pasted.json" : "pasted.csv", mimeType: "text/plain" })}>
                   {t("تحليل النص الملصوق", "Analyse pasted text")}
                 </Button>
                 {templateRows && templateRows.length > 0 && (
@@ -459,7 +470,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input type="checkbox" checked={updateExisting} onChange={(e) => setUpdateExisting(e.target.checked)} data-testid="import-update-existing" />
-                {t("تحديث الصفوف الموجودة بنفس الكود", "Update rows that already exist with the same code")}
+                {entity === "contacts" ? t("إكمال الحقول الفارغة للجهات المطابقة وإضافة الأدوار؛ لا تُمسح القيم الموجودة", "Fill empty fields and add roles for matched contacts; keep existing values") : t("تحديث الصفوف الموجودة بنفس الكود", "Update rows that already exist with the same code")}
               </label>
               {entity === "accounts" && analysis.openingBalances && analysis.openingBalances.lines.length > 0 && (
                 <label className="flex items-center gap-2 text-sm text-foreground">
@@ -473,7 +484,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
             <DataTable
               className="overflow-x-auto"
               density="dense"
-              rows={analysis.rows.slice(0, 30)}
+              rows={analysis.rows.slice(previewPage * 30, (previewPage + 1) * 30)}
               rowKey={(row: any) => row.row}
               empty={t("لا توجد صفوف", "No rows")}
               columns={[
@@ -486,6 +497,13 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
                     <bdi dir="auto">{row[col.key] === null || row[col.key] === undefined || row[col.key] === "" ? "—" : String(row[col.key])}</bdi>
                   ),
                 })),
+                {
+                  key: "details",
+                  header: t("كل الحقول", "All fields"),
+                  cell: (row: any) => <details><summary className="cursor-pointer text-primary">{t("عرض البيانات والمصدر", "View data and source")}</summary><dl className="max-w-sm space-y-2 whitespace-normal break-words py-2">
+                    {analysis.fields.filter(f => f.column !== null && f.column >= 0).map(f => <div key={f.field}><dt className="font-medium break-words">{say(f.label)}</dt><dd dir="auto" className="whitespace-pre-wrap break-words text-xs">{String(row[f.field] ?? "—")}</dd>{row.existing && <dd dir="auto" className="whitespace-pre-wrap break-words text-xs">{t("الموجود: ", "Existing: ")}{String(row.existing[({ code: "customCode", note: "notes", currency: "defaultCurrency" } as Record<string, string>)[f.field] || f.field] ?? "—")}</dd>}{row.raw && <dd dir="auto" className="whitespace-pre-wrap break-words text-xs text-muted-foreground">{t("المصدر: ", "Source: ")}{String(row.raw[f.column!] ?? "—")}</dd>}</div>)}
+                  </dl></details>,
+                },
                 {
                   key: "status",
                   header: t("الحالة", "Status"),
@@ -511,10 +529,11 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
             />
             </div>
             {analysis.rows.length > 30 && (
-              <p className="text-xs text-muted-foreground">
-                {t(`تعرض المعاينة أول 30 صفًا من ${analysis.rows.length} — الاستيراد يشمل كل الصفوف الصالحة.`,
-                   `Showing the first 30 of ${analysis.rows.length} rows — the import covers every valid row.`)}
-              </p>
+              <div className="flex items-center gap-3 text-xs">
+                <Button variant="outline" disabled={previewPage === 0} onClick={() => setPreviewPage(p => p - 1)}>{t("السابق", "Previous")}</Button>
+                <span>{previewPage * 30 + 1}–{Math.min((previewPage + 1) * 30, analysis.rows.length)} / {analysis.rows.length}</span>
+                <Button variant="outline" disabled={(previewPage + 1) * 30 >= analysis.rows.length} onClick={() => setPreviewPage(p => p + 1)}>{t("التالي", "Next")}</Button>
+              </div>
             )}
 
             {analysis.rows.some((r: any) => (r.messages || []).length > 0) && (
@@ -530,7 +549,7 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
         {/* ── 4 · result ───────────────────────────────────────────────── */}
         {step === "result" && report && (
           <div className="space-y-5">
-            <InlineAlert tone={report.ok ? "success" : "critical"} title={report.ok ? t("تم الاستيراد", "Import complete") : t("لم يتم الاستيراد", "Import did not complete")} icon={report.ok ? <CheckCircle2 className="h-4 w-4 text-success" /> : <AlertTriangle className="h-4 w-4 text-danger" />}>
+            <InlineAlert tone={report.ok ? "success" : "warning"} title={report.ok ? t("تم الاستيراد", "Import complete") : t("نتيجة جزئية — راجع الصفوف", "Partial result — review the rows")} icon={report.ok ? <CheckCircle2 className="h-4 w-4 text-success" /> : <AlertTriangle className="h-4 w-4 text-danger" />}>
               {say(report.message)}
             </InlineAlert>
             <MetricStrip className="grid-cols-1 sm:grid-cols-3">
@@ -538,6 +557,12 @@ export function SmartImportWizard({ entity, onClose, onImported, templateRows, t
               <Metric label={t("حُدِّث", "Updated")} value={report.updated} tone="info" />
               <Metric label={t("تُخطّي", "Skipped")} value={report.skipped} />
             </MetricStrip>
+            {outcomes && <section className="space-y-3" data-testid="import-row-outcomes">
+              <Button variant="outline" onClick={() => downloadSpreadsheet("entix-contact-import-results.xls", "Results", [["Row", "Status", "Target ID", "Reason"], ...outcomes.map(r => [r.row, r.status, r.targetId || "", r.reason])])}><Download className="me-2 h-4 w-4" />{t("تنزيل نتيجة كل صف", "Download every row result")}</Button>
+              <p className="text-sm">{t(`نتيجة محفوظة لكل صف: ${outcomes.length}`, `Every row accounted for: ${outcomes.length}`)}</p>
+              {outcomes.filter(r => r.status === "rejected" || r.status === "pending-review").map(r => <div key={r.index} className="rounded-lg border border-warning-border p-3 text-sm"><b>{t("الصف", "Row")} {r.row} · {r.status === "rejected" ? t("مرفوض", "Rejected") : t("يحتاج مراجعة", "Needs review")}</b><p dir="auto">{r.reason}</p></div>)}
+            </section>}
+            {!outcomes && !!report.rejected?.length && <InlineAlert tone="warning">{report.rejected.map(r => <p key={r.index}>{t("الصف", "Row")} {r.index + 1}: {r.reason}</p>)}</InlineAlert>}
             {report.openingEntry && (
               <InlineAlert tone="info" title={t("قيد الأرصدة الافتتاحية", "Opening balance entry")}>
                 <span className="font-code">{report.openingEntry.entryNumber}</span> · {t(`${report.openingEntry.lines} سطر`, `${report.openingEntry.lines} lines`)}

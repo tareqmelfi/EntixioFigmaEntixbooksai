@@ -35,6 +35,7 @@ const EMPTY_FORM = {
   code: "", name: "", kind: "FREELANCER" as "FREELANCER" | "CONTRACTOR" | "AGENCY",
   contactId: "", taxId: "", country: "", specialty: "", nationalId: "", email: "", phone: "",
   hourlyRate: "", dayRate: "", rating: "", notes: "",
+  entityKind: "INDIVIDUAL" as "INDIVIDUAL" | "COMPANY",
 };
 
 export function ContractorDetail() {
@@ -53,6 +54,7 @@ export function ContractorDetail() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(isNew);
+  const [relinkPlan, setRelinkPlan] = useState<any>(null);
   useEffect(() => { setEditMode(isNew); }, [id, isNew]);
   const [pendingDelete, setPendingDelete] = useState(false);
   const [pendingLogDelete, setPendingLogDelete] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export function ContractorDetail() {
       specialty: x.specialty || "", nationalId: x.nationalId || "", email: x.email || "", phone: x.phone || "",
       hourlyRate: x.hourlyRate != null ? String(x.hourlyRate) : "", dayRate: x.dayRate != null ? String(x.dayRate) : "",
       rating: x.rating != null ? String(x.rating) : "", notes: x.notes || "",
+      entityKind: x.contact?.entityKind || (x.kind === "AGENCY" ? "COMPANY" : "INDIVIDUAL"),
     });
   }, []);
 
@@ -105,9 +108,11 @@ export function ContractorDetail() {
   }, [params.get("contactId")]);
 
   function selectContact(contact: any) {
+    setRelinkPlan(null);
     setForm(f => ({ ...f, contactId: contact.id, name: contact.displayName,
       email: contact.email || "", phone: contact.phone || "", nationalId: contact.nationalId || "",
       taxId: contact.taxId || contact.vatNumber || "", country: contact.country || "",
+      entityKind: contact.entityKind || "COMPANY",
     }));
   }
 
@@ -118,6 +123,7 @@ export function ContractorDetail() {
     try {
       const payload = {
         contactId: form.contactId || undefined, taxId: form.taxId.trim() || null, country: form.country || undefined,
+        entityKind: form.entityKind,
         code: form.code.trim() || undefined, name: form.name.trim(), kind: form.kind,
         specialty: form.specialty || null, nationalId: form.nationalId || null,
         email: form.email || null, phone: form.phone || null,
@@ -180,13 +186,32 @@ export function ContractorDetail() {
             <p className="text-xs text-muted-foreground">{t("سجل اتصال واحد لجميع الأدوار والمشاريع. بيانات التواصل مشتركة، والأسعار والساعات في هذا الملف.", "One contact across roles and projects. Identity is shared; rates and hours belong to this profile.")}</p>
             {!person?.contactId && <div className="space-y-2">
               <Label>{t("جهة اتصال موجودة (اختياري)", "Existing contact (optional)")}</Label>
-              <SearchableCombobox value={form.contactId} disabled={contactsLoading} items={contacts.map(c => ({ id: c.id, label: c.displayName, sublabel: [c.email, c.phone, c.taxId].filter(Boolean).join(" · ") }))}
+              <SearchableCombobox value={form.contactId} disabled={contactsLoading || busy} items={contacts.map(c => ({ id: c.id, label: c.displayName, sublabel: [c.email, c.phone, c.taxId].filter(Boolean).join(" · ") }))}
                 placeholder={t("ابحث عن جهة اتصال أو اكتب اسمًا جديدًا", "Find a contact or enter a new name")}
                 onChange={id => { const c = contacts.find(x => x.id === id); if (c) selectContact(c); }}
                 onCreate={async name => { setForm(f => ({ ...f, contactId: "", name })); return ""; }}
                 createLabel={name => t(`تسجيل جهة جديدة: ${name}`, `Register new contact: ${name}`)} />
               {form.contactId && <Button type="button" variant="ghost" onClick={() => setForm(f => ({ ...f, contactId: "", name: "", email: "", phone: "", nationalId: "", taxId: "", country: "" }))}>{t("إلغاء الاختيار", "Clear selection")}</Button>}
             </div>}
+            {!isNew && !person?.contactId && form.contactId && <section className="space-y-2 rounded-lg border border-border p-3">
+              <Button type="button" variant="outline" disabled={busy} onClick={async () => {
+                setBusy(true); setError(null);
+                try { setRelinkPlan(await api.contractors.relinkPreview(id!, form.contactId)); }
+                catch (e: any) { setError(e.message); }
+                finally { setBusy(false); }
+              }}>{t("فحص الربط والملفات الإضافية", "Review link and extra profiles")}</Button>
+              {relinkPlan?.contactId === form.contactId && <>
+                <p className="text-sm">{t("سيبقى هذا الملف الأصلي بكل تاريخه. الملفات الإضافية غير النشطة والخالية من العمليات يُفك رابطها فقط؛ لا يُحذف أي ملف.", "This original profile keeps its history. Only inactive extra profiles without transactions are detached; no profile is deleted.")}</p>
+                <p className="text-xs">{t("الملفات الإضافية", "Extra profiles")}: {relinkPlan.before.extras.map((x: any) => x.id).join(" · ") || "0"}</p>
+                {!relinkPlan.allowed && <InlineAlert tone="warning">{t("تحتاج التسوية مراجعة بسبب اعتماديات أو ملف نشط:", "Reconciliation needs review because of dependencies or an active profile:")} {relinkPlan.reasons.join(" · ")}</InlineAlert>}
+                <Button type="button" disabled={busy || !relinkPlan.allowed} onClick={async () => {
+                  setBusy(true); setError(null);
+                  try { await api.contractors.relink(id!, relinkPlan.contactId, relinkPlan.token); setRelinkPlan(null); setEditMode(false); await load(); }
+                  catch (e: any) { setError(e.message); setRelinkPlan(null); }
+                  finally { setBusy(false); }
+                }}>{t("تأكيد ربط الملف الأصلي", "Confirm original profile link")}</Button>
+              </>}
+            </section>}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t("الرمز", "Code")}</Label>
@@ -203,6 +228,24 @@ export function ContractorDetail() {
               <div className="space-y-2"><Label>{t("التخصص", "Specialty")}</Label><Input value={form.specialty} onChange={(e) => setForm({ ...form, specialty: e.target.value })} placeholder={t("تصميم · مونتاج · كهرباء · محاماة", "Design · editing · electrical · legal")} /></div>
             </div>
             <div className="space-y-2"><Label>{t("الاسم *", "Name *")}</Label><Input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("اسم الفريلانسر أو المقاول أو الوكالة", "Freelancer, contractor or agency name")} /></div>
+            {!form.contactId && form.name.trim().length >= 2 && <div className="space-y-2" data-testid="contractor-identity-suggestions">
+              {contacts.filter(c => {
+                const normalize = (v: string) => v.toLowerCase().replace(/[أإآ]/g, "ا").replace(/[ً-ْـ]/g, "").trim();
+                return normalize(c.displayName).includes(normalize(form.name))
+                  || (form.taxId && c.taxId === form.taxId) || (form.nationalId && c.nationalId === form.nationalId);
+              }).slice(0, 8).map(c => <button key={c.id} type="button" onClick={() => selectContact(c)} className="block w-full rounded-lg border border-border p-3 text-start text-sm">
+                <span className="block font-medium">{c.displayName}</span>
+                <span className="block text-xs text-muted-foreground">{[c.email, c.phone, c.taxId, c.nationalId].filter(Boolean).join(" · ")}</span>
+                <span className="text-xs text-primary">{t("هل هذه الجهة نفسها؟ استخدم سجلها", "Is this the same party? Use its record")}</span>
+              </button>)}
+            </div>}
+            <div className="space-y-2">
+              <Label htmlFor="contractor-entity-kind">{t("فرد أو شركة", "Individual or company")}</Label>
+              <select id="contractor-entity-kind" value={form.entityKind} onChange={e => setForm({ ...form, entityKind: e.target.value as typeof form.entityKind })} className="w-full rounded-md border border-border bg-background p-2 text-sm">
+                <option value="INDIVIDUAL">{t("فرد", "Individual")}</option>
+                <option value="COMPANY">{t("شركة / مؤسسة", "Company / establishment")}</option>
+              </select>
+            </div>
             <div className="space-y-2">
               <Label>{t("النوع", "Kind")}</Label>
               <div className="flex gap-2 flex-wrap">
