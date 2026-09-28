@@ -29,6 +29,8 @@ export function Contractors() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [auditBusy, setAuditBusy] = useState(false);
+  const [identityAudit, setIdentityAudit] = useState<any>(null);
   const [syncResult, setSyncResult] = useState<{ linked: number; review: Array<{ id: string; name: string }> } | null>(null);
   const [kindFilter, setKindFilter] = useState<string>("");
 
@@ -71,6 +73,12 @@ export function Contractors() {
       </MetricStrip>
 
       <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" disabled={auditBusy} onClick={async () => {
+          setAuditBusy(true); setError(null);
+          try { setIdentityAudit(await api.contractors.identityAudit()); }
+          catch (e: any) { setError(e instanceof ApiError ? e.message : t("تعذر الفحص", "Audit failed")); }
+          finally { setAuditBusy(false); }
+        }}>{t("فحص روابط الاتصال دون تعديل", "Audit contact links without changes")}</Button>
         <Button variant="outline" onClick={syncContacts} disabled={syncing}>{syncing && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{t("مزامنة السجلات السابقة مع الاتصال", "Sync older records with contacts")}</Button>
         <button onClick={() => setKindFilter("")} aria-pressed={!kindFilter} className={`rounded-full px-3.5 py-[7px] text-[13px] leading-5 transition-colors ${!kindFilter ? "bg-foreground text-background" : "border border-border bg-card text-content-secondary hover:border-border-strong"}`}>{t("الكل", "All")}</button>
         {Object.entries(KIND_LABELS).map(([k, v]) => (
@@ -79,6 +87,20 @@ export function Contractors() {
       </div>
 
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
+      {identityAudit && <section className="space-y-3 rounded-lg border border-border p-4" data-testid="contractor-identity-audit">
+        <h2 className="font-semibold">{t("نتيجة الفحص — لم تُعدّل أي بيانات", "Audit result — no data changed")}</h2>
+        <p className="text-sm">{t("جهات الاتصال", "Contacts")}: {identityAudit.counts.contacts} · {t("المقاولون", "Contractors")}: {identityAudit.counts.contractors} · {t("ملاحظات للمراجعة", "Findings to review")}: {identityAudit.counts.findings}</p>
+        <Button variant="outline" onClick={() => {
+          const url = URL.createObjectURL(new Blob([JSON.stringify(identityAudit, null, 2)], { type: "application/json" }));
+          const link = document.createElement("a"); link.href = url; link.download = "entix-contact-link-audit.json"; link.click();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        }}>{t("تنزيل تقرير الفحص", "Download audit report")}</Button>
+        {identityAudit.findings.map((finding: any, index: number) => <div key={index} className="border-t border-border pt-2 text-sm">
+          <span>{({ unlinked: t("مقاول بلا جهة اتصال", "Contractor without contact"), missing_or_foreign_contact: t("رابط مفقود أو خارج الشركة", "Missing or out-of-company link"), identity_drift: t("اختلاف في بيانات الهوية", "Identity fields differ"), inactive_link_occupant: t("ملف موقوف يحتفظ بالرابط", "Inactive profile retains the link"), multiple_profiles: t("أكثر من ملف للجهة", "Multiple profiles for the contact"), role_without_profile: t("دور مقاول دون ملف", "Contractor role without a profile") } as Record<string, string>)[finding.issue] || finding.issue}</span>
+          {finding.contractorId && <Link className="ms-2 text-primary underline" to={`/app/contractors/${finding.contractorId}`}>{finding.code || t("فتح المقاول", "Open contractor")}</Link>}
+          {finding.contactId && <Link className="ms-2 text-primary underline" to={`/app/contacts/${finding.contactId}`}>{t("فتح جهة الاتصال", "Open contact")}</Link>}
+        </div>)}
+      </section>}
       {syncResult && <InlineAlert>
         <p>{t("تم ربط السجلات:", "Records linked:")} {syncResult.linked}</p>
         {syncResult.review.length > 0 && <p>{t("اختر جهة الاتصال لهذه الملفات من التعديل؛ لم تُدمج الأسماء المتشابهة تلقائيًا:", "Select a contact in Edit for these profiles; similar names were not merged automatically:")}</p>}
