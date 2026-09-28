@@ -1,3 +1,4 @@
+import { SUPPORT_CATEGORY } from '../lib/support-presentation';
 import { useEffect, useState } from 'react';
 import { api, type SupportTicket } from '../lib/api';
 import { useLanguage } from './LanguageContext';
@@ -13,6 +14,7 @@ export function CustomerSupportPortal() {
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('support');
+  const [score, setScore] = useState(5);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const labels: Record<string, string> = { OPEN: t('مفتوح', 'Open'), PENDING: t('قيد المتابعة', 'Pending'), RESOLVED: t('تم الحل', 'Resolved'), CLOSED: t('مغلق', 'Closed') };
@@ -64,15 +66,21 @@ export function CustomerSupportPortal() {
       <div className="min-w-0 rounded-xl border border-border bg-card p-4">
         {creating ? <form onSubmit={send} className="space-y-4">
           <label className="block text-sm">{t('عنوان الطلب', 'Subject')}<input required maxLength={200} value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3" /></label>
-          <label className="block text-sm">{t('الموضوع', 'Category')}<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3"><option value="support">{t('مساعدة في الاستخدام', 'Help using Entix')}</option><option value="bug">{t('بلاغ عن مشكلة', 'Report a problem')}</option><option value="billing">{t('الفواتير والاشتراك', 'Billing and subscription')}</option><option value="open_question">{t('اقتراح', 'Suggestion')}</option></select></label>
+          <label className="block text-sm">{t('الموضوع', 'Category')}<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3">{Object.entries(SUPPORT_CATEGORY).filter(([key])=>!key.startsWith('sales_')).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
           <label className="block text-sm">{t('كيف نقدر نساعدك؟', 'How can we help?')}<textarea required maxLength={10000} rows={5} value={body} onChange={e => setBody(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3" /></label>
           <p className="text-xs text-muted-foreground">{t('اذكر رقم المستند والخطوات. لا ترسل كلمات مرور أو مفاتيح API.', 'Include the document number and steps. Do not send passwords or API keys.')}</p>
           <Button disabled={busy || !body.trim() || !subject.trim()}>{busy ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال للدعم', 'Send to support')}</Button>
         </form> : ticket ? <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{ticket.subject}</h3><Button size="sm" variant="outline" disabled={busy} onClick={status}>{ticket.status === 'RESOLVED' || ticket.status === 'CLOSED' ? t('إعادة فتح', 'Reopen') : t('تم حل المشكلة', 'Mark resolved')}</Button></div>
           <div className="max-h-[440px] space-y-3 overflow-y-auto" role="log" aria-live="polite">
-            {ticket.messages?.map(m => <div key={m.id} className={`rounded-lg p-3 ${m.authorType === 'CUSTOMER' ? 'bg-muted' : 'border border-primary/20 bg-primary/5'}`}><p className="mb-1 text-xs text-muted-foreground">{m.authorType === 'CUSTOMER' ? t('أنت', 'You') : m.authorType === 'ADMIN' ? t('فريق الدعم', 'Support team') : t('مساعد الدعم', 'Support assistant')} · {new Date(m.createdAt).toLocaleString(language === 'ar' ? 'ar-SA-u-nu-latn-ca-gregory' : 'en-US')}</p><p className="whitespace-pre-wrap break-words text-sm" dir="auto">{m.body}</p></div>)}
+            {ticket.messages?.map(m => <div key={m.id} className={`rounded-lg p-3 ${m.authorType === 'CUSTOMER' ? 'bg-muted' : 'border border-primary/20 bg-primary/5'}`}><p className="mb-1 text-xs text-muted-foreground">{m.authorType === 'CUSTOMER' ? t('أنت', 'You') : m.authorType === 'ADMIN' ? t('فريق دعم Entix', 'Entix Support') : t('مساعد الدعم', 'Support assistant')} · {new Date(m.createdAt).toLocaleString(language === 'ar' ? 'ar-SA-u-nu-latn-ca-gregory' : 'en-US')}</p><p className="whitespace-pre-wrap break-words text-sm" dir="auto">{m.body}</p></div>)}
           </div>
+          {['RESOLVED','CLOSED'].includes(ticket.status) && <div className="mt-4 rounded-lg border border-border p-3 text-sm">
+            {ticket.satisfactionScore ? <p>{t('شكرًا لتقييمك للدعم:', 'Thank you for rating support:')} {ticket.satisfactionScore} / 5</p> : <form className="flex flex-wrap items-end gap-3" onSubmit={async e=>{e.preventDefault();if(busy)return;setBusy(true);try{await api.support.rate(ticket.id,score);setTicket((await api.support.get(ticket.id)).ticket);}catch{setError(t('تعذر حفظ التقييم. حدّث الطلب وحاول مجددًا.','Could not save the rating. Refresh the request and retry.'));}finally{setBusy(false);}}}>
+              <label>{t('كيف كانت تجربة الدعم؟','How was your support experience?')}<select className="ms-2 rounded border border-border p-2" value={score} onChange={e=>setScore(Number(e.target.value))}>{[5,4,3,2,1].map(n=><option key={n} value={n}>{n} / 5 — {n>=4?t('جيدة','Good'):n===3?t('محايدة','Neutral'):t('غير مرضية','Unsatisfactory')}</option>)}</select></label>
+              <Button size="sm" disabled={busy}>{t('إرسال التقييم','Submit rating')}</Button>
+            </form>}
+          </div>}
           <form onSubmit={send} className="mt-4 flex items-end gap-2"><textarea aria-label={t('رسالتك', 'Your message')} required rows={2} maxLength={10000} value={body} onChange={e => setBody(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-border bg-background p-3" /><Button disabled={busy || !body.trim()}>{t('إرسال', 'Send')}</Button></form>
         </> : <p className="py-16 text-center text-muted-foreground">{t('اختر طلبًا أو ابدأ محادثة مع فريق الدعم.', 'Choose a request or start a conversation with support.')}</p>}
       </div>

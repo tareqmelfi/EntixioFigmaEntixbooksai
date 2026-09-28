@@ -180,7 +180,7 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
         >
           <div className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
             <div className="min-w-0">
-              <div className="text-sm" style={{ fontWeight: 600 }}>{t("فريق Entix", "Entix team")}</div>
+              <div className="text-sm" style={{ fontWeight: 600 }}>{t("فريق دعم Entix", "Entix Support")}</div>
               <div className="text-[11px] opacity-80">
                 {needsHuman
                   ? t("طلبك وصل الفريق — الرد يظهر هنا", "Your request reached the team — the reply shows up here")
@@ -207,7 +207,7 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
                   {m.author === "team" && (
                     <div className="mb-1 flex items-center gap-1 text-[10px] text-success">
                       <User className="h-3 w-3" />
-                      {t("رد من فريق الدعم", "Reply from the support team")}
+                      {t("فريق دعم Entix", "Entix Support")}
                     </div>
                   )}
                   {m.body}

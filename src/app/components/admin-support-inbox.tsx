@@ -15,20 +15,9 @@ import { supportDesk, type SupportDeskTicket } from "../lib/support-desk-api";
 import { useSearchParams } from "react-router";
 import { useLanguage } from "./LanguageContext";
 
-const STATUS: Record<string, [string,string]> = { OPEN:["مفتوحة","Open"], PENDING:["بانتظار العميل","Pending"], RESOLVED:["تم الحل","Resolved"], CLOSED:["مغلقة","Closed"] };
-const PRIORITY: Record<string, [string,string]> = { LOW:["منخفضة","Low"], NORMAL:["عادية","Normal"], HIGH:["عالية","High"], URGENT:["عاجلة","Urgent"] };
-
+import { SupportPerformance } from './support-performance';
+import { SUPPORT_STATUS as STATUS, SUPPORT_PRIORITY as PRIORITY, SUPPORT_CATEGORY as CATEGORY_LABEL, statusTone, priorityTone, badgeClass } from '../lib/support-presentation';
 type Filter = "needs" | "whatsapp" | "web" | "portal" | "all";
-
-const CATEGORY_LABEL: Record<string, [string, string]> = {
-  sales_A: ["مبيعات A", "Sales A"],
-  sales_B: ["مبيعات B", "Sales B"],
-  sales_C: ["مبيعات C", "Sales C"],
-  support: ["دعم", "Support"],
-  bug: ["خلل", "Bug"],
-  billing: ["اشتراك", "Billing"],
-  open_question: ["سؤال مفتوح", "Open question"],
-};
 
 function fmt(value?: string | null): string {
   if (!value) return "—";
@@ -53,6 +42,9 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const [draft, setDraft] = useState({ subject: "", message: "", contactName: "", contactEmail: "", contactPhone: "", priority: "NORMAL", category: "support" });
   const [channels, setChannels] = useState<{ whatsapp?: string | null; email?: string } | null>(null);
   useEffect(() => { api.admin.me().then(r => { setCanWrite(r.permissions.includes("*") || r.permissions.includes("support.write")); setScoped(r.assignedOrgIds != null); }).catch(guard); supportDesk.channels().then(setChannels).catch(guard); }, [guard]);
+  const [metricsVersion, setMetricsVersion] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [filter, setFilter] = useState<Filter>("needs");
   const [rows, setRows] = useState<AdminTicketRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,13 +65,13 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
           : filter === "all"
             ? {}
             : { channel: filter };
-      setRows((await api.admin.tickets(params)).tickets);
+      setRows((await api.admin.tickets({ ...params, status: statusFilter || undefined, category: categoryFilter || undefined })).tickets);
     } catch (e) {
       guard(e);
     } finally {
       setLoading(false);
     }
-  }, [filter, guard]);
+  }, [filter, statusFilter, categoryFilter, guard]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -100,7 +92,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const update = async (fields: Parameters<typeof supportDesk.update>[1]) => {
     if (!openId || thread?.id !== openId || busy || !canWrite) return;
     setBusy(true);
-    try { await supportDesk.update(openId, fields); if (selectedId.current === openId) await openThread(openId); await load(); push("success", t("تم تحديث التذكرة", "Ticket updated")); } catch (e) { guard(e); } finally { setBusy(false); }
+    try { await supportDesk.update(openId, fields); if (selectedId.current === openId) await openThread(openId); await load(); setMetricsVersion(v=>v+1); push("success", t("تم تحديث التذكرة", "Ticket updated")); } catch (e) { guard(e); } finally { setBusy(false); }
   };
   const prepareDraft = async () => {
     if (!openId || thread?.id !== openId || busy || !canWrite || reply.trim()) return; setBusy(true);
@@ -108,9 +100,9 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   };
   const create = async (e: React.FormEvent) => {
     e.preventDefault(); if (busy || !canWrite) return; setBusy(true);
-    try { const result = await supportDesk.create({ ...draft, contactEmail: draft.contactEmail || undefined }); setFilter("all"); setCreating(false); setParams(p => { p.set("ticket", result.ticket.id); return p; }); await load(); push("success", t("تم إنشاء التذكرة الداخلية", "Internal ticket created")); setDraft({ subject: "", message: "", contactName: "", contactEmail: "", contactPhone: "", priority: "NORMAL", category: "support" }); } catch(e) { guard(e); } finally { setBusy(false); }
+    try { const result = await supportDesk.create({ ...draft, contactEmail: draft.contactEmail || undefined }); setFilter("all"); setCreating(false); setParams(p => { p.set("ticket", result.ticket.id); return p; }); await load(); setMetricsVersion(v=>v+1); push("success", t("تم إنشاء التذكرة الداخلية", "Internal ticket created")); setDraft({ subject: "", message: "", contactName: "", contactEmail: "", contactPhone: "", priority: "NORMAL", category: "support" }); } catch(e) { guard(e); } finally { setBusy(false); }
   };
-  useEffect(() => { bottomRef.current?.scrollIntoView({ block: "end" }); }, [thread?.messages?.length]);
+  useEffect(() => { const container = bottomRef.current?.parentElement; if (container) container.scrollTop = container.scrollHeight; }, [thread?.messages?.length]);
 
   const send = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +113,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
       const res: any = await supportDesk.message(openId, body, internal || thread?.channel === "admin");
       if (selectedId.current === openId) setReply("");
       if (selectedId.current === openId) await openThread(openId);
-      await load();
+      await load(); setMetricsVersion(v=>v+1);
       const sent = res?.delivery?.sent;
       const channel = thread?.channel;
       push(channel === "whatsapp" && !internal && !sent ? "error" : "success",
@@ -140,7 +132,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   ];
 
   return (
-    <Card className="border-border">
+    <div className="min-w-0 space-y-5"><SupportPerformance version={metricsVersion}/><Card className="min-w-0 border-border">
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base text-foreground">{t("صندوق الدعم الموحّد", "Unified support inbox")}</CardTitle>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -156,10 +148,14 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
               {t(ar, en)}
             </button>
           ))}
-          <Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button>
+          <Button variant="outline" size="sm" aria-label={t("تحديث التذاكر", "Refresh tickets")} onClick={() => { void load(); setMetricsVersion(v=>v+1); }}><RefreshCw className="h-3.5 w-3.5" /></Button>
         </div>
       </CardHeader>
-      <div className="space-y-3 px-6 pb-4 text-sm">
+      <div className="space-y-3 px-4 pb-4 text-sm sm:px-6">
+        <div className="flex flex-wrap gap-3">
+          <label>{t('تصفية بالحالة','Filter status')} <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="rounded-lg border border-border p-2"><option value="">{t('كل الحالات','All statuses')}</option>{Object.entries(STATUS).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
+          <label>{t('نوع الطلب','Request category')} <select value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)} className="max-w-full rounded-lg border border-border p-2"><option value="">{t('كل الأنواع','All categories')}</option>{Object.entries(CATEGORY_LABEL).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
+        </div>
         <p className="text-muted-foreground">{t("رسائل الموقع وواتساب وطلبات البوابة تظهر هنا. استخدم الملاحظات الداخلية لتوثيق المتابعة مع فريقك.", "Website chat, WhatsApp and portal requests appear here. Use internal notes to coordinate with your team.")}</p>
         <div className="flex flex-wrap gap-4">
           {channels?.whatsapp && <a className="text-primary underline" href={`https://wa.me/${channels.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">{t("رقم واتساب الدعم", "Support WhatsApp")} <bdi>+{channels.whatsapp}</bdi></a>}
@@ -173,15 +169,17 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
           <label>{t("اسم جهة التواصل", "Contact name")}<input className="mt-1 w-full rounded border border-border p-2" value={draft.contactName} onChange={e => setDraft({...draft, contactName:e.target.value})}/></label>
           <label>{t("بريد جهة التواصل", "Contact email")}<input type="email" className="mt-1 w-full rounded border border-border p-2" value={draft.contactEmail} onChange={e => setDraft({...draft, contactEmail:e.target.value})}/></label>
           <label>{t("هاتف جهة التواصل", "Contact phone")}<input type="tel" className="mt-1 w-full rounded border border-border p-2" value={draft.contactPhone} onChange={e => setDraft({...draft, contactPhone:e.target.value})}/></label>
+          <label>{t('نوع التذكرة','Ticket category')}<select className="mt-1 w-full rounded border border-border p-2" value={draft.category} onChange={e=>setDraft({...draft,category:e.target.value})}>{Object.entries(CATEGORY_LABEL).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
+          <label>{t('أولوية التذكرة الجديدة','New ticket priority')}<select className="mt-1 w-full rounded border border-border p-2" value={draft.priority} onChange={e=>setDraft({...draft,priority:e.target.value})}>{Object.entries(PRIORITY).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
           <label className="sm:col-span-2">{t("تفاصيل الطلب", "Request details")}<textarea rows={3} maxLength={10000} className="mt-1 w-full rounded border border-border p-2" value={draft.message} onChange={e => setDraft({...draft, message:e.target.value})}/></label>
           <p className="text-xs text-muted-foreground sm:col-span-2">{t("تُحفظ لفريق الدعم؛ لا يرسل هذا النموذج رسالة خارجية للعميل.", "Saved for your support team. This form does not send an external customer message.")}</p>
           <Button disabled={busy || !draft.subject.trim()} type="submit">{t("إنشاء التذكرة", "Create ticket")}</Button>
           <Button variant="outline" type="button" onClick={() => setCreating(false)}>{t("إلغاء", "Cancel")}</Button>
         </form>}
       </div>
-      <CardContent className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <CardContent className="grid min-w-0 grid-cols-1 items-start gap-4 px-3 sm:px-6 lg:grid-cols-[minmax(260px,0.7fr)_minmax(0,1.3fr)]">
         {/* list */}
-        <div className="max-h-[460px] overflow-y-auto rounded-lg border border-border">
+        <div className="min-w-0 max-h-[360px] overflow-y-auto rounded-lg border border-border lg:max-h-[900px]">
           {loading ? (
             <Loader2 className="mx-auto my-10 h-6 w-6 animate-spin text-primary" />
           ) : rows.length === 0 ? (
@@ -202,11 +200,12 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
                   </span>
                   <span className="shrink-0 text-[10px] text-muted-foreground">{fmt(tk.updatedAt)}</span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-1.5">
-                  {tk.needsHuman && (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {tk.needsHuman && !["RESOLVED","CLOSED"].includes(tk.status) && (
                     <span className="rounded bg-warning-subtle px-1.5 py-0.5 text-[10px] text-warning">{t("ينتظر ردّك", "Needs you")}</span>
                   )}
-                  <span className="text-[10px]">{t(...(STATUS[tk.status] || [tk.status, tk.status]))}</span>
+                  <span className={`${badgeClass} ${statusTone[tk.status] || statusTone.OPEN}`}>{t(...(STATUS[tk.status] || [tk.status, tk.status]))}</span>
+                  <span className={`${badgeClass} ${priorityTone[tk.priority] || priorityTone.NORMAL}`}>{t(...(PRIORITY[tk.priority] || PRIORITY.NORMAL))}</span>
                   {tk.category && (
                     <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                       {t(...(CATEGORY_LABEL[tk.category] || [tk.category, tk.category]))}
@@ -226,7 +225,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
         </div>
 
         {/* thread */}
-        <div className="flex max-h-[800px] min-h-[460px] flex-col rounded-lg border border-border">
+        <div className="flex min-w-0 min-h-[460px] flex-col rounded-lg border border-border">
           {!thread ? (
             <div className="my-auto px-6 py-10 text-center text-sm text-muted-foreground">
               <MessageSquare className="mx-auto mb-2 h-8 w-8 text-muted-foreground/30" />
@@ -242,11 +241,13 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
                   <ChannelIcon channel={(thread as any).channel} />
                   {(thread as any).contactName || (thread as any).contactPhone || thread.subject}
                 </div>
+                <div className="mt-2 flex flex-wrap gap-2"><span className={`${badgeClass} ${statusTone[thread.status]}`}>{t(...(STATUS[thread.status] || STATUS.OPEN))}</span><span className={`${badgeClass} ${priorityTone[thread.priority]}`}>{t(...(PRIORITY[thread.priority] || PRIORITY.NORMAL))}</span></div>
                 <div className="mt-2 flex flex-wrap items-end gap-2 text-xs">
                   <label>{t("الحالة", "Status")}<select aria-label={t("حالة التذكرة", "Ticket status")} disabled={!canWrite || busy} value={thread.status} onChange={e => void update({ status:e.target.value })} className="ms-2 rounded border border-border p-1">{Object.entries(STATUS).map(([key,label]) => <option key={key} value={key}>{t(...label)}</option>)}</select></label>
                   <label>{t("الأولوية", "Priority")}<select aria-label={t("أولوية التذكرة", "Ticket priority")} disabled={!canWrite || busy} value={thread.priority} onChange={e => void update({ priority:e.target.value })} className="ms-2 rounded border border-border p-1">{Object.entries(PRIORITY).map(([key,label]) => <option key={key} value={key}>{t(...label)}</option>)}</select></label>
                 </div>
-                {canWrite && <div className="mt-2 space-y-2 text-xs">
+                <label className="mt-2 block text-xs">{t('نوع التذكرة','Ticket category')}<select disabled={!canWrite || busy} value={thread.category || 'support'} onChange={e=>void update({category:e.target.value})} className="ms-2 max-w-full rounded border border-border p-1">{Object.entries(CATEGORY_LABEL).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
+                {canWrite && <div className="mt-2 grid gap-2 text-xs sm:grid-cols-2">
                   <label className="block">{t("موضوع التذكرة", "Ticket subject")}<input className="mt-1 w-full rounded border border-border p-2" value={subject} maxLength={200} onChange={e=>setSubject(e.target.value)}/></label>
                   <label className="block">{t("المسؤول عن المتابعة (بريد)", "Assigned operator (email)")}<input type="email" className="mt-1 w-full rounded border border-border p-2" value={assignment} onChange={e=>setAssignment(e.target.value)}/></label>
                   <Button size="sm" variant="outline" disabled={busy || !subject.trim() || (!!assignment && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignment))} onClick={() => void update({ subject:subject.trim(), assignedAgentEmail:assignment.trim() || null })}>{t("حفظ معلومات التذكرة", "Save ticket details")}</Button>
@@ -257,11 +258,11 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
                 </div>}
                 {(thread as any).summary && <div className="mt-1 text-[11px] text-muted-foreground">{(thread as any).summary}</div>}
               </div>
-              <div className="flex-1 space-y-2 overflow-y-auto p-3">
+              <div className="max-h-[60vh] min-h-48 space-y-2 overflow-y-auto p-3">
                 {thread.messages.map((m) => (
                   <div key={m.id} className={`flex ${m.authorType === "CUSTOMER" ? "justify-start" : "justify-end"}`}>
                     <div
-                      className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs ${
+                      className={`max-w-[90%] break-words whitespace-pre-wrap rounded-2xl px-3 py-2 text-xs ${
                         m.authorType === "CUSTOMER"
                           ? "bg-muted/60 text-foreground"
                           : m.authorType === "ADMIN"
@@ -274,6 +275,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
                         {m.authorType === "CUSTOMER" ? t("العميل", "Customer") : m.authorType === "NOTE" ? t("ملاحظة داخلية", "Internal note") : m.authorType === "ADMIN" ? t("فريق الدعم", "Support team") : t("الوكيل", "Agent")}
                         {" · "}{fmt(m.createdAt)}
                       </div>
+                      {m.authorType !== "CUSTOMER" && m.authorEmail && <div className="mb-1 break-all text-[10px] opacity-80">{t("داخلي:", "Internal:")} {m.authorEmail}</div>}
                       <div>{m.body}</div>
                     </div>
                   </div>
@@ -282,6 +284,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
               </div>
               {canWrite && <form onSubmit={send} className="flex flex-wrap gap-2 border-t border-border p-2">
                 <div className="w-full"><Button size="sm" variant="outline" type="button" disabled={busy || !!reply.trim()} onClick={() => void prepareDraft()}>{t("اقتراح رد بالوكيل", "Draft with agent")}</Button><p className="mt-1 text-[11px] text-muted-foreground">{t("راجع الرد قبل إرساله. الوكيل هنا لا يفتح حساب العميل أو يعدّل بياناته.", "Review before sending. This assistant cannot access or modify the customer's account.")}</p></div>
+                <p className="w-full text-xs text-muted-foreground">{t("الاسم الظاهر للعميل: فريق دعم Entix", "Customer-facing name: Entix Support")}</p>
                 <label className="w-full text-xs"><input type="checkbox" checked={internal || thread.channel === "admin"} disabled={busy || thread.channel === "admin"} onChange={e=>setInternal(e.target.checked)}/> {t("ملاحظة داخلية لفريق الدعم فقط", "Internal note for the support team only")}</label>
                 <input
                   value={reply}
@@ -298,6 +301,6 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
           )}
         </div>
       </CardContent>
-    </Card>
+    </Card></div>
   );
 }

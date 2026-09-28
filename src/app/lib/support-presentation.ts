@@ -1,0 +1,11 @@
+export const SUPPORT_STATUS: Record<string, [string,string]> = { OPEN:['مفتوحة','Open'], PENDING:['بانتظار العميل','Waiting for customer'], RESOLVED:['تم الحل','Resolved'], CLOSED:['مغلقة','Closed'] };
+export const SUPPORT_PRIORITY: Record<string, [string,string]> = { LOW:['منخفضة','Low'], NORMAL:['عادية','Normal'], HIGH:['عالية','High'], URGENT:['عاجلة','Urgent'] };
+export const SUPPORT_CATEGORY: Record<string, [string,string]> = {
+ support:['دعم فني','Technical support'],bug:['خلل في المنصة','Platform issue'],billing:['الفواتير والاشتراك','Billing'],partners:['الشركاء والمسوقون','Partners & marketers'],payouts:['العمولات والمدفوعات','Commissions & payouts'],open_question:['استفسار واقتراح','Questions & suggestions'],sales_A:['مبيعات A','Sales A'],sales_B:['مبيعات B','Sales B'],sales_C:['مبيعات C','Sales C'],
+};
+export const SUPPORT_CHANNEL: Record<string,[string,string]> = {whatsapp:['واتساب','WhatsApp'],web:['شات الموقع','Website chat'],portal:['بوابة العميل','Customer portal'],admin:['طلب داخلي / مكالمة / بريد','Internal / call / email']};
+export const statusTone: Record<string,string> = {OPEN:'bg-blue-50 text-blue-800 border-blue-200',PENDING:'bg-amber-50 text-amber-900 border-amber-200',RESOLVED:'bg-emerald-50 text-emerald-800 border-emerald-200',CLOSED:'bg-slate-100 text-slate-700 border-slate-300'};
+export const priorityTone: Record<string,string> = {LOW:'bg-slate-100 text-slate-700 border-slate-300',NORMAL:'bg-blue-50 text-blue-800 border-blue-200',HIGH:'bg-amber-50 text-amber-900 border-amber-200',URGENT:'bg-orange-100 text-orange-900 border-orange-300'};
+export const badgeClass='inline-flex items-center rounded-full border px-2 py-1 text-xs font-medium';
+export type SupportCounter={channels:Record<string,number>;categories:Record<string,number>;total:number;open:number;pending:number;resolved:number;closed:number;needsReply:number;urgent:number;replies:number;responseSamples:number;resolutionSamples:number;ratings:number;positive:number;neutral:number;negative:number;averageResponseMs:number|null;averageResolutionMs:number|null;averageRating:number|null};
+export type SupportMetrics={overall:SupportCounter;agents:(SupportCounter&{email:string})[];channels:Record<string,number>;categories:Record<string,number>;unattributedResolutions:number;currentAgent:string;scoped:boolean;since:string|null;generatedAt:string};
