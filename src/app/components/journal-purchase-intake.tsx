@@ -65,16 +65,19 @@ export function JournalPurchaseIntake({ suppliers, onRegistered }: { suppliers: 
   if (loading) return <p role="status" className="text-sm text-muted-foreground">{t('جارٍ فحص القيود غير المرتبطة…', 'Checking unlinked journals…')}</p>;
   if (!items.length && !error && !offset && !journalId) return null;
   return <section aria-label={t('قيود المشتريات غير المرتبطة', 'Unlinked purchase journals')} className="rounded-lg border border-border bg-card p-4 space-y-4 min-w-0">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="space-y-1"><h2 className="text-section font-semibold">{t('قيود بانتظار استكمال فاتورة مشتريات', 'Journals awaiting purchase invoice details')}</h2>
-        <p className="text-sm text-muted-foreground">{t('هذه قيود مرّحلة تؤثر في التقارير. أكمل بيانات الفاتورة لربطها بالمشتريات دون تكرار القيد أو المبلغ.', 'These posted journals already affect reports. Complete invoice details to link them to purchases without duplicating the journal or amount.')}</p>
-      </div>
+    <details open={journalId || error ? true : undefined} className="space-y-4">
+      <summary className="cursor-pointer text-sm font-semibold">
+        {t('مراجعة القيود غير المرتبطة بالمشتريات', 'Review journals not linked to purchases')}
+        <span className="ms-2 text-muted-foreground font-normal">({items.length}{hasMore ? '+' : ''})</span>
+      </summary>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-sm text-muted-foreground flex-1 min-w-0">{t('هذه قيود مرّحلة تؤثر في التقارير. راجع نوع المستند وبياناته لربطه بالمشتريات دون تكرار القيد أو المبلغ.', 'These posted journals already affect reports. Review the document type and details to link purchases without duplicating the journal or amount.')}</p>
       <Button variant="outline" size="sm" disabled={busy} onClick={load}>{t('تحديث القيود', 'Refresh journals')}</Button>
     </div>
     {error && <p role="alert" className="text-destructive text-sm">{error} {duplicateId && <Link className="underline" to={`/app/purchases/bills/${duplicateId}`}>{t('مراجعة الفاتورة الموجودة', 'Review existing invoice')}</Link>}</p>}
     {!selected ? <>
       {!items.length && <p className="text-sm">{t('لا يوجد قيد قابل للمراجعة هنا. قد يكون مرتبطًا بمستند، غير مرحّل، أو لا يحتوي حساب مشتريات أو أصل.', 'No journal to review here. It may already be linked, unposted, or have no purchase or asset account.')}</p>}
-      <ul className="divide-y divide-border">{items.map(item => <li key={item.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
+      <ul className="divide-y divide-border max-h-96 overflow-y-auto">{items.map(item => <li key={item.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1"><p className="text-sm font-medium break-words"><bdi>{item.number}</bdi> · {item.description}</p>
           <p className="text-xs text-muted-foreground"><bdi>{item.date.slice(0, 10)} · {item.currency} {Number(item.subtotal).toFixed(2)}</bdi> · {t('صافي البنود', 'Net lines')}</p>
           {!item.eligible && <p className="text-xs text-muted-foreground">{t('القيد النقدي أو المركب، أو حساب الموردين غير المعيّن، يحتاج مراجعة نوع المستند قبل الربط.', 'Cash or compound journals, or an unmapped payable account, require document-type review before linking.')}</p>}
@@ -104,5 +107,6 @@ export function JournalPurchaseIntake({ suppliers, onRegistered }: { suppliers: 
         <div className="flex flex-wrap gap-2"><Button type="submit" disabled={!contactId || !confirmed || busy}>{busy ? t('جارٍ الربط…', 'Linking…') : t('ربط بالقيد الموجود', 'Link to existing journal')}</Button><Button type="button" variant="outline" onClick={()=>{setSelected(null);setError('');}}>{t('إلغاء', 'Cancel')}</Button><Link className="self-center text-primary underline text-sm" to="/app/assets">{t('مراجعة الأصول', 'Review assets')}</Link></div>
       </fieldset>
     </form>}
+    </details>
   </section>;
 }
