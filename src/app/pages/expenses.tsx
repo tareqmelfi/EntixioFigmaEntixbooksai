@@ -30,7 +30,7 @@ import {
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
-import { InlineAlert, PageHeader, Metric, MetricStrip, SearchField, LedgerFigure } from "../components/product";
+import { InlineAlert, PageHeader, Metric, MetricStrip, SearchField, LedgerFigure, StatusBadge } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -50,6 +50,19 @@ import { useOrgRegion } from "../lib/use-org-region";
 import { humanizeError } from "../lib/error-messages";
 
 type Translate = (ar: string, en?: string) => string;
+
+const expenseStatuses = ["DRAFT", "APPROVED", "PAID", "UNSPECIFIED"] as const;
+type ExpenseStatusKey = typeof expenseStatuses[number];
+function expenseStatusKey(value?: string): ExpenseStatusKey {
+  return value === "DRAFT" || value === "APPROVED" || value === "PAID" ? value : "UNSPECIFIED";
+}
+function expenseStatusLabels(t: Translate): Record<ExpenseStatusKey, string> {
+  return { DRAFT: t("مسودة", "Draft"), APPROVED: t("معتمد", "Approved"), PAID: t("مدفوع", "Paid"), UNSPECIFIED: t("غير محدد", "Unspecified") };
+}
+function ExpenseStatus({ value, t }: { value?: string; t: Translate }) {
+  const key = expenseStatusKey(value);
+  return <StatusBadge tone={key === "PAID" ? "success" : key === "APPROVED" ? "info" : "neutral"}>{expenseStatusLabels(t)[key]}</StatusBadge>;
+}
 
 function paymentMethodLabels(t: Translate): Record<string, string> {
   return {
@@ -651,6 +664,7 @@ export function Expenses() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ExpenseStatusKey | "ALL">("ALL");
   const [createOpen, setCreateOpen] = useState(false);
   const { goBack: goBackToSource } = useReturnTo();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -845,6 +859,7 @@ export function Expenses() {
   const branchFilterId = searchParams.get("branchId") || "";
   const projectFilterId = searchParams.get("projectId") || "";
   const filtered = items.filter((e) =>
+    (statusFilter === "ALL" || expenseStatusKey(e.status) === statusFilter) &&
     (!branchFilterId || (branchFilterId === "none" ? !e.branchId : e.branchId === branchFilterId)) &&
     (!projectFilterId || (projectFilterId === "none" ? !e.projectId : e.projectId === projectFilterId)) && (
     !searchQuery
@@ -1881,7 +1896,7 @@ export function Expenses() {
           className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
           eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")} · <button type="button" onClick={backToList} className="hover:underline">{t("المصروفات", "Expenses")}</button></span>}
           title={<><span className="font-sans">{t("مصروف ", "Expense ")}</span><span dir="ltr" className="break-all font-code">{selected.number}</span></>}
-          description={<><bdi dir="auto">{vendorName}</bdi> · <bdi dir="auto">{selected.category}</bdi></>}
+          description={<><bdi dir="auto">{vendorName}</bdi> · <bdi dir="auto">{selected.category}</bdi><span className="ms-2"><ExpenseStatus value={selected.status} t={t} /></span></>}
           actions={
             <>
               <Button variant="outline" onClick={backToList} className="h-10 px-[18px] text-sm">
@@ -2187,10 +2202,21 @@ export function Expenses() {
           <h2 className="text-section font-semibold text-foreground">{t("قائمة المصروفات", "Expenses List")}</h2>
           <SearchField containerClassName="w-full sm:max-w-sm" placeholder={t("بحث بالمورد، رقم الفاتورة، التصنيف...", "Search by supplier, invoice no., category...")} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
         </div>
+        <div className="flex flex-wrap gap-2" role="group" aria-label={t("تصفية حسب حالة المصروف", "Filter by expense status")}>
+          {(["ALL", ...expenseStatuses] as const).map((status) => (
+            <button key={status} type="button" aria-pressed={statusFilter === status} onClick={() => setStatusFilter(status)}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${statusFilter === status ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-content-secondary hover:border-primary"}`}>
+              {status === "ALL" ? t("الكل", "All") : expenseStatusLabels(t)[status]}{" "}
+              <span className="ms-2 font-english tabular-nums">{status === "ALL" ? items.length : items.filter(e => expenseStatusKey(e.status) === status).length}</span>
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-content-secondary">{t("حالة السجل كما حُفظت. الاعتماد لا يعني الدفع؛ الأعداد تخص السجلات المحمّلة.", "Status as recorded. Approval does not mean payment; counts cover the loaded records.")}</p>
         <div className="ledger-table overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
-            <Table className="table-fixed min-w-[1040px]">
+            <Table className="table-fixed min-w-[1160px]">
               <colgroup>
                 <col style={{ width: "230px" }} />{/* رقم · mono ids run to 30+ chars (ENTIX-FEE-txn_…) — never a % width */}
+                <col style={{ width: "120px" }} />{/* الحالة المسجلة */}
                 <col />
                 <col style={{ width: "230px" }} />{/* رقم الفاتورة · long gateway references */}
                 <col style={{ width: "110px" }} />
@@ -2200,6 +2226,7 @@ export function Expenses() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>{t("رقم", "No.")}</TableHead>
+                  <TableHead>{t("الحالة", "Status")}</TableHead>
                   <TableHead>{t("المورد / التصنيف", "Supplier / Category")}</TableHead>
                   <TableHead>{t("رقم الفاتورة", "Invoice No.")}</TableHead>
                   <TableHead>{t("التاريخ", "Date")}</TableHead>
@@ -2208,9 +2235,9 @@ export function Expenses() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading && <TableRow className="hover:bg-transparent"><TableCell colSpan={6} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</TableCell></TableRow>}
+                {loading && <TableRow className="hover:bg-transparent"><TableCell colSpan={7} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</TableCell></TableRow>}
                 {!loading && filtered.length === 0 && (
-                  <TableRow className="hover:bg-transparent"><TableCell colSpan={6} className="py-12 text-center"><Receipt className="h-8 w-8 mx-auto text-muted-foreground mb-3" strokeWidth={1.75} /><p className="text-sm text-muted-foreground">{t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></TableCell></TableRow>
+                  <TableRow className="hover:bg-transparent"><TableCell colSpan={7} className="py-12 text-center"><Receipt className="h-8 w-8 mx-auto text-muted-foreground mb-3" strokeWidth={1.75} /><p className="text-sm text-muted-foreground">{items.length ? t("لا توجد مصروفات تطابق البحث والحالة المحددة", "No expenses match the search and selected status") : t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></TableCell></TableRow>
                 )}
                 {!loading && filtered.map((e) => (
                   <TableRow key={e.id} onClick={() => openExpense(e)} className="h-12 cursor-pointer" title={t("فتح المصروف", "Open expense")}>
@@ -2219,6 +2246,7 @@ export function Expenses() {
                         <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{e.number}</span>
                       </Link>
                     </TableCell>
+                    <TableCell className="align-middle"><ExpenseStatus value={e.status} t={t} /></TableCell>
                     <TableCell className="align-middle overflow-hidden">
                       <div className="truncate text-sm text-foreground leading-5" title={e.contact?.displayName || e.vendorName || ""}><bdi dir="auto">{e.contact?.displayName || e.vendorName || "—"}</bdi></div>
                       <div className="truncate text-xs text-content-secondary"><bdi dir="auto">{e.category}</bdi></div>
