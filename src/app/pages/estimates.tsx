@@ -97,15 +97,20 @@ const newRow = (): Row => ({
 });
 
 /** The line law, mirrored from the API (src/lib/estimates.ts) so the grid is live. */
-function computeRow(r: Row, defaults: { marginPct: number; taxRate: number }) {
+function computeRow(r: Row, defaults: { marginPct: number; taxRate: number; taxInclusive: boolean }) {
   const quantity = num(r.quantity || 1);
   const unitCost = num(r.materialCost) + num(r.labourCost) + num(r.otherCost);
   const marginPct = r.marginPct.trim() === "" ? defaults.marginPct : num(r.marginPct);
-  const unitPrice = r.unitPriceLocked && r.unitPrice.trim() !== ""
+  const unitPrice = r.unitPriceLocked
     ? num(r.unitPrice)
     : unitCost * (1 + marginPct / 100);
   const taxRate = r.taxRate.trim() === "" ? defaults.taxRate : num(r.taxRate);
-  return { quantity, unitCost, marginPct, unitPrice, taxRate, lineTotal: round2(quantity * unitPrice), cost: quantity * unitCost };
+  const amount = round2(quantity * unitPrice);
+  const tax = defaults.taxInclusive
+    ? round2(amount - amount / (1 + taxRate / 100))
+    : round2(amount * taxRate / 100);
+  const net = defaults.taxInclusive ? round2(amount - tax) : amount;
+  return { quantity, unitCost, marginPct, unitPrice, taxRate, net, tax, lineTotal: round2(net + tax), cost: quantity * unitCost };
 }
 
 function rowsFromEstimate(est: Estimate): Row[] {
@@ -246,24 +251,17 @@ export function Estimates() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId]);
 
-  const defaults = { marginPct: num(form.defaultMarginPct), taxRate: num(form.taxRate) };
+  const defaults = { marginPct: num(form.defaultMarginPct), taxRate: num(form.taxRate), taxInclusive: form.taxInclusive };
   const computed = useMemo(() => rows.map((r) => computeRow(r, defaults)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rows, form.defaultMarginPct, form.taxRate]);
+    [rows, form.defaultMarginPct, form.taxRate, form.taxInclusive]);
 
   const totals = useMemo(() => {
     let cost = 0, sale = 0, tax = 0;
     computed.forEach((c) => {
       cost += c.cost;
-      if (form.taxInclusive) {
-        // The line price already contains the tax · net = gross / (1 + rate)
-        const lineTax = round2(c.lineTotal - c.lineTotal / (1 + c.taxRate / 100));
-        tax += lineTax;
-        sale += c.lineTotal - lineTax;
-      } else {
-        sale += c.lineTotal;
-        tax += round2(c.lineTotal * (c.taxRate / 100));
-      }
+      sale += c.net;
+      tax += c.tax;
     });
     const costTotal = round2(cost), saleSubtotal = round2(sale), taxTotal = round2(tax);
     return {
@@ -280,7 +278,7 @@ export function Estimates() {
       if (!key) return;
       const cur = map.get(key) || { section: key, cost: 0, sale: 0 };
       cur.cost += computed[i].cost;
-      cur.sale += computed[i].lineTotal;
+      cur.sale += computed[i].net;
       map.set(key, cur);
     });
     return Array.from(map.values()).map((s) => ({
@@ -789,7 +787,7 @@ export function Estimates() {
                           aria-label={t("اختر نسبة ضريبة", "Choose a tax rate")}
                           disabled={frozen}
                           value=""
-                          onChange={(e) => { const r = taxRates.find((x) => x.id === e.target.value); if (r) setForm({ ...form, taxRate: String(Number((Number(r.rate) * 100).toFixed(4))) }); }}
+                          onChange={(e) => { const r = taxRates.find((x) => x.id === e.target.value); if (r) setForm({ ...form, taxRate: String(Number((Number(r.rate) * 100).toFixed(4))), taxInclusive: !!r.isInclusive }); }}
                           className="h-9 w-[42%] shrink-0 truncate rounded-lg border border-border bg-card px-2 text-xs text-content-secondary"
                         >
                           <option value="">{t("من الإعدادات…", "From settings…")}</option>
@@ -811,13 +809,13 @@ export function Estimates() {
                     </Button>
                   </div>
                   <div className="overflow-x-auto" ref={gridRef} onKeyDown={onGridKeyDown}>
-                    <div className="ledger-grid-dense" style={{ minWidth: canSeeCost ? 1460 : 1140 }}>
+                    <div className="ledger-grid-dense" style={{ minWidth: canSeeCost ? 1690 : 1370 }}>
                       <div
                         className="grid"
                         style={{ gridTemplateColumns: canSeeCost
-                          // 17 columns · widths tuned so the full study (cost → price → total) fits a 1920 desktop
-                          ? "32px 82px 110px minmax(150px,1.2fr) minmax(120px,0.8fr) 60px 68px 88px 88px 84px 96px 68px 108px 116px 54px 96px 34px"
-                          : "32px 82px 110px minmax(200px,1.4fr) minmax(160px,1fr) 60px 68px 108px 116px 54px 96px 34px" }}
+                          // Keep net, tax and gross adjacent; narrow screens scroll within the grid.
+                          ? "32px 82px 110px minmax(150px,1.2fr) minmax(120px,0.8fr) 60px 68px 88px 88px 84px 96px 68px 108px 116px 100px 116px 54px 96px 34px"
+                          : "32px 82px 110px minmax(200px,1.4fr) minmax(160px,1fr) 60px 68px 108px 116px 100px 116px 54px 96px 34px" }}
                         data-testid="estimate-line-grid"
                       >
                         <div className={`${cell} h idx`}>#</div>
@@ -835,6 +833,8 @@ export function Estimates() {
                           <div className={`${cell} h n`}>{t("الربح %", "Margin %")}</div>
                         </>}
                         <div className={`${cell} h n`}>{t("سعر الوحدة", "Unit price")}</div>
+                        <div className={`${cell} h n`}>{t("المبلغ قبل الضريبة", "Amount before tax")}</div>
+                        <div className={`${cell} h n`}>{t("مبلغ الضريبة", "Tax amount")}</div>
                         <div className={`${cell} h n`}>{t("إجمالي البند", "Line total")}</div>
                         <div className={`${cell} h n`}>{t("أيام", "Days")}</div>
                         <div className={`${cell} h`}>{t("المسؤول", "Owner")}</div>
@@ -856,14 +856,13 @@ export function Estimates() {
                                 <div className={`${cell} n`}><Input data-row={i} data-field="labourCost" disabled={frozen} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} value={r.labourCost} onChange={(e) => setRow(i, { labourCost: normalizeDigits(e.target.value) })} /></div>
                                 <div className={`${cell} n`}><Input data-row={i} data-field="otherCost" disabled={frozen} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} value={r.otherCost} onChange={(e) => setRow(i, { otherCost: normalizeDigits(e.target.value) })} /></div>
                                 <div className={`${cell} n font-english text-content-secondary`} title={t("محسوبة: مواد + عمالة + أخرى", "Computed: material + labour + other")} data-testid={`estimate-unit-cost-${i}`}>{money2(c.unitCost)}</div>
-                                <div className={`${cell} n`}><Input data-row={i} data-field="marginPct" disabled={frozen || r.unitPriceLocked} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} placeholder={String(defaults.marginPct)} value={r.marginPct} onChange={(e) => setRow(i, { marginPct: normalizeDigits(e.target.value) })} /></div>
+                                <div className={`${cell} n`}><Input data-row={i} data-field="marginPct" disabled={frozen} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} placeholder={String(defaults.marginPct)} value={r.marginPct} onChange={(e) => setRow(i, { marginPct: normalizeDigits(e.target.value), unitPriceLocked: false })} /></div>
                               </>}
                               <div className={`${cell} n gap-1`}>
-                                {r.unitPriceLocked ? (
-                                  <Input data-row={i} data-field="unitPrice" disabled={frozen} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} value={r.unitPrice} onChange={(e) => setRow(i, { unitPrice: normalizeDigits(e.target.value) })} data-testid={`estimate-unit-price-${i}`} />
-                                ) : (
-                                  <span className="flex-1 text-end font-english tabular-nums text-foreground" data-testid={`estimate-unit-price-${i}`}>{money2(c.unitPrice)}</span>
-                                )}
+                                <Input data-row={i} data-field="unitPrice" disabled={frozen || !canSeeCost} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`}
+                                  value={r.unitPriceLocked ? r.unitPrice : String(c.unitPrice)}
+                                  onChange={(e) => setRow(i, { unitPrice: normalizeDigits(e.target.value), unitPriceLocked: true })}
+                                  aria-label={t("سعر الوحدة", "Unit price")} data-testid={`estimate-unit-price-${i}`} />
                                 <button
                                   type="button"
                                   disabled={frozen}
@@ -876,6 +875,8 @@ export function Estimates() {
                                   {r.unitPriceLocked ? <Lock className="h-3.5 w-3.5" strokeWidth={1.75} /> : <Unlock className="h-3.5 w-3.5" strokeWidth={1.75} />}
                                 </button>
                               </div>
+                              <div className={`${cell} n font-english text-foreground`} data-testid={`estimate-line-net-${i}`}>{money2(c.net)}</div>
+                              <div className={`${cell} n font-english text-content-secondary`} data-testid={`estimate-line-tax-${i}`}>{money2(c.tax)}</div>
                               <div className={`${cell} n font-english text-foreground`} data-testid={`estimate-line-total-${i}`}>{money2(c.lineTotal)}</div>
                               <div className={`${cell} n`}><Input data-row={i} data-field="durationDays" disabled={frozen} inputMode="numeric" dir="ltr" className={`${inputCls} font-english text-end`} value={r.durationDays} onChange={(e) => setRow(i, { durationDays: normalizeDigits(e.target.value) })} /></div>
                               <div className={cell}><Input data-row={i} data-field="ownerName" disabled={frozen} className={inputCls} value={r.ownerName} onChange={(e) => setRow(i, { ownerName: e.target.value })} /></div>
@@ -1001,6 +1002,7 @@ export function Estimates() {
               contactName={form.contactName}
               lines={previewLines}
               totals={totals}
+              taxInclusive={form.taxInclusive}
               sections={sectionSummary}
               defaultMarginPct={defaults.marginPct}
               canSeeCost={canSeeCost}

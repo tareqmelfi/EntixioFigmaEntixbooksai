@@ -470,6 +470,16 @@ function money2(value: any, currency = "SAR") {
   return `${n.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
+/** The detail grid and header share the same line basis. */
+function expenseLineAmounts(line: ExpenseLine) {
+  const base = Math.max(0, (Number(line.quantity) || 1) * Number(line.unitPrice || 0) - Number(line.discountAmount || 0));
+  const rate = Number(line.taxRate) || 0;
+  const gross = Number(line.lineTotal) || base;
+  const net = line.taxInclusive ? gross / (1 + rate) : base;
+  const tax = line.taxInclusive ? gross - net : net * rate;
+  return { net, tax, total: net + tax };
+}
+
 function extractionTotals(data: any) {
   // When lines exist, header derives from them deterministically — never trust the
   // extractor's header (it once treated an inclusive line as net and added VAT twice).
@@ -1008,11 +1018,8 @@ export function Expenses() {
     if (!formData.lineItems.length) return;
     let net = 0, tax = 0;
     for (const line of formData.lineItems) {
-      const base = (Number(line.quantity) || 1) * Number(line.unitPrice || 0) - Number(line.discountAmount || 0);
-      const rate = Number(line.taxRate) || 0;
-      const gross = Number(line.lineTotal) || base;
-      const n = line.taxInclusive ? gross / (1 + rate) : base;
-      net += n; tax += line.taxInclusive ? gross - n : n * rate;
+      const amounts = expenseLineAmounts(line);
+      net += amounts.net; tax += amounts.tax;
     }
     setFormData(f => ({ ...f, amount: net.toFixed(2), taxAmount: tax.toFixed(2), totalAmount: (net + tax).toFixed(2) }));
   }, [formData.lineItems]);
@@ -1701,13 +1708,15 @@ export function Expenses() {
                         <th className="px-2 py-2 text-start">{t("خصم", "Discount")}</th>
                         <th className="px-2 py-2 text-start">VAT</th>
                         <th className="px-2 py-2 text-start">{t("شامل؟", "Incl?")}</th>
+                        <th className="px-2 py-2 text-start">{t("المبلغ قبل الضريبة", "Amount before tax")}</th>
+                        <th className="px-2 py-2 text-start">{t("مبلغ الضريبة", "Tax amount")}</th>
                         <th className="px-2 py-2 text-start">{t("الإجمالي", "Total")}</th>
                         <th className="px-2 py-2" />
                       </tr>
                     </thead>
                     <tbody>
                       {formData.lineItems.length === 0 && (
-                        <tr><td colSpan={11} className="px-3 py-4 text-center text-xs text-muted-foreground">{t("لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.", "No items extracted yet. You can add a line manually or re-upload the invoice.")}</td></tr>
+                        <tr><td colSpan={13} className="px-3 py-4 text-center text-xs text-muted-foreground">{t("لم يتم استخراج أصناف بعد. يمكنك إضافة بند يدوي أو إعادة رفع الفاتورة.", "No items extracted yet. You can add a line manually or re-upload the invoice.")}</td></tr>
                       )}
                       {formData.lineItems.map((line, idx) => (
                         <tr key={idx} className={`border-t border-border/50 ${invalidLineIdx.has(idx) ? "ring-1 ring-inset ring-danger" : ""}`}>
@@ -1776,7 +1785,9 @@ export function Expenses() {
                               options={[{ value: "yes", label: t("شامل", "Incl.") }, { value: "no", label: t("غير شامل", "Excl.") }]}
                             />
                           </td>
-                          <td className="px-2 py-2 font-english">{money(line.lineTotal ?? Math.max(0, ((line.quantity || 1) * (line.unitPrice || 0)) - Number(line.discountAmount || 0)), formData.sourceCurrency)}</td>
+                          <td className="px-2 py-2 font-english" data-testid={`expense-line-net-${idx}`}>{money(expenseLineAmounts(line).net, formData.sourceCurrency)}</td>
+                          <td className="px-2 py-2 font-english" data-testid={`expense-line-tax-${idx}`}>{money(expenseLineAmounts(line).tax, formData.sourceCurrency)}</td>
+                          <td className="px-2 py-2 font-english" data-testid={`expense-line-total-${idx}`}>{money(expenseLineAmounts(line).total, formData.sourceCurrency)}</td>
                           <td className="px-2 py-2 text-center">
                             <button type="button" onClick={() => setFormData((f) => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }))} className="rounded-md p-1.5 text-danger hover:bg-danger-subtle">
                               <Trash2 className="h-4 w-4" />

@@ -134,12 +134,12 @@ test('editor computes the unit price from costs + margin', async ({ page }) => {
   await page.locator('[data-field="marginPct"][data-row="0"]').fill('20')
   // unit cost 1600.00 · +20% → 1920.00 · × 3 → 5760.00
   await expect(page.getByTestId('estimate-unit-cost-0')).toHaveText('1,600.00')
-  await expect(page.getByTestId('estimate-unit-price-0')).toHaveText('1,920.00')
-  await expect(page.getByTestId('estimate-line-total-0')).toHaveText('5,760.00')
+  await expect(page.getByTestId('estimate-unit-price-0')).toHaveValue('1920')
+  await expect(page.getByTestId('estimate-line-total-0')).toHaveText('6,624.00')
   // locking the price freezes it against a margin change
   await page.getByTestId('estimate-lock-0').click()
   await page.getByTestId('estimate-unit-price-0').fill('2000')
-  await expect(page.getByTestId('estimate-line-total-0')).toHaveText('6,000.00')
+  await expect(page.getByTestId('estimate-line-total-0')).toHaveText('6,900.00')
 })
 
 test('conversion strip states the copy law · price only', async ({ page }) => {
@@ -226,4 +226,17 @@ test('overflow audit · estimates + quote editor · 1024/1280/1440/1920 · ar + 
       }
     }
   }
+})
+
+
+test('estimate price can be typed directly and line total follows tax basis', async ({ page }) => {
+  await mocks(page, 'en')
+  await page.goto('/app/estimates/new')
+  await page.locator('[data-field="description"][data-row="0"]').fill('Synthetic price check')
+  await page.getByTestId('estimate-unit-price-0').fill('10000')
+  await expect(page.getByTestId('estimate-line-total-0')).toHaveText('11,500.00')
+  await page.getByTestId('estimate-tax-mode').click()
+  await page.getByRole('option', { name: 'Inclusive of tax', exact: true }).click()
+  await expect(page.getByTestId('estimate-line-total-0')).toHaveText('10,000.00')
+  await expect(page.getByTestId('estimate-summary')).toContainText('1,304.35')
 })
