@@ -200,6 +200,13 @@ export function JournalEntries() {
     }
   };
 
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get("entryId");
+    if (id) void openDetail(id);
+    // Loading a journal link is read-only; rerun only when its URL changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description.trim()) { push("error", t("الوصف مطلوب", "Description is required")); return; }
@@ -544,6 +551,14 @@ export function JournalEntries() {
               )}
             </div>
 
+            {selected.status === "POSTED" && ["manual", "api"].includes(selected.source || "") && <div className="rounded-lg border border-border p-3 space-y-2 text-sm">
+              <p>{t("قيد غير مرتبط بمستند تشغيلي. استكمل بياناته في القسم المناسب دون إعادة إدخال المبلغ.", "This journal has no linked business document. Complete its details in the relevant section without entering the amount again.")}</p>
+              <div className="flex flex-wrap gap-3">
+                <Link className="text-primary underline" to={`/app/purchases/bills?journalId=${selected.id}`}>{t("مراجعة وربط فاتورة مشتريات", "Review and link purchase invoice")}</Link>
+                <Link className="text-primary underline" to="/app/assets">{t("مراجعة تسجيل الأصول", "Review asset registration")}</Link>
+              </div>
+            </div>}
+
             {/* Lines */}
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("السطور", "Lines")}</div>
@@ -639,7 +654,7 @@ export function JournalEntries() {
                   </Button>
                 </>
               )}
-              {selected.source !== "manual" && (
+              {selected.source !== "manual" && selected.source !== "api" && (
                 <div className="w-full rounded-lg border border-info-border bg-info-subtle px-3 py-2 text-xs text-info">
                   {t("هذا القيد أُنشئ تلقائياً من", "This entry was auto-created from")} <span style={{fontWeight: 600}}>{selected.source === "invoice" ? t("فاتورة مبيعات", "a sales invoice") : selected.source === "bill" ? t("فاتورة شراء", "a purchase invoice") : selected.source === "expense" ? t("مصروف", "an expense") : selected.source === "voucher" ? t("سند", "a voucher") : t("مستند آخر", "another document")}</span>.
                   <br/>
@@ -684,6 +699,7 @@ export function JournalEntries() {
               )}
 
               <div className="p-5 space-y-4">
+                {!editMode && <p className="text-sm rounded-lg bg-muted p-3">{t("لتسجيل فاتورة مورد جديدة، استخدم فواتير المشتريات لتظهر في سجل المورد وتُنشئ قيدها تلقائيًا.", "For a new supplier invoice, use Purchase invoices so it appears in the supplier register and creates its journal automatically.")} <Link className="text-primary underline" to="/app/purchases/bills/new">{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Link></p>}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <Label className="text-xs text-muted-foreground">{t("التاريخ", "Date")} *</Label>
