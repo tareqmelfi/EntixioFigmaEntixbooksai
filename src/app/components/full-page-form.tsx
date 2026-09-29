@@ -16,16 +16,14 @@
  *     <>{KPI cards} {Table}</>
  *   )}
  *
- * Draft protection (CEO 2026-08-25 · "never lose what I typed"):
- *   pass `draft={useFormDraft(...)}` → the form
- *   - shows «استُعيدت مسودة» with a Discard action when a draft was restored,
- *   - shows an autosave indicator,
- *   - intercepts X / Esc / in-app navigation / browser back while dirty with an
- *     INLINE bar (UX-1 · no dialogs) — the draft is already saved either way,
- *   - never blocks leaving: the draft is flushed on the way out + a toast says so (2026-08-26).
+ * Draft protection:
+ *   - draft displays a local recovery indicator and restore/discard controls.
+ *   - onSaveBeforeLeave opts into explicit save/discard/stay for close and routing.
+ *   - Other editors retain their existing recovery-only navigation behavior.
  */
-import { useCallback, useEffect, useRef, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, ReactNode } from "react";
 import { useLocation } from "react-router";
+import { FormExitGuard } from "./form-exit-guard";
 import { X, Save, RotateCcw } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 import { formatDraftTime, type FormDraftState } from "../lib/form-draft";
@@ -35,27 +33,33 @@ interface Props {
   subtitle?: ReactNode;
   onClose: () => void;
   children: ReactNode;
-  footer: ReactNode; // required · place action buttons here (Save / Approve / Send)
+  footer: ReactNode | ((requestClose: () => void) => ReactNode); // required · place action buttons here (Save / Approve / Send)
   /** Optional toolbar row right under the header for filters/tabs/etc. */
   toolbar?: ReactNode;
   /** Disable Esc-to-close (e.g. while busy/saving). */
   disableEscape?: boolean;
   /** Draft state from useFormDraft · enables the unsaved-changes guards + banner. */
   draft?: FormDraftState;
+  /** Opt-in explicit save/discard/stay, with real persistence supplied by the editor. */
+  onSaveBeforeLeave?: () => Promise<boolean>;
 }
 
-export function FullPageForm({ title, subtitle, onClose, children, footer, toolbar, disableEscape, draft }: Props) {
+export function FullPageForm({ title, subtitle, onClose, children, footer, toolbar, disableEscape, draft, onSaveBeforeLeave }: Props) {
   const { t } = useLanguage();
   const dirty = !!draft?.dirty;
+  const [closeRequested, setCloseRequested] = useState(false);
 
-  // Leaving NEVER blocks (CEO 2026-08-26: «لما طلعت أضغط على أي شي علّق»). The draft
-  // is written on the way out and a toast says so; reopening the form restores it.
+  // Legacy editors keep recovery-only navigation; opted-in editors ask explicitly.
   const keepDraftToast = useCallback(() => {
-    if (!dirty) return;
+    if (!dirty || onSaveBeforeLeave) return;
     draft?.flush?.();
     try { window.dispatchEvent(new CustomEvent("entix:toast", { detail: { kind: "info", message: t("حُفظت مسودتك تلقائيًا — ترجع لها عند فتح النموذج", "Your draft was saved — it comes back when you reopen the form") } })); } catch { /* ignore */ }
-  }, [dirty, draft, t]);
-  const requestClose = useCallback(() => { keepDraftToast(); onClose(); }, [keepDraftToast, onClose]);
+  }, [dirty, draft, t, onSaveBeforeLeave]);
+  const requestClose = useCallback(() => {
+    if (disableEscape) return;
+    if (onSaveBeforeLeave && (draft?.hasChanges?.() ?? dirty)) { setCloseRequested(true); return; }
+    keepDraftToast(); onClose();
+  }, [disableEscape, onSaveBeforeLeave, draft, dirty, keepDraftToast, onClose]);
 
   /**
    * Esc closes the form — but only when it is the form Esc is aimed at.
@@ -121,7 +125,7 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-english" aria-live="polite">
               <Save className="h-3.5 w-3.5" />
               {draft.savedAt
-                ? t(`مسودة محفوظة تلقائيًا · ${formatDraftTime(draft.savedAt, "ar")}`, `Draft autosaved · ${formatDraftTime(draft.savedAt, "en")}`)
+                ? t(`نسخة استعادة محلية — التعديلات لم تُحفظ · ${formatDraftTime(draft.savedAt, "ar")}`, `Local recovery copy — changes not saved · ${formatDraftTime(draft.savedAt, "en")}`)
                 : t("تغييرات غير محفوظة", "Unsaved changes")}
             </div>
           )}
@@ -131,6 +135,13 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
             {toolbar}
           </div>
         )}
+        {draft?.recoveryAt && <div data-testid="draft-recovery" className="px-4 py-3 border-t border-border bg-warning-subtle flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm">{t("توجد تعديلات محلية لم تُحفظ. المعروض الآن هو النسخة المحفوظة؛ هل تريد استعادة التعديلات؟", "Unsaved local changes are available. The saved version is shown; restore those changes?")}</p>
+          <div className="flex gap-3">
+            <button type="button" data-testid="draft-recover" onClick={draft.recover} className="text-sm font-medium text-primary">{t("استعادة التعديلات", "Restore changes")}</button>
+            <button type="button" onClick={draft.discard} className="text-sm font-medium">{t("تجاهل المسودة واستخدام المحفوظ", "Discard recovery copy and use saved version")}</button>
+          </div>
+        </div>}
         {/* Restored-draft banner · inline · dismiss = discard (back to the clean form) */}
         {draft?.restored && (
           <div className="px-4 sm:px-6 lg:px-8 py-2 border-t border-border bg-warning-subtle/60 flex items-center justify-between gap-3 flex-wrap">
@@ -149,14 +160,15 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
       </div>
 
       {/* Body · normal flow · no overflow trap */}
-      <div className="flex-1 px-4 sm:px-[40px] py-6">
+      <div inert={draft?.recoveryAt ? true : undefined} className="flex-1 px-4 sm:px-[40px] py-6">
         {children}
       </div>
 
       {/* Footer bar · sticky at bottom · contains action buttons */}
       <div className="sticky bottom-0 bg-surface border-t border-border z-10">
-        <div className="px-4 sm:px-6 lg:px-8 py-3">
-          {footer}
+        {draft && onSaveBeforeLeave && <FormExitGuard draft={draft} requested={closeRequested} onStay={() => setCloseRequested(false)} onClose={onClose} onSave={onSaveBeforeLeave} disabled={disableEscape} />}
+        <div inert={draft?.recoveryAt ? true : undefined} className="px-4 sm:px-6 lg:px-8 py-3">
+          {typeof footer === "function" ? footer(requestClose) : footer}
         </div>
       </div>
     </div>
