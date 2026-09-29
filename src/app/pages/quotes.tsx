@@ -299,6 +299,7 @@ export function Quotes() {
   // the plan away, and it had to be typed again from scratch (2026-09-21).
   const draft = useFormDraft({
     key: editId ? `quote:${editId}` : "quote:new",
+    restoreMode: "prompt",
     open: createOpen,
     snapshot: { form, lines, taxMode, planRows, planTemplateId },
     restore: (s) => {
@@ -827,10 +828,11 @@ export function Quotes() {
           onClose={closeCreate}
           disableEscape={busy}
           draft={draft}
-          footer={
+          onSaveBeforeLeave={async () => !!(await handleSubmit("draft", { stayOpen: true }))}
+          footer={(requestClose) =>
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" onClick={closeCreate} className="border-border">{t("إلغاء", "Cancel")}</Button>
+                <Button type="button" variant="outline" onClick={requestClose} className="border-border">{t("إلغاء", "Cancel")}</Button>
                 <Button type="button" variant="secondary" disabled={busy} onClick={handleFullPreview} data-testid="quote-full-preview" title={t("يحفظ التعديلات ويعرض المستند الكامل داخل الصفحة", "Saves changes and previews the full document in this page")}>
                   {t("حفظ ومعاينة كاملة", "Save and preview")}
                 </Button>

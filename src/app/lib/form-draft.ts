@@ -24,7 +24,8 @@ import { displayLocale } from "./number-display";
  *    entix:draft:v1:<orgId>:<key>. Survives reload · session expiry · crash.
  *  - On open, if a draft exists for the key → it is restored automatically and
  *    `restored` carries its timestamp so the form can show «استُعيدت مسودة» +
- *    a Discard action. Discard returns to the baseline.
+ *    a Discard action. With restoreMode="prompt", saved data stays visible until
+ *    the user chooses recovery. Discard returns to the baseline.
  *  - clear() removes the stored draft (call after a successful save). Closing a
  *    form that is not dirty also clears it.
  *  - Storage is per company (orgId) so switching companies never leaks drafts.
@@ -42,10 +43,15 @@ const MAX_DRAFT_AGE_MS = 14 * 86_400_000; // 2 weeks
 export interface FormDraftState {
   /** Snapshot differs from the opening baseline (and the user actually interacted). */
   dirty: boolean;
+  /** Synchronous guard: clear/discard must take effect before React unmounts. */
+  hasChanges?: () => boolean;
   /** ISO timestamp of the last autosave, null when nothing stored. */
   savedAt: string | null;
   /** Set when a stored draft was restored on open (ISO of that draft). */
   restored: string | null;
+  /** A recovery copy waiting for explicit consent; not applied to the form. */
+  recoveryAt?: string | null;
+  recover?: () => void;
   /** Remove the stored draft (after a successful save). */
   clear: () => void;
   /** Throw away the restored draft and return to the opening baseline. */
@@ -107,6 +113,8 @@ export function useFormDraft<T>(opts: {
   restore: (snapshot: T) => void;
   /** Disable persistence (e.g. read-only view). Guards still work off `dirty`. */
   enabled?: boolean;
+  /** Existing documents can offer recovery without silently replacing saved data. */
+  restoreMode?: "auto" | "prompt";
 }): FormDraftState {
   const { key, open, snapshot, restore } = opts;
   const enabled = opts.enabled !== false;
@@ -121,6 +129,9 @@ export function useFormDraft<T>(opts: {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [restored, setRestored] = useState<string | null>(null);
+  const recoveryRef = useRef<{ savedAt: string; snapshot: T } | null>(null);
+  const [recoveryAt, setRecoveryAt] = useState<string | null>(null);
+  const dirtyRef = useRef(false);
   const [tick, setTick] = useState(0); // re-evaluate dirty after the touch grace period
 
   // ── open / close lifecycle ────────────────────────────────────────────────
@@ -129,6 +140,8 @@ export function useFormDraft<T>(opts: {
       touchedRef.current = false;
       setRestored(null);
       setSavedAt(null);
+      recoveryRef.current = null;
+      setRecoveryAt(null);
       return;
     }
     sweepOnce();
@@ -141,10 +154,15 @@ export function useFormDraft<T>(opts: {
       baselineRef.current = serializedRef.current;
       const stored = enabled ? readDraft<T>(key) : null;
       if (stored && JSON.stringify(stored.snapshot) !== baselineRef.current) {
-        restoreRef.current(stored.snapshot);
-        setRestored(stored.savedAt);
-        setSavedAt(stored.savedAt);
-        touchedRef.current = true; // a restored draft is unsaved work by definition
+        if (opts.restoreMode === "prompt") {
+          recoveryRef.current = stored;
+          setRecoveryAt(stored.savedAt);
+        } else {
+          restoreRef.current(stored.snapshot);
+          setRestored(stored.savedAt);
+          setSavedAt(stored.savedAt);
+          touchedRef.current = true; // a restored draft is unsaved work by definition
+        }
       }
     });
     const graceTimer = setTimeout(() => setTick((n) => n + 1), TOUCH_GRACE_MS + 50);
@@ -166,7 +184,7 @@ export function useFormDraft<T>(opts: {
       document.removeEventListener("pointerdown", onTouch, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, key, enabled]);
+  }, [open, key, enabled, opts.restoreMode]);
 
   // Key changed while the form stayed open (new → saved id): the old draft is obsolete.
   useEffect(() => {
@@ -194,7 +212,8 @@ export function useFormDraft<T>(opts: {
   void tick;
   // Last dirty value observed while open — read by the close effect (where `open` is already false).
   const lastDirtyRef = useRef(false);
-  if (open) lastDirtyRef.current = dirty;
+  if (open) lastDirtyRef.current = dirty || !!recoveryAt;
+  dirtyRef.current = dirty;
 
   // ── autosave ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -212,7 +231,7 @@ export function useFormDraft<T>(opts: {
   // Flush pending autosave synchronously when the page is being unloaded.
   useEffect(() => {
     if (!open || !enabled) return;
-    const flush = () => { if (dirty) writeDraft(key, snapshot); };
+    const flush = () => { if (dirtyRef.current) writeDraft(keyRef.current, JSON.parse(serializedRef.current || "null")); };
     window.addEventListener("pagehide", flush);
     window.addEventListener("beforeunload", flush);
     return () => { window.removeEventListener("pagehide", flush); window.removeEventListener("beforeunload", flush); };
@@ -229,6 +248,10 @@ export function useFormDraft<T>(opts: {
   const clear = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     removeDraft(keyRef.current);
+    dirtyRef.current = false;
+    lastDirtyRef.current = false;
+    recoveryRef.current = null;
+    setRecoveryAt(null);
     baselineRef.current = serializedRef.current;
     touchedRef.current = false;
     setSavedAt(null);
@@ -239,6 +262,13 @@ export function useFormDraft<T>(opts: {
   const discard = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     removeDraft(keyRef.current);
+    // Invalidate synchronously: navigation may unmount before React renders again.
+    // The unmount/pagehide flush must not recreate explicitly discarded work.
+    dirtyRef.current = false;
+    lastDirtyRef.current = false;
+    recoveryRef.current = null;
+    setRecoveryAt(null);
+    serializedRef.current = baselineRef.current;
     try {
       if (baselineRef.current) restoreRef.current(JSON.parse(baselineRef.current));
     } catch { /* ignore */ }
@@ -248,15 +278,24 @@ export function useFormDraft<T>(opts: {
     setTick((n) => n + 1);
   }, []);
 
+  const recover = useCallback(() => {
+    const stored = recoveryRef.current;
+    if (!stored) return;
+    touchedRef.current = true;
+    restoreRef.current(stored.snapshot);
+    setRestored(stored.savedAt);
+    setSavedAt(stored.savedAt);
+    recoveryRef.current = null;
+    setRecoveryAt(null);
+  }, []);
+
   const markClean = useCallback(() => {
     baselineRef.current = serializedRef.current;
     touchedRef.current = false;
     setTick((n) => n + 1);
   }, []);
 
-  // Leaving the form (X · sidebar · Back) never loses work: the draft is written
-  // synchronously on the way out (CEO 2026-08-26: «لو طلعت الحفظ تلقائي كمسودة»).
-  const dirtyRef = useRef(false); dirtyRef.current = dirty;
+  // Preserve recovery on unexpected exit, except after explicit clear/discard.
   const flush = useCallback(() => {
     if (!enabled || !dirtyRef.current) return null;
     if (timerRef.current) clearTimeout(timerRef.current);
@@ -266,7 +305,7 @@ export function useFormDraft<T>(opts: {
   }, [enabled]);
   useEffect(() => () => { if (dirtyRef.current && enabled) writeDraft(keyRef.current, JSON.parse(serializedRef.current || "null")); }, [enabled]);
 
-  return { dirty, savedAt, restored, clear, discard, markClean, flush };
+  return { dirty, hasChanges: () => dirtyRef.current, savedAt, restored, recoveryAt, recover, clear, discard, markClean, flush };
 }
 
 /** Human time for banners · "قبل 3 دقائق" / "3 min ago" style, locale-safe. */
