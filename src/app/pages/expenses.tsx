@@ -38,7 +38,7 @@ import { FullPageForm } from "../components/full-page-form";
 import { DocumentPreviewPane } from "../components/document-preview-pane";
 import { normalizeDigits } from "../lib/digits";
 import { useReturnTo } from "../lib/use-return-to";
-import { api, getOrgId, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
+import { api, ApiError, getOrgId, Expense as ApiExpense, ExpenseInput, ExpenseLine, ExpensePaymentSplit, ExpenseAttachment } from "../lib/api";
 import { buildDuplicateDecision, getSimilarityReview, type SimilarityReview } from "../lib/similarity-review";
 import { SimilarityReviewDialog } from "../components/similarity-review-dialog";
 import { SearchableCombobox } from "../components/searchable-combobox";
@@ -1210,15 +1210,13 @@ export function Expenses() {
           data: dataUrl,
         });
         uploaded++;
-      } catch {
-        // old API → append into extractedJson.attachmentsFull instead
-        try {
-          const cur = (selected.extractedJson as any) || {};
-          const arr = Array.isArray(cur.attachmentsFull) ? [...cur.attachmentsFull] : [];
-          arr.push({ name: file.name, type: file.type || "application/octet-stream", size: file.size, base64: dataUrl.split(",")[1] || "" });
-          await api.expenses.update(selected.id, { extractedJson: { ...cur, attachmentsFull: arr } } as any);
-          uploaded++;
-        } catch { push("error", file.name + t(": فشل الرفع", ": Upload failed")); }
+      } catch (error) {
+        // A rejected or uncertain upload must not trigger a second write through
+        // expense metadata. Existing legacy attachments remain readable above.
+        const message = error instanceof ApiError && error.status === 404
+          ? t("خدمة رفع المرفقات غير متاحة لهذا المصروف؛ حدّث الصفحة وحاول مجددًا", "Attachment upload is unavailable for this expense; refresh and try again")
+          : humanizeError(error, language, { ar: "فشل رفع المرفق؛ حاول مجددًا", en: "Attachment upload failed; please retry" });
+        push("error", file.name + ": " + message);
       }
     }
     if (uploaded > 0) {
