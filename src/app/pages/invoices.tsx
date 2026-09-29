@@ -25,7 +25,7 @@ import { BranchField } from "../components/branch-field";
 import { ProjectField } from "../components/project-field";
 import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
-import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals } from "../components/items-table";
+import { ItemsTable, InvoiceLine, newLine, TaxMode, computeTotals, normalizeTaxRate } from "../components/items-table";
 import { DocumentDropZone, type ExtractedDocument } from "../components/document-dropzone";
 import { QuickCreateAccount, QuickCreateProduct } from "../components/quick-create-modals";
 import { QuickContactDialog } from "../components/quick-contact-dialog";
@@ -561,9 +561,10 @@ export function Invoices() {
           taxRate: typeof l.taxRate === "number" ? l.taxRate : defaultTaxRate, // numeric rate · jurisdiction default
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
-          unitPrice: l.taxInclusive
-            ? Number(normalizeDigits(l.unitPrice)) / (1 + l.taxRate)
-            : Number(normalizeDigits(l.unitPrice)),
+          unitPrice: Number(normalizeDigits(l.unitPrice)),
+          taxRateId: l.taxRateId || null,
+          taxInclusive: l.taxInclusive,
+          discount: Number(normalizeDigits(l.discount || "")) || 0,
           // Revenue recognition · only sent when the line has a real schedule
           recognitionStartDate: l.recognitionStartDate || null,
           recognitionMonths: l.recognitionMonths ?? null,
@@ -735,8 +736,10 @@ export function Invoices() {
       description: l.description || "",
       quantity: String(l.quantity || 1),
       unitPrice: String(l.unitPrice || 0),
-      taxRate: typeof l.taxRate === "number" ? l.taxRate : defaultTaxRate,
-      taxInclusive: false,
+      taxRate: normalizeTaxRate(l.taxRate, 0).rate,
+      taxRateId: l.taxRateId || l.taxRate?.id || undefined,
+      taxInclusive: l.taxInclusive ?? l.taxRate?.isInclusive ?? false,
+      discount: String(l.discount ?? ""),
       productId: l.productId || null,
       accountId: l.accountId || null,
       // Revenue recognition · hydrate saved schedule back into the line
@@ -744,6 +747,8 @@ export function Invoices() {
       recognitionMonths: l.recognitionMonths ?? undefined,
       deferredRevenueAccountId: l.deferredRevenueAccountId || undefined,
     })));
+    const bases = ((inv.lines as any[]) || []).map(l => l.taxInclusive ?? l.taxRate?.isInclusive ?? false);
+    setTaxMode(bases.every(Boolean) ? "all-inclusive" : bases.every(b => !b) ? "all-exclusive" : "custom");
     setCreateOpen(true);
     setCreateError(null);
   };

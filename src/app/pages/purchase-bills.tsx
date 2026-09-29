@@ -356,6 +356,9 @@ export function PurchaseBills() {
             const rate = lineTaxRate(l);
             return l.taxInclusive && rate > 0 ? Math.round((v / (1 + rate)) * 10000) / 10000 : v;
           })(),
+          // BillLine stores the normalized net price, so the basis must be
+          // explicit even when its catalogue row is marked inclusive.
+          taxInclusive: false,
           taxRate: lineTaxRate(l),
           taxRateId: (l as any).taxRateId || null,
           accountId: (l as any).accountId || null,

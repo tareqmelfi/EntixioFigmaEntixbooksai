@@ -255,10 +255,10 @@ export function computeTotals(lines: InvoiceLine[], discount?: DocDiscount) {
   };
 }
 
-// ض.ق.م + الاعتراف are off by default so the grid matches the approved 7-column anatomy;
-// both stay one click away in the "الأعمدة" menu. The account column is ALWAYS visible
+// VAT amount is visible by default so net + tax = total can be read on each row;
+// recognition stays optional in the "الأعمدة" menu. The account column is ALWAYS visible
 // (account law 2026-09-08 · every line must carry an account) so it has no toggle.
-const DEFAULT_HIDDEN_COLS = { account: false, discount: false, tax: false, taxAmount: true, recognition: true };
+const DEFAULT_HIDDEN_COLS = { account: false, discount: false, tax: false, taxAmount: false, recognition: true };
 
 /** Debounce before asking the suggestion engine for a line whose account is still empty */
 const SUGGEST_DEBOUNCE_MS = 450;
@@ -577,32 +577,16 @@ export function ItemsTable({
     });
   };
 
-  const handleModeChange = (m: TaxMode) => {
-    onModeChange(m);
-    if (m === "all-inclusive") setLines(lines.map((l: InvoiceLine) => ({ ...l, taxInclusive: true })));
-    else if (m === "all-exclusive") setLines(lines.map((l: InvoiceLine) => ({ ...l, taxInclusive: false })));
-  };
-
-  void handleModeChange;
-
-  /**
-   * The document's tax basis owns EVERY row, not just the next one.
-   *
-   * 2026-09-21: `handleModeChange` above was written and then never wired —
-   * the header select called setTaxMode directly, so switching to «شاملة
-   * الضريبة» only affected rows added AFTERWARDS. The row already sitting
-   * there kept the old basis and quietly computed on it, which is how a
-   * document came out on two different bases at once. Switching the basis now
-   * re-bases every line; «مخصصة لكل بند» deliberately leaves them alone.
-   */
+  // Bulk changes are explicit actions, not a per-keystroke normalizer. In
+  // particular, reopening a mixed document must retain every stored line basis.
+  const previousMode = useRef(mode);
   useEffect(() => {
-    if (mode !== "all-inclusive" && mode !== "all-exclusive") return;
-    const want = mode === "all-inclusive";
-    if (lines.every((l: InvoiceLine) => !!l.taxInclusive === want)) return;
-    setLines(lines.map((l: InvoiceLine) => ({ ...l, taxInclusive: want })));
-    // `lines` drives the guard above; re-running on every keystroke is harmless
-    // because the guard exits immediately once the rows already agree.
-  }, [mode, lines]);
+    if (previousMode.current === mode) return;
+    previousMode.current = mode;
+    if (mode === "custom") return;
+    const inclusive = mode === "all-inclusive";
+    setLines(previous => previous.map(line => ({ ...line, taxInclusive: inclusive })));
+  }, [mode, setLines]);
 
   const _totals = computeTotals(lines);
   void _totals;
@@ -718,35 +702,28 @@ export function ItemsTable({
    */
   useEffect(() => {
     if (!taxRates.length) return;
-    const byId = new Set(taxRates.map((r) => r.id));
-    let changed = false;
     const byIdMap = new Map(taxRates.map((r) => [r.id, r]));
-    const next = lines.map((l) => {
-      if (l.taxRateId && byId.has(l.taxRateId)) {
-        // THE PICKER AND THE MATHS MUST NEVER DISAGREE (2026-09-21).
-        // A line loaded from the API carries `taxRateId` but not always a
-        // numeric rate, so the cell read «شامل 15%» while computeTotals saw
-        // rate 0 — the editor showed «الضريبة 0.00» on a document the server
-        // had taxed correctly. When the id resolves, the catalogue's own rate
-        // and inclusive flag are copied onto the line.
-        const r = byIdMap.get(l.taxRateId)!;
-        const rate = Number(r.rate);
-        const inclusive = !!r.isInclusive;
-        if (lineTaxRate(l) === rate && !!l.taxInclusive === inclusive) return l;
+    setLines(previous => {
+      let changed = false;
+      const next = previous.map(line => {
+        const storedRate = line.taxRateId ? byIdMap.get(line.taxRateId) : undefined;
+        if (storedRate) {
+          // The catalogue owns the percentage/category; the document line owns
+          // its explicit inclusive flag (the API follows the same precedence).
+          const rate = Number(storedRate.rate);
+          if (lineTaxRate(line) === rate) return line;
+          changed = true;
+          return { ...line, taxRate: rate };
+        }
+        const match = taxRates.find(r => Number(r.rate) === lineTaxRate(line)
+          && !!r.isInclusive === !!line.taxInclusive);
+        if (!match || line.taxRateId === match.id) return line;
         changed = true;
-        return { ...l, taxRate: rate, taxInclusive: inclusive };
-      }
-      const match = taxRates.find((r) => Number(r.rate) === lineTaxRate(l) && !!r.isInclusive === !!l.taxInclusive)
-        || taxRates.find((r) => Number(r.rate) === lineTaxRate(l));
-      if (!match || l.taxRateId === match.id) return l;
-      changed = true;
-      return { ...l, taxRateId: match.id };
+        return { ...line, taxRateId: match.id };
+      });
+      return changed ? next : previous;
     });
-    if (changed) setLines(next);
-    // `lines` is deliberately not a dependency: this binds ids when the catalogue
-    // loads, it is not a per-keystroke normalizer.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [taxRates]);
+  }, [taxRates, setLines]);
 
   // Account column is always visible once the chart is loaded (never a hidden toggle).
   const showAccount = accounts.length > 0 || !!onCreateAccount;
@@ -795,22 +772,23 @@ export function ItemsTable({
         { value: "rate:0:ex", label: t("0% (صفر)", "0% (zero-rated)") },
       ];
 
-  /** Which option a stored line is showing · by id first, then by rate + mode. */
+  /** A rate id alone cannot describe an explicitly overridden line basis. */
   const taxOptionValue = (line: InvoiceLine): string => {
-    if (line.taxRateId && taxRates.some((r) => r.id === line.taxRateId)) return line.taxRateId;
-    const match = taxRates.find(
-      (r) => Number(r.rate) === lineTaxRate(line) && !!r.isInclusive === !!line.taxInclusive,
-    ) || taxRates.find((r) => Number(r.rate) === lineTaxRate(line));
-    if (match) return match.id;
-    return `rate:${lineTaxRate(line)}:${line.taxInclusive ? "in" : "ex"}`;
+    const stored = taxRates.find(r => r.id === line.taxRateId);
+    if (stored && (!lineTaxRate(line) || !!stored.isInclusive === !!line.taxInclusive)) return stored.id;
+    const match = taxRates.find(r => Number(r.rate) === lineTaxRate(line)
+      && !!r.isInclusive === !!line.taxInclusive && (!stored || r.type === stored.type));
+    return match?.id || `rate:${lineTaxRate(line)}:${line.taxInclusive ? "in" : "ex"}`;
   };
 
-  /** Turn the chosen option back into the three fields a line stores. */
   const taxSelection = (value: string): Partial<InvoiceLine> => {
-    const rate = taxRates.find((r) => r.id === value);
+    const rate = taxRates.find(r => r.id === value);
     if (rate) return { taxRateId: rate.id, taxRate: Number(rate.rate), taxInclusive: !!rate.isInclusive };
-    const [, fraction, mode] = value.split(":");
-    return { taxRateId: undefined, taxRate: Number(fraction) || 0, taxInclusive: mode === "in" };
+    const [, fraction, basis] = value.split(":");
+    // The synthesized opposite basis can reuse its catalogue percentage. The
+    // explicit flag is sent separately, without creating another tax rate.
+    const source = taxRates.find(r => Number(r.rate) === Number(fraction) && r.type !== "EXEMPT");
+    return { taxRateId: source?.id, taxRate: Number(fraction) || 0, taxInclusive: basis === "in" };
   };
 
   const showTaxAmount = !hidden.taxAmount;
@@ -1002,6 +980,7 @@ export function ItemsTable({
                     <Input
                       type="text"
                       inputMode="decimal"
+                      aria-label={t("سعر السطر", "Line price")}
                       value={isReal ? line.unitPrice : ""}
                       onChange={(e) => updateLine(i, { unitPrice: normalizeDigits(e.target.value) })}
                       onKeyDown={(e) => handleKeyDown(e, i, i === realLineCount - 1)}
@@ -1014,6 +993,7 @@ export function ItemsTable({
                       <Input
                         type="text"
                         inputMode="decimal"
+                        aria-label={t("خصم السطر", "Line discount")}
                         value={isReal ? (line.discount || "") : ""}
                         onChange={(e) => updateLine(i, { discount: normalizeDigits(e.target.value) })}
                         onKeyDown={(e) => handleKeyDown(e, i, false)}
@@ -1063,7 +1043,11 @@ export function ItemsTable({
                         data-testid={`line-tax-${i}`}
                         aria-label={t("الضريبة", "Tax")}
                         value={taxOptionValue(line)}
-                        onChange={(e) => updateLine(i, taxSelection(e.target.value))}
+                        onChange={(e) => {
+                          const patch = taxSelection(e.target.value);
+                          if (mode !== "custom" && patch.taxInclusive !== (mode === "all-inclusive")) onModeChange("custom");
+                          updateLine(i, patch);
+                        }}
                         className="h-8 w-full border-0 bg-transparent px-1 text-[12px] leading-tight text-end focus:outline-none"
                       >
                         {taxOptions.map((o) => (
@@ -1076,7 +1060,7 @@ export function ItemsTable({
                     {gross > 0 ? displayDigits(lineNet.toFixed(2)) : ""}
                   </span>
                   {showTaxAmount && (
-                    <span className="cell n font-english text-content-secondary">
+                    <span className="cell n font-english text-content-secondary" data-testid={`line-tax-amount-${i}`}>
                       {gross > 0 ? displayDigits(lineTax.toFixed(2)) : ""}
                     </span>
                   )}

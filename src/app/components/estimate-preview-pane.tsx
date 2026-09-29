@@ -63,6 +63,7 @@ interface Props {
   contactName?: string;
   lines: EstimatePreviewLine[];
   totals: EstimatePreviewTotals;
+  taxInclusive?: boolean;
   sections: EstimatePreviewSection[];
   defaultMarginPct: number;
   /** false for non-financial roles → the board hides cost / margin figures */
@@ -93,7 +94,7 @@ export function useMinWidth(px: number): boolean {
 }
 
 /** Build the quote-shaped document from the editor state · SALE SIDE ONLY. */
-export function docFromEstimateEditor(args: { title: string; number?: string | null; currency: string; lines: EstimatePreviewLine[]; totals: EstimatePreviewTotals; lang: "ar" | "en" }): DocSpec {
+export function docFromEstimateEditor(args: { title: string; number?: string | null; currency: string; lines: EstimatePreviewLine[]; totals: EstimatePreviewTotals; taxInclusive?: boolean; lang: "ar" | "en" }): DocSpec {
   const lines: LineSpec[] = args.lines
     .filter((l) => l.description.trim())
     .map((l) => ({
@@ -125,10 +126,11 @@ export function docFromEstimateEditor(args: { title: string; number?: string | n
     taxTotal: args.totals.taxTotal,
     total: args.totals.saleTotal,
     language: args.lang,
+    taxBasis: args.taxInclusive ? "inclusive" : "exclusive",
   };
 }
 
-export function EstimatePreviewPane({ title, number, currency, contact, contactName, lines, totals, sections, defaultMarginPct, canSeeCost, tab, onTabChange, onCollapse, className = "" }: Props) {
+export function EstimatePreviewPane({ title, number, currency, contact, contactName, lines, totals, taxInclusive, sections, defaultMarginPct, canSeeCost, tab, onTabChange, onCollapse, className = "" }: Props) {
   const { t, language } = useLanguage();
   const lang: "ar" | "en" = language === "en" ? "en" : "ar";
 
@@ -146,7 +148,7 @@ export function EstimatePreviewPane({ title, number, currency, contact, contactN
   const live = useMemo<RenderInput>(() => {
     const orgParty: PartySpec = org ? partyFromOrg(org) : { name: "" };
     const contactParty: PartySpec | null = contact ? partyFromContact(contact) : (contactName?.trim() ? { name: contactName.trim() } : null);
-    const doc = docFromEstimateEditor({ title, number, currency, lines, totals, lang });
+    const doc = docFromEstimateEditor({ title, number, currency, lines, totals, taxInclusive, lang });
     // quote QR (identity · showQr) · same TLV the printed quote will carry
     doc.qrPayload = quoteQrPayload(doc, orgParty, template);
     return {
@@ -158,7 +160,7 @@ export function EstimatePreviewPane({ title, number, currency, contact, contactN
       bank,
       embed: true,
     };
-  }, [org, contact, contactName, template, bank, lang, title, number, currency, lines, totals]);
+  }, [org, contact, contactName, template, bank, lang, title, number, currency, lines, totals, taxInclusive]);
 
   // 300 ms behind the keystrokes · the engine lays out A4 sheets, not cheap per key
   const [debounced, setDebounced] = useState<RenderInput>(live);

@@ -492,7 +492,7 @@ export function Quotes() {
         productId: l.productId || undefined,
         description: l.description || "",
         quantity: String(l.quantity ?? 1),
-        // The stored unitPrice is the net; `taxInclusive` says how the user typed it.
+        // unitPrice is stored as typed; the line flag says whether it includes tax.
         unitPrice: String(l.unitPrice ?? ""),
         discount: Number(l.discount || 0) ? String(l.discount) : "",
         accountId: l.accountId || undefined,
@@ -508,7 +508,7 @@ export function Quotes() {
         taxRateId: l.taxRateId || (l.taxRate && typeof l.taxRate === "object" ? l.taxRate.id : undefined) || undefined,
       })) as InvoiceLine[];
       setLines(ls.length ? ls : [newLine()]);
-      setTaxMode(ls.length && ls.every((l) => l.taxInclusive) ? "all-inclusive" : "all-exclusive");
+      setTaxMode(ls.every(l => l.taxInclusive) ? "all-inclusive" : ls.every(l => !l.taxInclusive) ? "all-exclusive" : "custom");
       setPlanRows(planFromApi((full as any).paymentPlan)); setPlanTemplateId("");
       setEditId(full.id);
       setCreateOpen(true);
