@@ -1,6 +1,26 @@
 import { test, expect, type Page } from '@playwright/test'
 import { prepareVisualApp } from './fixtures/visual-app'
 
+test('quote row rounds half-halalas like the saved API line and PDF', async ({ page }) => {
+  await prepareVisualApp(page, 'ar')
+  await mockTaxApi(page)
+  await page.goto('/app/quotes')
+  await page.getByRole('button', { name: /عرض سعر جديد|عرض جديد/ }).first().click()
+  await page.getByPlaceholder('الوصف').first().fill('Synthetic half-halalah regression')
+  await page.getByTestId('line-tax-0').selectOption('tr-vat-15')
+  for (const [quantity, price, tax, gross] of [
+    [20, 783.49, '2350.47', '18020.27'], [50, 74.2, '556.50', '4266.50'],
+    [35, 314.82, '1652.81', '12671.51'], [100, 93.28, '1399.20', '10727.20'],
+    [30, 47.7, '214.65', '1645.65'], [5, 185.5, '139.13', '1066.63'],
+    [100, 3.18, '47.70', '365.70'], [50, 20.29, '152.18', '1166.68'],
+  ]) {
+    await page.getByLabel('كمية السطر', { exact: true }).first().fill(String(quantity))
+    await page.getByLabel('سعر السطر', { exact: true }).first().fill(String(price))
+    await expect(page.getByTestId('line-tax-amount-0')).toHaveText(String(tax))
+    await expect(page.getByTestId('line-tax-0').locator('..').locator('..').locator('.cell.font-display')).toHaveText(String(gross))
+  }
+});
+
 /**
  * REGRESSION · the wrong client-facing total (CEO screenshot 2026-09-08).
  *

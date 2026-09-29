@@ -1,3 +1,4 @@
+import { roundDocumentMoney } from "./document-money";
 import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social';
 /**
  * Entix Books · brand document engine (quotes + invoices).
@@ -304,8 +305,12 @@ export interface LineSpec {
   quantity: number;
   unitPrice: number;
   discount?: number;
-  /** Net amount (after discount · before tax) */
+  /** Saved line total after discount, INCLUDING tax (the API calls this subtotal). */
   subtotal: number;
+  /** Explicit print amounts keep the typed unit price separate from its tax basis. */
+  netAmount?: number;
+  taxAmount?: number;
+  taxInclusive?: boolean;
   taxRate?: number;
   unit?: string | null;
   sectionLabel?: string | null;
@@ -415,7 +420,8 @@ const esc = (s: unknown): string => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const money = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const qty = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+const qty = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { maximumFractionDigits: 4 });
+const unitMoney = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 const num = (s: unknown, cls = ""): string => `<bdi dir="ltr" class="num${cls ? " " + cls : ""}">${esc(s)}</bdi>`;
 const bdi = (s: unknown): string => `<bdi dir="auto">${esc(s)}</bdi>`;
 const isoDate = (d: unknown): string => {
@@ -1097,6 +1103,11 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc table.items .head{font-weight:700}
 .edoc table.items .rest{font-size:8pt;color:var(--muted);line-height:1.6;margin-top:.5mm;white-space:pre-wrap}
 .edoc table.items .sec td{background:var(--soft);font-weight:700;font-size:9pt;padding:2mm}
+.edoc table.items.tax-columns th,.edoc table.items.tax-columns td{padding-inline:1.4mm;font-size:9pt}
+.edoc table.items.tax-columns th{font-size:8pt;line-height:1.4}
+.edoc table.items.tax-columns td.n{white-space:nowrap}
+.edoc table.items.tax-columns .basis{display:block;font-size:7pt;white-space:normal;font-weight:400}
+.edoc table.items.tax-columns [data-line-rounding] td{font-size:8pt;color:var(--muted)}
 /* per-line product image / mark · bare on the paper (LOGO FRAME LAW: no box, no plate) */
 .edoc table.items td.pic{padding:3mm 1mm 3mm 2mm;vertical-align:top}
 .edoc .li-img{width:12mm;height:12mm;object-fit:contain;object-position:center;display:block;background:none;border:0;padding:0;border-radius:0}
@@ -1302,8 +1313,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
    * discount as 495.65 (CEO 2026-09-21). Against the gross total it is right.
    */
   const inclusiveDoc = doc.taxBasis === "inclusive";
-  const discount = Math.max(
-    doc.discountTotal || 0,
+  const discount = doc.discountTotal != null ? Math.max(0, doc.discountTotal) : Math.max(
     inclusiveDoc ? listPrice - (doc.subtotal + doc.taxTotal) : listPrice - doc.subtotal,
     0,
   );
@@ -1316,7 +1326,11 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const socialSettings = socialFooterSettings(org.socialFooter);
   const socialHtml = socialFooterHtml(org.socialLinks, socialSettings, lang);
   const socialBand = socialHtml ? 32 : 0;
-  const CAP = (hs ? 238 : 245) - socialBand;
+  // A themed document always has a fixed closing sheet. Last-page socials on
+  // that sheet (or first-page socials on a cover) consume no inner-page space.
+  const socialsOutsideFlow = (socialSettings.pages === "last" && themed)
+    || (socialSettings.pages === "first" && on("cover") && coverStyle !== "NONE");
+  const CAP = (hs ? 238 : 245) - (socialsOutsideFlow ? 0 : socialBand);
 
   // ── running header / footer ──
   // The mark is either the uploaded logo (drawn bare) or the company WORDMARK — the
@@ -1507,12 +1521,39 @@ export function renderDocument(input: RenderInput): RenderOutput {
         ? `<span class="basis">${t("حسب كل بند", "per line")}</span>`
         : "";
 
+  // Never infer a tax from the issuer's registration. The adapter supplies the
+  // document line's own saved rate and amounts; old template samples stay valid.
+  const lineBreakdown = (Math.abs(doc.taxTotal) > .005 || doc.lines.some(l => (l.taxRate || 0) > 0))
+    && doc.lines.length > 0 && doc.lines.every(l => l.netAmount !== undefined && l.taxAmount !== undefined);
+  const priceBasis = (l: LineSpec) => doc.taxBasis === "mixed"
+    ? `<span class="basis">${l.taxInclusive ? t("شامل", "incl. tax") : t("غير شامل", "excl. tax")}</span>` : "";
+  const amountCells = (l: LineSpec) => `${lineBreakdown ? `<td class="n">${num(money(l.netAmount!))}</td><td class="n">${num(money(l.taxAmount!))}</td>` : ""}<td class="n">${num(money(l.subtotal))}</td>`;
+  const amountHeads = lineBreakdown
+    ? `<th class="n">${t("المبلغ قبل الضريبة", "Net amount")}</th><th class="n">${t("مبلغ الضريبة", "Tax amount")}</th><th class="n">${t("الإجمالي شامل الضريبة", "Total incl. tax")}</th>`
+    : `<th class="n">${t("السعر الإجمالي", "Total")}</th>`;
+  // The ledger settles VAT per rate group. Disclose only bounded rounding
+  // residues between the individually rounded printed rows and saved totals.
+  // This is a presentation row, not an adjustment or a change to the document.
+  const roundingRow = (span: number): { h: number; html: string }[] => {
+    if (!lineBreakdown || !included.length) return [];
+    const r2 = roundDocumentMoney;
+    const net = r2(doc.subtotal - included.reduce((s, l) => s + l.netAmount!, 0));
+    const tax = r2(doc.taxTotal - included.reduce((s, l) => s + l.taxAmount!, 0));
+    const gross = r2(doc.total - included.reduce((s, l) => s + l.subtotal, 0));
+    if (![net, tax, gross].some(v => Math.abs(v) >= .01) || [net, tax, gross].some(v => Math.abs(v) > included.length * .01 + .001)) return [];
+    return [{ h: 9, html: `<tr data-line-rounding="true"><td colspan="${span - 3}">${t("فرق تقريب البنود إلى إجمالي المستند", "Line rounding to document totals")}</td><td class="n">${num(money(net))}</td><td class="n">${num(money(tax))}</td><td class="n">${num(money(gross))}</td></tr>` }];
+  };
+
   const itemsBlock = (): Block => {
-    const span = hasPics ? 6 : 5;
-    const cols = themed
+    const span = (hasPics ? 6 : 5) + (lineBreakdown ? 2 : 0);
+    const cols = lineBreakdown
+      ? `<colgroup>${hasPics ? `<col style="width:12mm">` : ""}<col style="width:12mm"><col><col style="width:12mm"><col style="width:23mm"><col style="width:25mm"><col style="width:23mm"><col style="width:25mm"></colgroup>`
+      : themed
       ? `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:22mm"><col><col style="width:16mm"><col style="width:28mm"><col style="width:30mm"></colgroup>`
       : `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:30mm"><col><col style="width:16mm"><col style="width:26mm"><col style="width:28mm"></colgroup>`;
-    const head = themed
+    const head = lineBreakdown
+      ? `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("البند", "Item")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")}${basisNote}</th>${amountHeads}</tr></thead>`
+      : themed
       ? `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("البند", "Item")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")} (${esc(cur)})${basisNote}</th><th class="n">${t("السعر الإجمالي", "Total")} (${esc(cur)})${basisNote}</th></tr></thead>`
       : `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("الرمز", "Code")}</th><th>${t("البند", "Item")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("السعر", "Price")} (${esc(cur)})${basisNote}</th><th class="n">${t("المبلغ", "Amount")} (${esc(cur)})${basisNote}</th></tr></thead>`;
     const rows: Array<{ h: number; html: string }> = [];
@@ -1523,21 +1564,23 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const headTxt = parts[0] || "";
       const rest = parts.slice(1).join("\n").trim();
       const pic = lineImg(l);
-      const h = Math.max(hasPics ? 16 : 0, 9 + textHeight(headTxt, 80, 5, 1.9) + (rest ? textHeight(rest, 80, 4.4, 1.5) : 0));
+      const descWidth = lineBreakdown ? (hasPics ? 46 : 58) : 80;
+      const h = Math.max(hasPics ? 16 : 0, 9 + textHeight(headTxt, descWidth, 5, 1.9) + (rest ? textHeight(rest, descWidth, 4.4, 1.5) : 0));
       const code = l.code || (l.unit ? l.unit : "");
       const picCell = hasPics ? `<td class="pic">${pic ? `<img class="li-img" src="${esc(pic)}" alt="">` : ""}</td>` : "";
-      return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}</td><td class="n">${num(money(l.subtotal))}</td></tr>` };
+      return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
       if (multi && sec !== lastSec) { rows.push({ h: 8, html: `<tr class="sec"><td colspan="${span}">${bdi(sec || t("بنود عامة", "General items"))}</td></tr>` }); lastSec = sec; }
       rows.push(row(l, i));
     });
+    rows.push(...roundingRow(span));
     if (optional.length) {
       rows.push({ h: 8, html: `<tr class="sec"><td colspan="${span}">${t("بنود اختيارية — غير مشمولة في الإجمالي", "Optional items — not included in the total")}</td></tr>` });
       optional.forEach((l, i) => rows.push(row(l, included.length + i)));
     }
-    return { kind: "table", open: `<table class="items">${cols}`, head, headH: 14, rows, close: `</table>` };
+    return { kind: "table", open: `<table class="items${lineBreakdown ? " tax-columns" : ""}">${cols}`, head, headH: lineBreakdown ? 20 : 14, rows, close: `</table>` };
   };
 
   const qrSvg = (text: string) => (input.qr ? input.qr(text) : "");
@@ -1800,21 +1843,27 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const parts = String(l.description || "").split(/\r?\n/);
       const headTxt = parts[0] || "";
       const rest = parts.slice(1).join("\n").trim();
-      const h = 6 + Math.max(9, textHeight(headTxt, 88, 5, 2.05)) + (rest ? textHeight(rest, 88, 4.4, 1.7) : 0) + (l.code && !identity ? 3 : 0);
-      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}</td><td class="n">${num(money(l.subtotal))}</td></tr>` };
+      const descWidth = lineBreakdown ? 57 : 83;
+      // Match the printed 1.4mm cell padding and 9pt text. The previous 15mm
+      // minimum charged short rows almost twice their actual height, stranding totals.
+      const h = 3.5 + Math.max(8, textHeight(headTxt, descWidth, 4.5, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 4.6, 1.55) : 0));
+      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
-      if (multi && sec !== lastSec) { rows.push({ h: 8, html: `<tr class="sec"><td colspan="5">${bdi(sec || t("بنود عامة", "General items"))}</td></tr>` }); lastSec = sec; }
+      if (multi && sec !== lastSec) { rows.push({ h: 8, html: `<tr class="sec"><td colspan="${lineBreakdown ? 7 : 5}">${bdi(sec || t("بنود عامة", "General items"))}</td></tr>` }); lastSec = sec; }
       rows.push(boqRow(l, i));
     });
+    rows.push(...roundingRow(lineBreakdown ? 7 : 5));
     if (optional.length) {
-      rows.push({ h: 8, html: `<tr class="sec"><td colspan="5">${t("بنود اختيارية — غير مشمولة في الإجمالي", "Optional items — not included in the total")}</td></tr>` });
+      rows.push({ h: 8, html: `<tr class="sec"><td colspan="${lineBreakdown ? 7 : 5}">${t("بنود اختيارية — غير مشمولة في الإجمالي", "Optional items — not included in the total")}</td></tr>` });
       optional.forEach((l, i) => rows.push(boqRow(l, included.length + i)));
     }
-    blocks.push({ kind: "table", open: `<table class="items boq"><colgroup><col style="width:12mm"><col><col style="width:20mm"><col style="width:30mm"><col style="width:32mm"></colgroup>`,
-      head: `<thead><tr><th class="n">${t("البند", "#")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")}</th><th class="n">${t("السعر الإجمالي", "Total")}</th></tr></thead>`,
-      headH: 11, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع في الصفحة التالية", "continued on the next page")} …</div>` });
+    blocks.push({ kind: "table", open: lineBreakdown
+      ? `<table class="items boq tax-columns"><colgroup><col style="width:8mm"><col><col style="width:12mm"><col style="width:23mm"><col style="width:25mm"><col style="width:23mm"><col style="width:25mm"></colgroup>`
+      : `<table class="items boq"><colgroup><col style="width:12mm"><col><col style="width:20mm"><col style="width:30mm"><col style="width:32mm"></colgroup>`,
+      head: `<thead><tr><th class="n">${t("البند", "#")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")}${basisNote}</th>${amountHeads}</tr></thead>`,
+      headH: lineBreakdown ? 18 : 11, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع في الصفحة التالية", "continued on the next page")} …</div>` });
     // totals + tafqit (one unit) · then the QR card · then the tax note — the unit never splits
     const tr: string[] = [];
     if (inclusiveDoc && needsBreakdown) {
@@ -2101,7 +2150,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // sheet.querySelector(".pgflow").scrollHeight <= .clientHeight (the sheet itself carries the
   // bottom-anchored watermark, so the flow element is the thing to measure). Cover/closing: "fixed".
   const coverCount = sheets.filter((s) => s.cover).length;
-  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? `<div class="social-band">${socialHtml}</div>` : ""}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
+  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? ` data-social-band="true"` : ""}${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? `<div class="social-band">${socialHtml}</div>` : ""}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
   const actions = input.actions ? `<div class="actions no-print"><button class="primary" type="button" onclick="window.print()">${t("طباعة / حفظ PDF", "Print / save PDF")}</button><button type="button" onclick="window.close()">${t("إغلاق", "Close")}</button></div>` : "";
   const ensidexDocument = String(org.country || '').toUpperCase() === 'US' && [org.name, org.nameEn, org.legalName].some(name => /^ENSIDEX(?:\s+LLC)?$/i.test(String(name || '').trim()));
   const ensidexDocumentCss = ensidexDocument ? `
@@ -2110,7 +2159,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
 .edoc.idn .totals .r.grand,.edoc.idn .tot2 .totals .r.grand{border:0;border-radius:0;margin-top:0;padding:3mm;background:var(--fill)}
 .edoc.idn .st .e,.edoc.idn .sh .e:empty{display:none}
 ` : '';
-  const rawCss = (socialHtml ? `.edoc .sheet{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
+  const rawCss = (socialHtml ? `.edoc .sheet[data-social-band="true"]{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
   // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
   const css = hideBrand ? rawCss.replace(/\/\*[\s\S]*?\*\//g, "") : rawCss;
   const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}`;
@@ -2177,14 +2226,26 @@ export function partyFromContact(c: any): PartySpec | null {
 
 function lineSpec(l: any, code?: string | null): LineSpec {
   const q = n(l.quantity), p = n(l.unitPrice), d = n(l.discount);
-  const rate = typeof l.taxRate === "number" ? l.taxRate : (l.taxRate && typeof l.taxRate === "object" ? n(l.taxRate.rate) : 0);
+  const rawRate = n(l.taxRate && typeof l.taxRate === "object" ? l.taxRate.rate : l.taxRate);
+  const rate = rawRate > 1 ? rawRate / 100 : rawRate;
+  const inclusive = l.taxInclusive ?? l.taxRate?.isInclusive ?? false;
+  const r2 = roundDocumentMoney;
+  // Stored subtotal is already gross, including document-discount allocation.
+  // Never multiply that value by VAT again or rebuild it from the list price.
+  const gross = l.subtotal != null ? n(l.subtotal) : r2((q * p - d) * (inclusive ? 1 : 1 + rate));
+  const net = r2(gross / (1 + rate));
   return {
     code: code ?? (l.code || l.product?.sku || l.product?.code || null),
     description: String(l.description || ""),
     quantity: q,
     unitPrice: p,
     discount: d,
-    subtotal: l.subtotal !== undefined && l.subtotal !== null ? n(l.subtotal) : q * p - d,
+    subtotal: gross,
+    // An omitted relation is unknown, unlike a loaded null/zero rate. Do not
+    // print an invented zero-tax split when a caller omitted the catalogue.
+    netAmount: l.taxRate === undefined ? undefined : net,
+    taxAmount: l.taxRate === undefined ? undefined : r2(gross - net),
+    taxInclusive: Boolean(inclusive),
     taxRate: rate,
     unit: l.unit || null,
     sectionLabel: l.sectionLabel || null,
@@ -2204,7 +2265,7 @@ function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] 
   const items: any[] = Array.isArray(plan.items) ? plan.items : [];
   if (!items.length) return null;
   const taxShare = total > 0 ? taxTotal / total : 0;
-  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const r2 = roundDocumentMoney;
   return items.map((it) => {
     const amount = r2(n(it.amount) || (total * n(it.percent)) / 100);
     const tax = r2(amount * taxShare);
@@ -2225,8 +2286,8 @@ function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] 
 
 /** Read the tax basis off the document's own lines. */
 function deriveTaxBasis(lines: any[]): "inclusive" | "exclusive" | "mixed" | null {
-  const flags = (lines || []).filter((l: any) => Number(l?.taxRate ?? 0) > 0 || l?.taxInclusive !== undefined)
-    .map((l: any) => Boolean(l?.taxInclusive));
+  const flags = (lines || []).filter((l: any) => Number(l?.taxRate?.rate ?? l?.taxRate ?? 0) > 0 || l?.taxInclusive !== undefined)
+    .map((l: any) => Boolean(l?.taxInclusive ?? l?.taxRate?.isInclusive ?? false));
   if (!flags.length) return null;
   const inclusive = flags.filter(Boolean).length;
   if (inclusive === 0) return "exclusive";

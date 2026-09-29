@@ -1,3 +1,4 @@
+import { roundDocumentMoney } from "../lib/document-money";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { isFinancialNotice } from "../lib/financial-notice";
 import { settlePurchase } from "../lib/purchase-settlement";
@@ -406,7 +407,7 @@ function defaultExchangeRate(sourceCurrency: string, baseCurrency: string): numb
 }
 
 function roundMoney(value: number): number {
-  return Math.round((Number(value) || 0) * 100) / 100;
+  return roundDocumentMoney(Number(value) || 0);
 }
 
 function detectedDocumentCurrency(data: any, fallback = "SAR"): string {
@@ -475,9 +476,9 @@ function expenseLineAmounts(line: ExpenseLine) {
   const base = Math.max(0, (Number(line.quantity) || 1) * Number(line.unitPrice || 0) - Number(line.discountAmount || 0));
   const rate = Number(line.taxRate) || 0;
   const gross = Number(line.lineTotal) || base;
-  const net = line.taxInclusive ? gross / (1 + rate) : base;
-  const tax = line.taxInclusive ? gross - net : net * rate;
-  return { net, tax, total: net + tax };
+  const net = roundMoney(line.taxInclusive ? gross / (1 + rate) : base);
+  const tax = roundMoney(line.taxInclusive ? gross - gross / (1 + rate) : base * rate);
+  return { net, tax, total: roundMoney(net + tax) };
 }
 
 function extractionTotals(data: any) {
