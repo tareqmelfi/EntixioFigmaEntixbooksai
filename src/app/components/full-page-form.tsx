@@ -32,7 +32,7 @@ import { formatDraftTime, type FormDraftState } from "../lib/form-draft";
 
 interface Props {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   onClose: () => void;
   children: ReactNode;
   footer: ReactNode; // required · place action buttons here (Save / Approve / Send)

@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "../components/contact-profile-link";
 import { displayLocale } from "../lib/number-display";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -244,6 +245,7 @@ export function SupplierCredits() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t("المورد *", "Supplier *")}</Label>
+                {form.contactId && <ContactProfileLink id={form.contactId} name={suppliers.find(c => c.id === form.contactId)?.displayName} className="block text-sm" />}
                 <SearchableCombobox
                   value={form.contactId}
                   onChange={(id) => setForm({ ...form, contactId: id, originalBillId: "" })}
@@ -348,7 +350,7 @@ export function SupplierCredits() {
           className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
           eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")} · <Link to="/app/purchases/supplier-credits" className="hover:underline">{t("إشعارات الموردين", "Supplier credits")}</Link></span>}
           title={d ? <span dir="ltr" className="font-code">{d.creditNumber}</span> : t("إشعار مورد", "Supplier credit")}
-          description={d ? <BidiText>{d.contact?.displayName || "—"}</BidiText> : undefined}
+          description={d ? <ContactProfileLink id={d.contactId || d.contact?.id} name={d.contact?.displayName} /> : undefined}
           actions={
             <Button variant="outline" className="h-10 px-[18px] text-sm" onClick={() => navigate("/app/purchases/supplier-credits")}>
               <ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />{t("إشعارات الموردين", "Supplier credits")}
@@ -372,7 +374,7 @@ export function SupplierCredits() {
                   total: d.total,
                   lines: (d.lines as any[])?.map((l: any) => ({ id: l.id, description: l.description, quantity: l.quantity, unitPrice: l.unitPrice, total: l.total ?? l.lineTotal })),
                 }}
-                seller={d.contact ? { name: d.contact.displayName, vatNumber: (d.contact as any).taxId || (d.contact as any).vatNumber } : null}
+                seller={d.contact ? { contactId: d.contactId || d.contact.id, name: d.contact.displayName, vatNumber: (d.contact as any).taxId || (d.contact as any).vatNumber } : null}
                 customer={seller}
                 docTypeLabel={t("إشعار مورد", "Supplier credit")}
                 statusLabel={STATUS_LABELS[d.status] ? t(STATUS_LABELS[d.status].ar, STATUS_LABELS[d.status].en) : d.status}
@@ -452,16 +454,16 @@ export function SupplierCredits() {
         <ul className="md:hidden">
           {filtered.map((item) => (
             <li key={item.id}>
-              <button type="button" onClick={() => navigate(`/app/purchases/supplier-credits/${item.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الإشعار", "Open credit")}>
+              <div className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الإشعار", "Open credit")}>
                 <span className="flex min-w-0 flex-col gap-[3px]">
-                  <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{item.contact?.displayName || "—"}</bdi></span>
-                  <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{item.creditNumber} · {item.issueDate?.slice(0, 10)}</span>
+                  <span className="truncate text-sm font-semibold text-foreground"><ContactProfileLink id={item.contactId || item.contact?.id} name={item.contact?.displayName} /></span>
+                  <Link to={`/app/purchases/supplier-credits/${item.id}`} className="font-code text-xs text-muted-foreground underline" dir="ltr">{item.creditNumber} · {item.issueDate?.slice(0, 10)}</Link>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-[3px]">
                   <span dir="ltr" className="font-display text-[18px] leading-5 text-warning tabular-nums">{money2(item.total)}</span>
                   {statusPill(item.status)}
                 </span>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -493,7 +495,7 @@ export function SupplierCredits() {
                       <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{item.creditNumber}</span>
                     </Link>
                   </TableCell>
-                  <TableCell className="align-middle overflow-hidden text-foreground" title={item.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{item.contact?.displayName || "—"}</bdi></span></TableCell>
+                  <TableCell className="align-middle overflow-hidden text-foreground" title={item.contact?.displayName || ""}><span className="block truncate leading-5"><ContactProfileLink id={item.contactId || item.contact?.id} name={item.contact?.displayName} /></span></TableCell>
                   <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{item.issueDate?.slice(0, 10)}</span></TableCell>
                   <TableCell className="align-middle text-xs text-content-secondary"><span className="block truncate">{reasonWord(item.reason)}</span></TableCell>
                   <TableCell className="text-end align-middle">

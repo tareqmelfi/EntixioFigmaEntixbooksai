@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "../components/contact-profile-link";
 import { JournalPurchaseIntake } from "../components/journal-purchase-intake";
 import { readSourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
@@ -514,6 +515,7 @@ export function PurchaseBills() {
               finally { setBusy(false); }
             }} /></label>}
           </div>
+          <p className="mb-3 text-sm"><ContactProfileLink id={form.contactId} name={suppliers.find(c => c.id === form.contactId)?.displayName} /></p>
           <fieldset disabled={lockedBill} className="min-w-0 border-0 p-0 m-0">
           <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{createError}</div>}
@@ -986,16 +988,16 @@ export function PurchaseBills() {
         <ul className="md:hidden">
           {filtered.map((b) => (
             <li key={b.id}>
-              <button type="button" onClick={() => navigate(`/app/purchases/bills/${b.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الفاتورة", "Open invoice")}>
+              <div className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الفاتورة", "Open invoice")}>
                 <span className="flex min-w-0 flex-col gap-[3px]">
-                  <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{b.contact?.displayName || "—"}</bdi></span>
-                  <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{b.billNumber} · {b.dueDate?.slice(0, 10)}</span>
+                  <span className="truncate text-sm font-semibold text-foreground"><ContactProfileLink id={b.contactId || b.contact?.id} name={b.contact?.displayName} /></span>
+                  <Link to={`/app/purchases/bills/${b.id}`} className="font-code text-xs text-muted-foreground underline" dir="ltr">{b.billNumber} · {b.dueDate?.slice(0, 10)}</Link>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-[3px]">
                   <span dir="ltr" className="font-display text-[18px] leading-5 text-foreground tabular-nums">{money2(b.total)}</span>
                   {statusPill(b.status)}
                 </span>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -1029,7 +1031,7 @@ export function PurchaseBills() {
                       <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{b.billNumber}</span>
                     </Link>
                   </TableCell>
-                  <TableCell className="align-middle overflow-hidden text-foreground" title={b.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{b.contact?.displayName || "—"}</bdi></span></TableCell>
+                  <TableCell className="align-middle overflow-hidden text-foreground" title={b.contact?.displayName || ""}><span className="block truncate leading-5"><ContactProfileLink id={b.contactId || b.contact?.id} name={b.contact?.displayName} /></span></TableCell>
                   <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{b.issueDate?.slice(0, 10)}</span></TableCell>
                   <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{b.dueDate?.slice(0, 10)}</span></TableCell>
                   <TableCell className="text-end align-middle">

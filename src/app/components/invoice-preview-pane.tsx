@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "./contact-profile-link";
 import { displayDigits } from "../lib/number-display";
 /**
  * InvoicePreviewPane · the split-view paper document shown beside the invoice list.
@@ -17,6 +18,7 @@ import { EntixWordmark } from "./entix-brand";
 import { useLanguage } from "./LanguageContext";
 
 export interface PreviewParty {
+  contactId?: string | null;
   name: string;
   vatNumber?: string | null;
 }
@@ -157,12 +159,12 @@ export function InvoicePreviewPane({
         <div className="mt-[18px] grid grid-cols-2 gap-3 text-xs text-content-secondary">
           <div className="flex min-w-0 flex-col gap-[3px]">
             <span className="text-muted-foreground">{t("من", "From")}</span>
-            <span className="truncate font-semibold text-foreground">{seller?.name || "—"}</span>
+            <span className="truncate font-semibold text-foreground"><ContactProfileLink id={seller?.contactId} name={seller?.name} /></span>
             {seller?.vatNumber && <span dir="ltr" className="font-code text-[11px]">VAT {seller.vatNumber}</span>}
           </div>
           <div className="flex min-w-0 flex-col gap-[3px]">
             <span className="text-muted-foreground">{t("إلى", "To")}</span>
-            <span className="truncate font-semibold text-foreground">{customer?.name || "—"}</span>
+            <span className="truncate font-semibold text-foreground"><ContactProfileLink id={customer?.contactId} name={customer?.name} /></span>
             {customer?.vatNumber && <span dir="ltr" className="font-code text-[11px]">VAT {customer.vatNumber}</span>}
           </div>
         </div>
