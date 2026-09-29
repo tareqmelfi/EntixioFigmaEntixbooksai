@@ -1,3 +1,4 @@
+import { BidiText } from "../components/bidi-text";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { InvoiceZatcaBadge, InvoiceZatcaSummary } from "../components/invoice-zatca-badge";
 import { SignatureHistory } from "../components/signature-history";
@@ -1516,7 +1517,9 @@ export function Invoices() {
                   </button>
                 </TableCell>
                 <TableCell className="overflow-hidden text-sm text-foreground" title={i.contact?.displayName || ""}>
-                  <ContactProfileLink id={i.contactId || i.contact?.id} name={i.contact?.displayName} className="inline-block max-w-full truncate invoice-customer-name" />
+                  <ContactProfileLink id={i.contactId || i.contact?.id} name={i.contact?.displayName} className="inline-block max-w-full min-w-0 text-start">
+                    <BidiText mode="plaintext" className="invoice-customer-name block overflow-hidden text-ellipsis !whitespace-nowrap leading-5">{i.contact?.displayName || "—"}</BidiText>
+                  </ContactProfileLink>
                 </TableCell>
                 <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{i.issueDate?.slice(0, 10)}</span></TableCell>
                 <TableCell className="text-start"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{i.dueDate?.slice(0, 10)}</span></TableCell>
