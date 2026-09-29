@@ -956,12 +956,10 @@ export function PurchaseBills() {
         actions={<Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Button>}
       />
 
-      <JournalPurchaseIntake suppliers={suppliers} onRegistered={refresh} />
-
       {/* Ledger figures · ink rules, serif numerals · currency-honest */}
       <MetricStrip className="compact sm:grid-cols-3 xl:grid-cols-3">
         <Metric
-          label={t("إجمالي المشتريات", "Total purchases")}
+          label={t("إجمالي فواتير المشتريات", "Total purchase invoices")}
           value={totalByCur.length > 1
             ? <span className="flex flex-col gap-1">{totalByCur.map(([cur, v]) => <span key={cur}><LedgerFigure value={v} currency={cur} /></span>)}</span>
             : <LedgerFigure value={total} currency={figureCurrency} />}
@@ -1061,6 +1059,8 @@ export function PurchaseBills() {
         </div>
         </>
       )}
+
+      <JournalPurchaseIntake suppliers={suppliers} onRegistered={refresh} />
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
