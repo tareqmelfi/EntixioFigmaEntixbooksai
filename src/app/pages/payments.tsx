@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "../components/contact-profile-link";
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
 /**
@@ -421,7 +422,7 @@ export function Payments() {
         <div className="min-w-0">
           <span className="ledger-eyebrow">{t("سند صرف", "Payment voucher")}</span>
           <div dir="ltr" className="mt-1 break-all font-code text-[15px] font-semibold text-foreground">{selected.number}</div>
-          <div className="mt-0.5 truncate text-xs text-content-secondary"><bdi dir="auto">{selected.contact?.displayName || "—"}</bdi></div>
+          <div className="mt-0.5 truncate text-xs text-content-secondary"><ContactProfileLink id={selected.contactId || selected.contact?.id} name={selected.contact?.displayName} /></div>
         </div>
         <button onClick={closeSelected} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-surface-hover" aria-label={t("إغلاق", "Close")}>
           <X className="h-4 w-4" strokeWidth={1.75} />
@@ -589,13 +590,13 @@ export function Payments() {
           <ul className="md:hidden">
             {filtered.map((v) => (
               <li key={v.id}>
-                <button type="button" onClick={() => navigate(`/app/payments/${v.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح السند", "Open voucher")}>
+                <div className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح السند", "Open voucher")}>
                   <span className="flex min-w-0 flex-col gap-[3px]">
-                    <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{v.contact?.displayName || "—"}</bdi></span>
-                    <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{v.number} · {v.date.slice(0, 10)}</span>
+                    <span className="truncate text-sm font-semibold text-foreground"><ContactProfileLink id={v.contactId || v.contact?.id} name={v.contact?.displayName} /></span>
+                    <Link to={`/app/payments/${v.id}`} className="font-code text-xs text-muted-foreground underline" dir="ltr">{v.number} · {v.date.slice(0, 10)}</Link>
                   </span>
                   <span dir="ltr" className="shrink-0 font-display text-[18px] leading-5 text-foreground tabular-nums">{money2(v.amount)}</span>
-                </button>
+                </div>
               </li>
             ))}
           </ul>
@@ -633,7 +634,7 @@ export function Payments() {
                       </Link>
                     </TableCell>
                     <TableCell className="align-middle overflow-hidden"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{v.date.slice(0, 10)}</span></TableCell>
-                    <TableCell className="align-middle overflow-hidden text-foreground" title={v.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{v.contact?.displayName || "—"}</bdi></span></TableCell>
+                    <TableCell className="align-middle overflow-hidden text-foreground" title={v.contact?.displayName || ""}><span className="block truncate leading-5"><ContactProfileLink id={v.contactId || v.contact?.id} name={v.contact?.displayName} /></span></TableCell>
                     <TableCell className="text-end align-middle">
                       <span dir="ltr" className="block font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(v.amount)}{v.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {v.currency}</span>}</span>
                     </TableCell>
@@ -695,6 +696,7 @@ export function Payments() {
           <form onSubmit={handleSubmit} className="w-full space-y-4">
             <div>
               <Label className="text-xs">{t("المورد", "Supplier")} *</Label>
+              {form.contactId && <ContactProfileLink id={form.contactId} name={suppliers.find(c => c.id === form.contactId)?.displayName} className="block text-sm" />}
                   <SearchableCombobox
                     value={form.contactId}
                     onChange={(id) => setForm({ ...form, contactId: id, billId: "", amount: "", allocations: [] })}

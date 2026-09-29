@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "../components/contact-profile-link";
 import { CreditNoteOutput } from '../components/credit-note-output';
 import { displayLocale } from "../lib/number-display";
 import { correctionLineAmounts } from "../lib/invoice-correction";
@@ -365,6 +366,7 @@ export function CreditNotes() {
             {createError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{createError}</div>}
             <div className="space-y-2">
               <Label className="text-foreground/80">{t("العميل", "Customer")} *</Label>
+              {form.contactId && <ContactProfileLink id={form.contactId} name={customers.find(c => c.id === form.contactId)?.displayName} className="block text-sm" />}
               <SearchableCombobox
                 value={form.contactId}
                 onChange={(id) => setForm({ ...form, contactId: id, originalInvoiceId: "" })}
@@ -548,16 +550,16 @@ export function CreditNotes() {
         <ul className="md:hidden">
           {filtered.map((c) => (
             <li key={c.id}>
-              <button type="button" onClick={() => navigate(`/app/credit-notes/${c.id}`)} className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الإشعار", "Open credit note")}>
+              <div className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start" title={t("فتح الإشعار", "Open credit note")}>
                 <span className="flex min-w-0 flex-col gap-[3px]">
-                  <span className="truncate text-sm font-semibold text-foreground"><bdi dir="auto">{c.contact?.displayName || "—"}</bdi></span>
-                  <span dir="ltr" className="truncate font-code text-xs text-muted-foreground">{c.noteNumber} · {c.issueDate?.slice(0, 10)}</span>
+                  <span className="truncate text-sm font-semibold text-foreground"><ContactProfileLink id={c.contactId || c.contact?.id} name={c.contact?.displayName} /></span>
+                  <Link to={`/app/credit-notes/${c.id}`} className="font-code text-xs text-muted-foreground underline" dir="ltr">{c.noteNumber} · {c.issueDate?.slice(0, 10)}</Link>
                 </span>
                 <span className="flex shrink-0 flex-col items-end gap-[3px]">
                   <span dir="ltr" className="font-display text-[18px] leading-5 text-warning tabular-nums">{money2(c.total)}</span>
                   {statusPill(c.status)}
                 </span>
-              </button>
+              </div>
             </li>
           ))}
         </ul>
@@ -589,7 +591,7 @@ export function CreditNotes() {
                       <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{c.noteNumber}</span>
                     </Link>
                   </TableCell>
-                  <TableCell className="align-middle overflow-hidden text-foreground" title={c.contact?.displayName || ""}><span className="block truncate leading-5"><bdi dir="auto">{c.contact?.displayName || "—"}</bdi></span></TableCell>
+                  <TableCell className="align-middle overflow-hidden text-foreground" title={c.contact?.displayName || ""}><span className="block truncate leading-5"><ContactProfileLink id={c.contactId || c.contact?.id} name={c.contact?.displayName} /></span></TableCell>
                   <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{c.issueDate?.slice(0, 10)}</span></TableCell>
                   <TableCell className="align-middle text-xs text-content-secondary"><span className="block truncate">{reasonWord(c.reason)}</span></TableCell>
                   <TableCell className="text-end align-middle">

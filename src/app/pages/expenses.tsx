@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "../components/contact-profile-link";
 import { isFinancialNotice } from "../lib/financial-notice";
 import { settlePurchase } from "../lib/purchase-settlement";
 import { displayLocale, displayDigits } from "../lib/number-display";
@@ -1894,7 +1895,7 @@ export function Expenses() {
           className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
           eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")} · <button type="button" onClick={backToList} className="hover:underline">{t("المصروفات", "Expenses")}</button></span>}
           title={<><span className="font-sans">{t("مصروف ", "Expense ")}</span><span dir="ltr" className="break-all font-code">{selected.number}</span></>}
-          description={<><bdi dir="auto">{vendorName}</bdi> · <bdi dir="auto">{selected.category}</bdi><span className="ms-2"><ExpenseStatus value={selected.status} t={t} /></span></>}
+          description={<><ContactProfileLink id={selected.contactId || selected.contact?.id} name={vendorName} /> · <bdi dir="auto">{selected.category}</bdi><span className="ms-2"><ExpenseStatus value={selected.status} t={t} /></span></>}
           actions={
             <>
               <Button variant="outline" onClick={backToList} className="h-10 px-[18px] text-sm">
@@ -2086,7 +2087,7 @@ export function Expenses() {
                 <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("رقم الفاتورة:", "Invoice No.:")}</dt><dd dir="ltr" className="min-w-0 truncate font-code text-foreground" title={selected.documentNumber || selected.reference || ""}>{selected.documentNumber || selected.reference || "—"}</dd></div>
                 <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("التاريخ:", "Date:")}</dt><dd dir="ltr" className="font-english tabular-nums text-foreground">{selected.date.slice(0, 10)}</dd></div>
                 <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("التصنيف:", "Category:")}</dt><dd className="min-w-0 truncate text-foreground"><bdi dir="auto">{selected.category}</bdi></dd></div>
-                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("المورد:", "Supplier:")}</dt><dd className="min-w-0 truncate text-foreground"><bdi dir="auto">{vendorName}</bdi></dd></div>
+                <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("المورد:", "Supplier:")}</dt><dd className="min-w-0 truncate text-foreground"><ContactProfileLink id={selected.contactId || selected.contact?.id} name={vendorName} /></dd></div>
                 <div className="flex min-w-0 items-baseline gap-2"><dt className="shrink-0 text-content-secondary">{t("الرقم الضريبي:", "Tax No.:")}</dt><dd dir="ltr" className="min-w-0 truncate font-code text-foreground">{selected.contact?.taxId || selected.contact?.vatNumber || "—"}</dd></div>
                 {selected.description && <div className="min-w-0 md:col-span-2"><dt className="inline text-content-secondary">{t("الوصف:", "Description:")}</dt> <dd className="inline break-words text-foreground"><bdi dir="auto">{selected.description}</bdi></dd></div>}
                 {selected.notes && <div className="min-w-0 md:col-span-2"><dt className="inline text-content-secondary">{t("ملاحظات:", "Notes:")}</dt> <dd className="inline break-words text-foreground"><bdi dir="auto">{selected.notes}</bdi></dd></div>}
@@ -2246,7 +2247,7 @@ export function Expenses() {
                     </TableCell>
                     <TableCell className="align-middle"><ExpenseStatus value={e.status} t={t} /></TableCell>
                     <TableCell className="align-middle overflow-hidden">
-                      <div className="truncate text-sm text-foreground leading-5" title={e.contact?.displayName || e.vendorName || ""}><bdi dir="auto">{e.contact?.displayName || e.vendorName || "—"}</bdi></div>
+                      <div className="truncate text-sm text-foreground leading-5" title={e.contact?.displayName || e.vendorName || ""}><ContactProfileLink id={e.contactId || e.contact?.id} name={e.contact?.displayName || e.vendorName} /></div>
                       <div className="truncate text-xs text-content-secondary"><bdi dir="auto">{e.category}</bdi></div>
                     </TableCell>
                     <TableCell className="align-middle overflow-hidden"><span dir="ltr" className={`block truncate font-code text-xs text-content-secondary ${language === "ar" ? "text-right" : "text-left"}`} title={e.documentNumber || e.reference || ""}>{e.documentNumber || e.reference || "—"}</span></TableCell>

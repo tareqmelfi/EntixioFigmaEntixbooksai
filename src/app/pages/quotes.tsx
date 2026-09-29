@@ -1,3 +1,4 @@
+import { ContactProfileLink } from "../components/contact-profile-link";
 import { SignatureHistory } from "../components/signature-history";
 import { InvoiceDocuments } from "../components/invoice-documents";
 import type { SourceFile } from "../lib/source-file";
@@ -459,7 +460,7 @@ export function Quotes() {
   }, [lines, form.quoteNumber, form.issueDate, form.validUntil, form.currency, form.discountType, form.discountValue, editId, language]);
   const livePreviewCustomer = useMemo(() => {
     const c = customers.find((x) => x.id === form.contactId);
-    return c ? { name: c.displayName, vatNumber: (c as any).taxId } : null;
+    return c ? { contactId: c.id, name: c.displayName, vatNumber: (c as any).taxId } : null;
   }, [customers, form.contactId]);
 
   /** Open the saved quote in the same editor (CEO 2026-09-21 · «احتاج زر التعديل»). */
@@ -1301,7 +1302,7 @@ export function Quotes() {
           className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
           eyebrow={<span className="text-[13px]">{t("المبيعات", "Sales")} · <Link to="/app/quotes" className="hover:underline">{t("عروض الأسعار", "Quotes")}</Link></span>}
           title={q ? <span dir="ltr" className="font-code">{q.quoteNumber}</span> : t("عرض سعر", "Quote")}
-          description={q ? <><BidiText>{q.contact?.displayName || "—"}</BidiText>{q.title ? <> · <BidiText>{q.title}</BidiText></> : null}</> : undefined}
+          description={q ? <><ContactProfileLink id={q.contactId} name={q.contact?.displayName} />{q.title ? <> · <BidiText>{q.title}</BidiText></> : null}</> : undefined}
           actions={
             <div className="flex items-center gap-2">
               {q && quoteEditable(q) && (
@@ -1323,7 +1324,7 @@ export function Quotes() {
               <InvoicePreviewPane
                 doc={previewDoc(q)}
                 seller={seller}
-                customer={q.contact ? { name: q.contact.displayName, vatNumber: (q.contact as any).taxId } : null}
+                customer={q.contact ? { contactId: q.contactId || q.contact.id, name: q.contact.displayName, vatNumber: (q.contact as any).taxId } : null}
                 docTypeLabel={t("عرض سعر", "Quotation")}
                 statusLabel={statusWord(q)}
                 statusMeta={[String(q.issueDate || "").slice(0, 10), q.validUntil ? `→ ${String(q.validUntil).slice(0, 10)}` : ""].filter(Boolean).join(" ")}
@@ -1340,7 +1341,7 @@ export function Quotes() {
                 <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
                   <dt className="text-content-secondary">{t("العميل", "Customer")}</dt>
                   <dd className="min-w-0 truncate text-foreground">
-                    {q.contactId ? <Link to={`/app/contacts/${q.contactId}`} className="hover:underline underline-offset-4"><BidiText>{q.contact?.displayName || "—"}</BidiText></Link> : <BidiText>{q.contact?.displayName || "—"}</BidiText>}
+                    <ContactProfileLink id={q.contactId} name={q.contact?.displayName} />
                   </dd>
                   <dt className="text-content-secondary">{t("تاريخ العرض", "Quote date")}</dt>
                   <dd><span dir="ltr" className="font-english tabular-nums text-foreground">{q.issueDate?.slice(0, 10)}</span></dd>

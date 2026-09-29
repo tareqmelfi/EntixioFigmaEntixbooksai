@@ -1,3 +1,4 @@
+import { ContactProfileLink } from './contact-profile-link';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { ArrowUpRight, FileSpreadsheet, Plus, RefreshCw, Search } from 'lucide-react';
@@ -139,9 +140,9 @@ export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImp
             {g.rows.slice(0,visible).map(q=><li key={q.id} className="space-y-3 p-4" data-testid={`quote-row-${q.id}`}>
               <Link to={`/app/quotes/${q.id}`} className="block space-y-1">
                 <span className="flex items-start justify-between gap-3"><bdi className="break-all font-code font-semibold text-primary">{q.quoteNumber}</bdi><ArrowUpRight className="h-4 w-4 shrink-0 text-primary" /></span>
-                <bdi className="block text-sm font-medium">{q.contact?.displayName || '—'}</bdi>
                 {q.title && <bdi className="block text-xs text-muted-foreground">{q.title}</bdi>}
               </Link>
+              <ContactProfileLink id={q.contactId} name={q.contact?.displayName} className="block text-sm" />
               <div className="flex flex-wrap items-center justify-between gap-2"><StatusBadge tone={tones[quoteStage(q,today)]}>{t(...names[quoteStage(q,today)])}</StatusBadge><span dir="ltr" className="text-sm tabular-nums">{amount(q.total)} {q.currency}</span></div>
               <div className="flex justify-between gap-3 text-xs"><div><span className="mb-1 block text-muted-foreground">{t('الإصدار','Issued')}</span><time dir="ltr">{q.issueDate.slice(0,10)}</time></div><div><span className="mb-1 block text-muted-foreground">{t('صالح حتى','Valid until')}</span>{dateCell(q)}</div></div>
               {(q.projects?.length || q.projectId || q.convertedInvoiceId) ? <div className="border-t border-border pt-3">{links(q)}</div> : null}
@@ -151,7 +152,7 @@ export function QuotesDashboard({ items, loading, error, onRefresh, onNew, onImp
               <thead className="bg-surface-subtle text-xs text-muted-foreground"><tr>{[t('العرض / المشروع','Quote / scope'),t('العميل','Customer'),t('الإصدار','Issued'),t('صالح حتى','Valid until'),t('الإجمالي','Total'),t('الحالة','Stage'),t('المشروع والفاتورة','Project & invoice')].map(h=><th key={h} className="px-4 py-3 text-start font-medium">{h}</th>)}</tr></thead>
               <tbody className="divide-y divide-border">{g.rows.slice(0,visible).map(q=><tr key={q.id} className="cursor-pointer bg-card align-top hover:bg-surface-subtle" data-testid={`quote-row-${q.id}`} onClick={e=>{ if (!(e.target as HTMLElement).closest('a,button') && !window.getSelection()?.toString()) navigate(`/app/quotes/${q.id}`); }}>
                 <td className="max-w-64 px-4 py-4"><Link to={`/app/quotes/${q.id}`} className="group block text-primary hover:underline"><span className="flex items-center gap-2"><bdi className="min-w-0 break-all font-code font-semibold">{q.quoteNumber}</bdi><ArrowUpRight className="h-3.5 w-3.5 shrink-0" /></span><span className="mt-1 block break-words text-xs text-muted-foreground">{q.title || t('فتح عرض السعر','Open quote')}</span></Link></td>
-                <td className="max-w-48 px-4 py-4"><Link to={`/app/contacts/${q.contactId}`} className="hover:underline"><bdi>{q.contact?.displayName || '—'}</bdi></Link></td>
+                <td className="max-w-48 px-4 py-4"><ContactProfileLink id={q.contactId} name={q.contact?.displayName} /></td>
                 <td className="whitespace-nowrap px-4 py-4 text-xs text-muted-foreground"><time dir="ltr">{q.issueDate.slice(0,10)}</time></td>
                 <td className="px-4 py-4">{dateCell(q)}</td>
                 <td className="whitespace-nowrap px-4 py-4"><span dir="ltr" className="inline-block tabular-nums">{amount(q.total)} <span className="text-xs text-muted-foreground">{q.currency}</span></span></td>

@@ -1,3 +1,7 @@
+import { useOrgRegion } from "../lib/use-org-region";
+import { InvoiceZatcaBadge } from "./invoice-zatca-badge";
+import { invoiceZatcaState } from "../lib/invoice-zatca-state";
+import { ContactProfileLink } from "./contact-profile-link";
 import { InvoiceAmendmentPanel, type InvoiceAction } from './invoice-amendment-panel';
 import { InvoiceDocuments } from './invoice-documents';
 import { displayLocale, displayDigits } from "../lib/number-display";
@@ -26,6 +30,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
 }) {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const { isSA } = useOrgRegion();
   const canCorrect = authStore.getState().user?.role === 'admin';
   const [refreshing, setRefreshing] = useState(false);
   const [paymentBusy, setPaymentBusy] = useState(false);
@@ -39,7 +44,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
   const stripeManaged = (invoice as any).paymentLinkProvider === 'stripe-subscription';
   const delivery = invoice.zatcaDelivery;
   const evidence = delivery?.evidence;
-  const accepted = !!evidence && ['REPORTED', 'CLEARED'].includes(evidence.state);
+  const accepted = invoiceZatcaState(invoice) === 'accepted';
   const canRelease = delivery?.customerReleaseReady !== false;
   const remaining = Number(invoice.total) - Number(invoice.amountPaid || 0);
   const amount = (value: unknown) => Number(value || 0).toLocaleString(displayLocale(language === 'ar' ? 'ar-SA' : 'en-US'), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -56,6 +61,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
       {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}
     </div>}>
     <div className="space-y-4 w-full">
+      <ContactProfileLink id={invoice.contactId || invoice.contact?.id} name={invoice.contact?.displayName} className="inline-block text-lg" />
       {remaining > 0 && invoice.status !== 'CANCELLED' && <section className="rounded-lg border border-border bg-card p-4 space-y-2">
         <h2 className="font-semibold">{t('دفع العميل عبر الإنترنت', 'Customer online payment')}</h2>
         {(invoice as any).paymentLinkUrl ? <a className="text-primary underline" href={(invoice as any).paymentLinkUrl} target="_blank" rel="noopener noreferrer">{t('فتح رابط الدفع', 'Open payment link')} · {(invoice as any).paymentLinkProvider}</a> : <p className="text-sm text-muted-foreground">{t('لم يتم تجهيز رابط دفع لهذه الفاتورة بعد.', 'A payment link has not been prepared for this invoice yet.')}</p>}
@@ -68,12 +74,12 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
       {!stripeManaged && invoice.status !== 'CANCELLED' && !!accounts?.length && (
         <InvoiceReclassifyPanel invoice={invoice} accounts={accounts} onDone={onRefresh} />
       )}
-      {(delivery?.state || invoice.zatcaStatus) && <section className={`rounded-lg border p-4 space-y-3 ${accepted ? 'border-success-border bg-success-subtle/60' : 'border-warning-border bg-warning-subtle/60'}`}>
+      {isSA && <section className={`rounded-lg border p-4 space-y-3 ${accepted ? 'border-success-border bg-success-subtle/60' : 'border-warning-border bg-warning-subtle/60'}`}>
         <div className="flex justify-between items-center gap-3">
           <h2 className="font-semibold flex items-center gap-2">{accepted ? <CheckCircle2 className="h-5 w-5 text-success" /> : <Clock3 className="h-5 w-5 text-warning" />}{accepted ? t('تم قبول الفاتورة لدى الهيئة', 'Invoice accepted by ZATCA') : t('متابعة إرسال الفاتورة للهيئة', 'ZATCA invoice delivery')}</h2>
           <Button variant="outline" size="sm" disabled={refreshing} onClick={async () => { setRefreshing(true); try { await onRefresh(); } finally { setRefreshing(false); } }}>{t('تحديث الحالة', 'Refresh status')}</Button>
         </div>
-        <p className="text-sm"><span dir="ltr" className="font-english">{delivery?.state || invoice.zatcaStatus}</span>{evidence?.mode && ` · ${evidence.mode === 'production' ? t('بيئة الإنتاج', 'Production') : evidence.mode}`}</p>
+        <InvoiceZatcaBadge invoice={invoice} />
         {!accepted && delivery?.message && <p className="text-sm">{delivery.message}</p>}
         {evidence ? <>
           <dl className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
