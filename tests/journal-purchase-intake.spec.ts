@@ -47,4 +47,9 @@ test('review fits mobile and viewing a source makes no writes',async({page})=>{
   const writes=await prepare(page,'ar');await page.setViewportSize({width:390,height:844});
   const region=page.getByRole('region',{name:'قيود المشتريات غير المرتبطة'});await region.getByRole('button',{name:'استكمال وربط الفاتورة'}).click();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(writes).toHaveLength(0);
+  await page.goto('/app/purchases/bills');
+  await expect(region.getByRole('button',{name:'استكمال وربط الفاتورة'})).toBeHidden();
+  await region.locator('summary').click();
+  await expect(region.getByRole('button',{name:'استكمال وربط الفاتورة'})).toBeVisible();
+  expect(writes).toHaveLength(0);
 });
