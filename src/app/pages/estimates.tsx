@@ -1,3 +1,4 @@
+import { roundDocumentMoney } from "../lib/document-money";
 /**
  * SPEC-05 · Layer 1 — الدراسة والتسعير (Estimating & Pricing) · /api/estimates
  *
@@ -65,7 +66,7 @@ const num = (v: unknown): number => {
   const x = Number(normalizeDigits(String(v ?? "")).replace(/,/g, ""));
   return Number.isFinite(x) ? x : 0;
 };
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const round2 = roundDocumentMoney;
 
 /** One editable line (strings · the inputs own their text; math runs on numbers). */
 type Row = {

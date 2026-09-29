@@ -1,3 +1,4 @@
+import { roundDocumentMoney } from "./document-money";
 import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social';
 /**
  * Entix Books · brand document engine (quotes + invoices).
@@ -419,7 +420,8 @@ const esc = (s: unknown): string => String(s ?? "")
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const money = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const qty = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { maximumFractionDigits: 2 });
+const qty = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { maximumFractionDigits: 4 });
+const unitMoney = (n: number): string => (Number.isFinite(n) ? n : 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
 const num = (s: unknown, cls = ""): string => `<bdi dir="ltr" class="num${cls ? " " + cls : ""}">${esc(s)}</bdi>`;
 const bdi = (s: unknown): string => `<bdi dir="auto">${esc(s)}</bdi>`;
 const isoDate = (d: unknown): string => {
@@ -1534,7 +1536,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // This is a presentation row, not an adjustment or a change to the document.
   const roundingRow = (span: number): { h: number; html: string }[] => {
     if (!lineBreakdown || !included.length) return [];
-    const r2 = (v: number) => Math.round(v * 100) / 100;
+    const r2 = roundDocumentMoney;
     const net = r2(doc.subtotal - included.reduce((s, l) => s + l.netAmount!, 0));
     const tax = r2(doc.taxTotal - included.reduce((s, l) => s + l.taxAmount!, 0));
     const gross = r2(doc.total - included.reduce((s, l) => s + l.subtotal, 0));
@@ -1566,7 +1568,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const h = Math.max(hasPics ? 16 : 0, 9 + textHeight(headTxt, descWidth, 5, 1.9) + (rest ? textHeight(rest, descWidth, 4.4, 1.5) : 0));
       const code = l.code || (l.unit ? l.unit : "");
       const picCell = hasPics ? `<td class="pic">${pic ? `<img class="li-img" src="${esc(pic)}" alt="">` : ""}</td>` : "";
-      return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
+      return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
@@ -1845,7 +1847,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       // Match the printed 1.4mm cell padding and 9pt text. The previous 15mm
       // minimum charged short rows almost twice their actual height, stranding totals.
       const h = 3.5 + Math.max(8, textHeight(headTxt, descWidth, 4.5, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 4.6, 1.55) : 0));
-      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(money(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
+      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
@@ -2227,7 +2229,7 @@ function lineSpec(l: any, code?: string | null): LineSpec {
   const rawRate = n(l.taxRate && typeof l.taxRate === "object" ? l.taxRate.rate : l.taxRate);
   const rate = rawRate > 1 ? rawRate / 100 : rawRate;
   const inclusive = l.taxInclusive ?? l.taxRate?.isInclusive ?? false;
-  const r2 = (v: number) => Math.round((v + Number.EPSILON) * 100) / 100;
+  const r2 = roundDocumentMoney;
   // Stored subtotal is already gross, including document-discount allocation.
   // Never multiply that value by VAT again or rebuild it from the list price.
   const gross = l.subtotal != null ? n(l.subtotal) : r2((q * p - d) * (inclusive ? 1 : 1 + rate));
@@ -2263,7 +2265,7 @@ function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] 
   const items: any[] = Array.isArray(plan.items) ? plan.items : [];
   if (!items.length) return null;
   const taxShare = total > 0 ? taxTotal / total : 0;
-  const r2 = (v: number) => Math.round(v * 100) / 100;
+  const r2 = roundDocumentMoney;
   return items.map((it) => {
     const amount = r2(n(it.amount) || (total * n(it.percent)) / 100);
     const tax = r2(amount * taxShare);

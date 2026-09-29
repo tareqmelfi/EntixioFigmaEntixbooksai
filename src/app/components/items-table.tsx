@@ -1,3 +1,4 @@
+import { roundDocumentMoney } from "../lib/document-money";
 import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * ItemsTable v2 · multi-line invoice/quote/bill items
@@ -182,7 +183,7 @@ export function lineTaxRate(l: Pick<InvoiceLine, "taxRate">): number {
 /** DOCUMENT-LEVEL DISCOUNT · mirrors the server maths in api `lib/doc-discount.ts` exactly. */
 export type DocDiscount = { discountType?: "PERCENT" | "FIXED" | null; discountValue?: number | string | null };
 
-const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const r2 = roundDocumentMoney;
 
 export function computeTotals(lines: InvoiceLine[], discount?: DocDiscount) {
   const rows = lines.filter((l) => l.description.trim() || l.unitPrice);
@@ -892,9 +893,9 @@ export function ItemsTable({
               // as computeTotals and the API do it.
               const gross = Math.max(0, listedGross - Math.min(Math.max(0, Number(normalizeDigits(line.discount || "")) || 0), listedGross));
               const rate = lineTaxRate(line);
-              const lineTax = line.taxInclusive ? gross - gross / (1 + rate) : gross * rate;
-              const lineNet = line.taxInclusive ? gross / (1 + rate) : gross;
-              const lineTotal = line.taxInclusive ? gross : gross + lineTax;
+              const lineTax = r2(line.taxInclusive ? gross - gross / (1 + rate) : gross * rate);
+              const lineNet = r2(line.taxInclusive ? gross / (1 + rate) : gross);
+              const lineTotal = r2(lineNet + lineTax);
               const isReal = i < realLineCount;
               const isInvalid = isReal && !!invalidIds?.has(line.id);
               const isSuggesting = isReal && suggestingIds.has(line.id);

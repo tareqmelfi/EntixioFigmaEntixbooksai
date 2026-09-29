@@ -1,3 +1,4 @@
+import { roundDocumentMoney } from "../lib/document-money";
 /**
  * EstimatePreviewPane · «كيف ستبدو الدراسة للعميل» + «لوحة الدراسة» (CEO 2026-09-13)
  *
@@ -77,7 +78,7 @@ interface Props {
 
 const money2 = (n: number) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct1 = (n: number) => Number(n || 0).toLocaleString(displayLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+const round2 = roundDocumentMoney;
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 /** True at and above the given CSS px width · SSR-safe. */
@@ -101,7 +102,7 @@ export function docFromEstimateEditor(args: { title: string; number?: string | n
       code: l.itemNo || null,
       description: l.spec ? `${l.description}\n${l.spec}` : l.description,
       quantity: l.quantity,
-      unitPrice: round2(l.unitPrice),
+      unitPrice: l.unitPrice,
       discount: 0,
       subtotal: l.lineTotal,
       netAmount: round2(l.lineTotal / (1 + l.taxRate / 100)),
