@@ -350,7 +350,7 @@ export function SupplierCredits() {
           className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
           eyebrow={<span className="text-[13px]">{t("المشتريات", "Purchases")} · <Link to="/app/purchases/supplier-credits" className="hover:underline">{t("إشعارات الموردين", "Supplier credits")}</Link></span>}
           title={d ? <span dir="ltr" className="font-code">{d.creditNumber}</span> : t("إشعار مورد", "Supplier credit")}
-          description={d ? <BidiText>{d.contact?.displayName || "—"}</BidiText> : undefined}
+          description={d ? <ContactProfileLink id={d.contactId || d.contact?.id} name={d.contact?.displayName} /> : undefined}
           actions={
             <Button variant="outline" className="h-10 px-[18px] text-sm" onClick={() => navigate("/app/purchases/supplier-credits")}>
               <ArrowRight className="me-2 h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />{t("إشعارات الموردين", "Supplier credits")}

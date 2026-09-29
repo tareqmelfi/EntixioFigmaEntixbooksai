@@ -11,6 +11,7 @@ async function fixture(page: Page, locale: 'ar'|'en' = 'en', sa = false) {
     const p = new URL(r.request().url()).pathname;
     if (p === '/api/quotes/overview') return r.fulfill({json:{items:[{...doc,quoteNumber:'Q-NAV',status:'DRAFT'}],nextCursor:null}});
     if (p === '/api/contacts') return r.fulfill({json:{items:[contact],total:1}});
+    if (p === '/api/contacts/contact-nav/summary') return r.fulfill({json:{contact,totals:{invoices:{count:0,total:0,paid:0,outstanding:0},bills:{count:0,total:0,paid:0,outstanding:0},quotes:{count:0,total:0},receipts:{count:0,total:0},payments:{count:0,total:0},arOpen:0,apOpen:0,balance:0},invoices:[],bills:[],quotes:[],vouchers:[],expenses:[]}});
     if (p === '/api/contacts/contact-nav') return r.fulfill({json:contact});
     if (/^\/api\/(bills|invoices|credit-notes|supplier-credits|vouchers|quotes)$/.test(p)) return r.fulfill({json:{items:[{...doc,quoteNumber:'Q-NAV', status:p.endsWith('quotes')?'DRAFT':doc.status}],total:1,summary:{sumAmount:'20',avgAmount:'20'}}});
     if (/\/doc-nav$/.test(p)) return r.fulfill({json:doc});
@@ -27,6 +28,7 @@ for (const locale of ['ar','en'] as const) for (const width of [390,1280]) {
       const link=page.locator('a:visible').filter({hasText:contact.displayName}).first();
       await expect(link, path).toHaveAttribute('href','/app/contacts/contact-nav');
       await link.click(); await expect(page).toHaveURL(/\/app\/contacts\/contact-nav$/);
+      await expect(page.getByRole('heading',{name:contact.displayName,exact:true})).toBeVisible();
     }
     expect(writes).toEqual([]);
   });

@@ -52,7 +52,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
   // the print chrome, noprint=1 stops the auto print dialog from firing.
   const previewSrc = `/print/invoice/${invoice.id}?embed=1&noprint=1&lang=${language}`;
   return <FullPageForm title={t(`الفاتورة ${invoice.invoiceNumber}`, `Invoice ${invoice.invoiceNumber}`)}
-    subtitle={invoice.contact?.displayName || ''} onClose={onClose}
+    subtitle={<ContactProfileLink id={invoice.contactId || invoice.contact?.id} name={invoice.contact?.displayName} />} onClose={onClose}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button variant="outline" onClick={onClose}>{t('رجوع', 'Back')}</Button>
       {canCorrect && !stripeManaged && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={() => navigate(`/app/credit-notes?correctInvoice=${encodeURIComponent(invoice.id)}`)}>{t('تصحيح الفاتورة', 'Correct invoice')}</Button>}
@@ -61,7 +61,6 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
       {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}
     </div>}>
     <div className="space-y-4 w-full">
-      <ContactProfileLink id={invoice.contactId || invoice.contact?.id} name={invoice.contact?.displayName} className="inline-block text-lg" />
       {remaining > 0 && invoice.status !== 'CANCELLED' && <section className="rounded-lg border border-border bg-card p-4 space-y-2">
         <h2 className="font-semibold">{t('دفع العميل عبر الإنترنت', 'Customer online payment')}</h2>
         {(invoice as any).paymentLinkUrl ? <a className="text-primary underline" href={(invoice as any).paymentLinkUrl} target="_blank" rel="noopener noreferrer">{t('فتح رابط الدفع', 'Open payment link')} · {(invoice as any).paymentLinkProvider}</a> : <p className="text-sm text-muted-foreground">{t('لم يتم تجهيز رابط دفع لهذه الفاتورة بعد.', 'A payment link has not been prepared for this invoice yet.')}</p>}
