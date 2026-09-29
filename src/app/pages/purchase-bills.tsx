@@ -1,3 +1,4 @@
+import { JournalPurchaseIntake } from "../components/journal-purchase-intake";
 import { readSourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
 /**
@@ -127,6 +128,7 @@ export function PurchaseBills() {
   const { language, t } = useLanguage();
   // Source file captured by the dropzone · forwarded to the create so the bill carries its attachment
   const [lockedBill, setLockedBill] = useState(false);
+  const [sourceJournal, setSourceJournal] = useState<{id: string; number: string} | null>(null);
   const [billAttachments, setBillAttachments] = useState<Array<{ id: string; fileName: string; fileUrl: string }>>([]);
   const [sourceFile, setSourceFile] = useState<{ name: string; contentType: string; base64: string } | null>(null);
   const [sourceFileHash, setSourceFileHash] = useState<string | null>(null);
@@ -211,6 +213,7 @@ export function PurchaseBills() {
   };
 
   const openEdit = (b: any) => {
+    setSourceJournal(b.meta?.sourceJournalId ? {id:b.meta.sourceJournalId,number:b.meta.sourceJournalNumber} : null);
     setLockedBill(b.status !== "DRAFT"); setBillAttachments(b.attachments || []);
     setSourceFile(null); setSourceFileHash(null); setExtractedDocNumber(null);
     setForm({
@@ -500,6 +503,7 @@ export function PurchaseBills() {
         >
           {!editingId && <div className="mb-4 rounded-lg border border-border p-3 text-sm"><b>{t("سأدفع لاحقًا", "Pay later")}</b> · {t("تُحفظ الفاتورة كمبلغ مستحق للمورد حتى تسجيل الدفع.", "This bill remains payable until you record its payment.")} <Link to="/app/expenses/new" className="text-primary underline">{t("دفعت بالفعل؟ تسجيل شراء مدفوع", "Already paid? Record a paid purchase")}</Link></div>}
           <div className="mb-4 space-y-2">
+            {lockedBill && sourceJournal && <p className="rounded-lg bg-primary/5 p-3 text-sm">{t("مرتبطة بالقيد الأصلي دون ترحيل إضافي:", "Linked to the original journal without additional posting:")} <Link className="text-primary underline" to={`/app/journal-entries?entryId=${sourceJournal.id}`}>{sourceJournal.number}</Link></p>}
             {lockedBill && <p role="status" className="rounded-lg bg-muted p-3 text-sm">{t("هذه الفاتورة معتمدة ومحمية للحفاظ على تطابق الحسابات. استخدم إشعار مورد للتصحيح.", "This approved bill is protected to keep the accounts consistent. Use a supplier credit to correct it.")} <a className="text-primary underline" href="/app/purchases/supplier-credits">{t("إشعارات الموردين", "Supplier credits")}</a></p>}
             {billAttachments.map(a => <a key={a.id} className="block text-sm text-primary underline" href={a.fileUrl} download={a.fileName}>{a.fileName}</a>)}
             {editingId && <label className="block text-sm">{t("إرفاق المستند الأصلي · حتى 10MB", "Attach source document · up to 10MB")}<input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" disabled={busy} onChange={async e => {
@@ -951,6 +955,8 @@ export function PurchaseBills() {
         description={t("إدارة فواتير الموردين", "Manage supplier invoices")}
         actions={<Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Button>}
       />
+
+      <JournalPurchaseIntake suppliers={suppliers} onRegistered={refresh} />
 
       {/* Ledger figures · ink rules, serif numerals · currency-honest */}
       <MetricStrip className="compact sm:grid-cols-3 xl:grid-cols-3">
