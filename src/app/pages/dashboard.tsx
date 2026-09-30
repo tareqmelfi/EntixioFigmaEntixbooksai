@@ -285,7 +285,7 @@ useEffect(() => {
         </section>
       )}
 
-      <DashboardFinancialOverview data={data} period={period} onPeriodChange={setPeriod} historicalRecord={historical.record} historicalLoading={historical.loading} historicalError={historical.error} onOpenHistorical={() => setHistoricalView(true)} />
+      <DashboardFinancialOverview onPosted={()=>void refresh()} data={data} period={period} onPeriodChange={setPeriod} historicalRecord={historical.record} historicalLoading={historical.loading} historicalError={historical.error} onOpenHistorical={() => setHistoricalView(true)} />
       <HistoricalReportSummary access={historical} onOpen={() => setHistoricalView(true)} />
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>

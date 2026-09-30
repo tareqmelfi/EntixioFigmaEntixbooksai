@@ -275,7 +275,8 @@ for (const width of [390,1440]) test(`posting gaps are prominent without doublin
     {kind:'expense',currency:'USD',count:1,net:20,tax:3,gross:23,draftCount:0,draftGross:0,unlinkedCount:1,unlinkedGross:23},
   ]}}));
   const panel=page.getByTestId('dashboard-posting-coverage');
-  await expect(panel).toContainText('مطابقة المستندات مع الدفاتر غير مكتملة');
+  await expect(panel).toContainText('مستندًا يحتاج استكمال قيده');
+  await panel.locator('summary').click();
   await expect(panel).toContainText('18 مستندًا');
   await expect(panel.locator('tbody tr')).toHaveCount(2);
   await expect(panel.locator('tbody tr').first()).toContainText('1,262,974.46');
@@ -287,4 +288,24 @@ for (const width of [390,1440]) test(`posting gaps are prominent without doublin
   expect(await panel.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('[data-testid="flow-kpis"]')!)&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.screenshot({path:`/tmp/entix-dashboard-posting-${width}.png`,fullPage:false});
+});
+
+
+test('posting review previews before approval, preserves scope and refreshes dashboard',async({page})=>{
+  let applied=0;let previewed=0;
+  const calls=await setup(page,data=>({...data,postingCoverage:{basis:'document_journal_links',status:'needs_review',unlinkedCount:1,groups:[]}}));
+  await page.route('https://api.entix.io/api/posting-review**',async route=>{
+    const path=new URL(route.request().url()).pathname;
+    if(path.endsWith('/preview')){previewed++;return route.fulfill({json:{reviewToken:'synthetic-reviewed-token',currency:'USD',lines:[{accountCode:'12000',accountName:'AR',debit:100,credit:0},{accountCode:'4000',accountName:'General revenue',debit:0,credit:100}]}})}
+    if(path.endsWith('/approve')){expect(route.request().postDataJSON()).toEqual({reviewToken:'synthetic-reviewed-token',confirmedNoPriorPosting:true});applied++;return route.fulfill({json:{ok:true,journalId:'synthetic-journal'}})}
+    expect(new URL(route.request().url()).searchParams.get('from')).toBe('2026-04-01');
+    return route.fulfill({json:{total:1,items:[{id:'synthetic-invoice',kind:'invoice',number:'INV-REVIEW',date:'2026-09-10',total:100,currency:'USD',status:'PAID'}]}})
+  });
+  await page.getByRole('button',{name:'مراجعة واعتماد',exact:true}).click();
+  await page.getByRole('button',{name:'مراجعة واعتماد القيد',exact:true}).click();
+  await expect(page.getByRole('button',{name:'اعتماد وترحيل القيد',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'معاينة الحسابات والقيد',exact:true}).click();
+  const approve=page.getByRole('button',{name:'اعتماد وترحيل القيد',exact:true});await expect(approve).toBeDisabled();
+  await page.getByRole('checkbox').check();await approve.click();
+  await expect.poll(()=>applied).toBe(1);expect(previewed).toBe(1);await expect.poll(()=>calls.length).toBe(2);
 });

@@ -647,7 +647,14 @@ function smartImportClient(entity: 'accounts' | 'contacts' | 'products') {
 }
 
 // ── Resource clients ──────────────────────────────────────────────────────────
+export interface PostingReviewItem {id:string;kind:string;number:string;date:string;currency:string;total:number;status:string}
+export interface PostingReviewPreview {reviewToken:string;currency:string;lines:Array<{accountCode:string;accountName:string;debit:number;credit:number}>}
 export const api = {
+  postingReview: {
+    list: (from?:string,to?:string,offset=0) => request<{items:PostingReviewItem[];total:number}>(`/api/posting-review?${new URLSearchParams({...(from?{from}:{}),...(to?{to}:{}),offset:String(offset)})}`),
+    preview: (kind:string,id:string,accountId?:string) => request<PostingReviewPreview>(`/api/posting-review/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/preview`,{method:'POST',body:{...(accountId?{accountId}:{})}}),
+    approve: (kind:string,id:string,reviewToken:string) => request<{ok:boolean;journalId:string}>(`/api/posting-review/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/approve`,{method:'POST',body:{reviewToken,confirmedNoPriorPosting:true}}),
+  },
   support: {
     list: () => request<{ items: SupportTicket[] }>('/api/public/support/portal'),
     get: (id: string) => request<{ ticket: SupportTicket }>(`/api/public/support/portal/${id}`),
