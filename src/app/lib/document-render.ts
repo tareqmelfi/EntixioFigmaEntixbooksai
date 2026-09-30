@@ -1108,8 +1108,14 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc table.items.tax-columns td.n{white-space:nowrap}
 .edoc table.items.tax-columns .basis{display:block;font-size:7pt;white-space:normal;font-weight:400}
 .edoc table.items.tax-columns [data-line-rounding] td{font-size:8pt;color:var(--muted)}
+/* Invoice density matches itemsBlock() pagination; quote layouts retain their own geometry. */
+.edoc.invoice .doc-head{padding-bottom:3mm;margin-bottom:3mm}
+.edoc.invoice .meta-strip{margin-bottom:3mm}
+.edoc.invoice .pgflow > :last-child{margin-bottom:0}
+.edoc.invoice table.items td{padding-top:1.4mm;padding-bottom:1.4mm;line-height:1.45}
+.edoc.invoice table.items .rest{line-height:1.5}
 /* per-line product image / mark · bare on the paper (LOGO FRAME LAW: no box, no plate) */
-.edoc table.items td.pic{padding:3mm 1mm 3mm 2mm;vertical-align:top}
+.edoc table.items td.pic,.edoc.invoice table.items td.pic{padding:3mm 1mm 3mm 2mm;vertical-align:top}
 .edoc .li-img{width:12mm;height:12mm;object-fit:contain;object-position:center;display:block;background:none;border:0;padding:0;border-radius:0}
 .edoc .totals-row{display:grid;grid-template-columns:1fr 100mm;gap:8mm;align-items:start;margin:0 0 6mm}
 .edoc .totals{border:.5pt solid var(--rule);border-radius:2mm;overflow:hidden}
@@ -1481,7 +1487,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   };
 
   const headerBlock = (): Block => themed ? ({
-    kind: "html", h: 84, html: `<div class="st"><div class="a">${esc(docType)}</div><div class="e">${docEyebrow}</div></div>
+    kind: "html", h: isQuote ? 84 : 78, html: `<div class="st"><div class="a">${esc(docType)}</div><div class="e">${docEyebrow}</div></div>
 <div class="doc-head two">
   ${partyHtml(isQuote ? t("المورد · الجهة المُقدِّمة", "Supplier · issued by") : t("المورد · الجهة المُصدِرة", "Supplier · issued by"), orgName, orgAlt, org, true)}
   ${partyHtml(t("العميل", "Client"), clientName, clientAlt, contact, false)}
@@ -1565,8 +1571,17 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const rest = parts.slice(1).join("\n").trim();
       const pic = lineImg(l);
       const descWidth = lineBreakdown ? (hasPics ? 46 : 58) : 80;
-      const h = Math.max(hasPics ? 16 : 0, 9 + textHeight(headTxt, descWidth, 5, 1.9) + (rest ? textHeight(rest, descWidth, 4.4, 1.5) : 0));
       const code = l.code || (l.unit ? l.unit : "");
+      // Invoice cells use 1.4mm vertical padding and a 1.45 line-height.
+      // Budget that geometry, not the old 9mm padding + oversized text estimate:
+      // it stranded even five short rows and their totals on separate sheets.
+      const h = isQuote
+        ? Math.max(hasPics ? 16 : 0, 9 + textHeight(headTxt, descWidth, 5, 1.9) + (rest ? textHeight(rest, descWidth, 4.4, 1.5) : 0))
+        : Math.max(hasPics ? 16 : 0, 3.5 + Math.max(
+          textHeight(headTxt, descWidth, 4.8, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 4.5, 1.5) : 0),
+          code ? textHeight(code, lineBreakdown ? 9 : (themed ? 17 : 25), 4.8, 1.6) : 0,
+          doc.taxBasis === "mixed" ? 9 : 4.8,
+        ));
       const picCell = hasPics ? `<td class="pic">${pic ? `<img class="li-img" src="${esc(pic)}" alt="">` : ""}</td>` : "";
       return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
@@ -2162,7 +2177,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const rawCss = (socialHtml ? `.edoc .sheet[data-social-band="true"]{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
   // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
   const css = hideBrand ? rawCss.replace(/\/\*[\s\S]*?\*\//g, "") : rawCss;
-  const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}`;
+  const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}${isQuote ? "" : " invoice"}`;
   const body = `<div class="${rootCls}" dir="${ar ? "rtl" : "ltr"}" lang="${lang}" data-sheets="${total}">${actions}${bodyHtml}</div>`;
   const title = `${doc.number}${contact?.name ? " · " + contact.name : ""}`;
   const html = `<!DOCTYPE html>
