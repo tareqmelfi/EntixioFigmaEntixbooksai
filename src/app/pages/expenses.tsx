@@ -728,7 +728,7 @@ export function Expenses() {
   // asks POST /api/accounts/suggest (debounced · cached) and is marked «مقترح» until confirmed.
   formDataRef.current = formData;
   const expenseAccountItems = accounts
-    .filter((a) => a.type === "EXPENSE" && a.isActive !== false)
+    .filter((a) => ["EXPENSE", "ASSET"].includes(a.type) && a.isActive !== false)
     .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined }));
   const accountLabel = (id?: string | null) => {
     const a = accounts.find((x) => x.id === id);
@@ -1061,18 +1061,6 @@ export function Expenses() {
       setCreateError(t("مجموع المدفوعات ", "Payment total ") + money(splitTotal, expectedPaymentCurrency) + t(" لا يطابق المبلغ المتوقع ", " does not match expected ") + money(expectedPaymentTotal, expectedPaymentCurrency));
       return;
     }
-    // Account law (2026-09-08): a non-draft expense needs an account on every line —
-    // or a header account as the fallback. Drafts save freely.
-    if (targetStatus !== "DRAFT" && !formData.accountId) {
-      const missing = formData.lineItems.map((line, idx) => (line.accountId ? -1 : idx)).filter((i) => i >= 0);
-      if (formData.lineItems.length === 0 || missing.length) {
-        const msg = t("لا يمكن اعتماد المصروف: لم تُسجَّل بنوده بالشكل الصحيح — اختر حسابًا لكل بند أو حسابًا للمصروف.", "Cannot approve the expense: its lines were not recorded correctly — choose an account for every line or a header account.");
-        setInvalidLineIdx(new Set(missing));
-        setLineError(msg);
-        setCreateError(msg);
-        return;
-      }
-    }
     if (inboxSourceLoading) { setCreateError(t("انتظر نقل مرفقات البريد قبل الحفظ.", "Wait for email attachments before saving.")); return; }
     setBusy(true);
     try {
@@ -1124,7 +1112,7 @@ export function Expenses() {
         },
         ocrConfidence: formData.ocrConfidence,
         autoCreateSupplier: true,
-        // تسجيل كأصل ثابت تلقائياً (يرتبط بالمصروف ويأخذ كوداً تلقائياً)
+        // إضافة إلى مراجعة الأصول (يرتبط بالمصروف ويأخذ كوداً تلقائياً)
         registerAsAsset: formData.registerAsAsset === true,
         assetAccountId: formData.assetAccountId || null,
         branchId: formData.branchId ?? null,
@@ -1558,9 +1546,9 @@ export function Expenses() {
                       value={formData.accountId || ""}
                       onChange={(accountId) => setFormData({ ...formData, accountId, accountSuggested: false } as FormState)}
                       items={expenseAccountItems}
-                      placeholder={t("اختر حساب المصروف من الشجرة…", "Pick the expense account from the chart…")}
+                      placeholder={t("مصروف عام / افتراضي الشركة", "General expense / company default")}
                     />
-                    <p className="text-[11px] text-muted-foreground">{t("اختر مرة واحدة لجميع البنود. يمكنك تخصيص كل بند من التفاصيل.", "Choose once for all items. Override individual items in details.")}</p>
+                    <p className="text-[11px] text-muted-foreground">{t("اختر حساب التكلفة أو الأصل لجميع البنود، أو اتركه لافتراضي الشركة/مصروف عام. يمكنك تخصيص كل بند.", "Choose a cost or asset account for all items, or use the company default/general expense. Override individual items in details.")}</p>
                   </div>
                   {showDetails && <>
                   <button
@@ -1571,8 +1559,8 @@ export function Expenses() {
                     className={`mt-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-xs transition-colors ${formData.registerAsAsset ? "border-primary/40 bg-primary/5 text-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
                   >
                     <Building2 className="h-3.5 w-3.5" />
-                    <span style={{ fontWeight: formData.registerAsAsset ? 700 : 500 }}>{t("تسجيل كأصل ثابت تلقائياً", "Auto-register as a fixed asset")}</span>
-                    {formData.registerAsAsset && <span className="ms-auto text-[10px] opacity-80">{t("سيأخذ كوداً تلقائياً ويرتبط بالمصروف", "gets an auto code linked to this expense")}</span>}
+                    <span style={{ fontWeight: formData.registerAsAsset ? 700 : 500 }}>{t("إضافة إلى مراجعة الأصول", "Add to asset review")}</span>
+                    {formData.registerAsAsset && <span className="ms-auto text-[10px] opacity-80">{t("يرتبط بقيد الشراء بعد الاعتماد", "links to the posted acquisition")}</span>}
                   </button>
                   <div className="space-y-1.5">
                     <SearchableCombobox
@@ -1592,7 +1580,7 @@ export function Expenses() {
                       const isFixed = acct?.type === "ASSET" && /fixed|intangible/i.test(acct.subtype || "");
                       return isFixed ? (
                         <p className="rounded-md border border-success-border bg-success-subtle px-2 py-1 text-[11px] text-success">
-                          {t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً حتى بدون تفعيل الزر", "Account is inside the assets branch · registers as a fixed asset automatically even without the toggle")}
+                          {t("الحساب ضمن الأصول · يظهر في مراجعة الأصول بعد الترحيل دون بدء الإهلاك", "Asset account · appears in asset review after posting, without starting depreciation")}
                         </p>
                       ) : null;
                     })()}

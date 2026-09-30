@@ -100,6 +100,7 @@ export interface AccountOption {
 }
 
 interface Props {
+  defaultAccountLabel?: string;
   lines: InvoiceLine[];
   setLines: React.Dispatch<React.SetStateAction<InvoiceLine[]>>;
   mode: TaxMode;
@@ -363,6 +364,7 @@ export function ItemsTable({
   contactId,
   suggestAccount,
   autoSuggest = true,
+  defaultAccountLabel,
 }: Props) {
   const { t, language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -879,7 +881,7 @@ export function ItemsTable({
                 </span>
               )}
               {showAssetCol && (
-                <span className="cell h" title={t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}>{t("أصل", "Asset")}</span>
+                <span className="cell h" title={t("تحديد البند للربط بحساب أصل ثابت", "Mark this line for a fixed asset account")}>{t("أصل", "Asset")}</span>
               )}
               <span className="cell h" />
             </div>
@@ -1012,7 +1014,7 @@ export function ItemsTable({
                             value={line.accountId || ""}
                             onChange={(id) => updateLine(i, { accountId: id, accountSuggested: false, accountVia: undefined })}
                             items={accountItems}
-                            placeholder={isSuggesting ? t("جارٍ الاقتراح…", "Suggesting…") : t("حساب…", "Account…")}
+                            placeholder={isSuggesting ? t("جارٍ الاقتراح…", "Suggesting…") : (defaultAccountLabel || t("حساب…", "Account…"))}
                             borderless
                             buttonClassName={`min-h-8 h-auto py-1 px-2 text-[13px] rounded-md ${line.accountSuggested ? "text-content-secondary" : ""}`}
                             menuMinWidth={520}
@@ -1103,7 +1105,7 @@ export function ItemsTable({
                         line.accountId && fixedAssetAccountIds.has(line.accountId) ? (
                           <span
                             className="inline-flex items-center justify-center rounded-md p-1 text-success"
-                            title={t("الحساب ضمن فرع الأصول · سيُسجَّل كأصل ثابت تلقائياً عند الحفظ", "Account sits in the assets branch · auto-registers as a fixed asset on save")}
+                            title={t("حساب أصل · يظهر في مراجعة الأصول بعد الاعتماد", "Asset account · appears in asset review after approval")}
                           >
                             <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} />
                           </span>
@@ -1113,7 +1115,7 @@ export function ItemsTable({
                             role="checkbox"
                             aria-checked={line.isAsset === true}
                             onClick={() => updateLine(i, { isAsset: !line.isAsset })}
-                            title={line.isAsset ? t("سيُسجَّل كأصل ثابت عند الحفظ · اضغط للإلغاء", "Registers as a fixed asset on save · click to undo") : t("تسجيل السطر كأصل ثابت تلقائياً عند الحفظ", "Auto-register this line as a fixed asset on save")}
+                            title={line.isAsset ? t("يحتاج حساب أصل ثابت ليظهر في مراجعة الأصول · اضغط للإلغاء", "Requires a fixed asset account for asset review · click to undo") : t("تحديد البند للربط بحساب أصل ثابت", "Mark this line for a fixed asset account")}
                             className={`rounded-md p-1 transition-colors ${line.isAsset ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                           >
                             <Building2 className="h-3.5 w-3.5" strokeWidth={1.75} />
