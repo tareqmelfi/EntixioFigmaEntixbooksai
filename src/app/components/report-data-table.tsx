@@ -11,8 +11,9 @@ export function ReportDataTable({report,onRowClick}: {report:ReportPayload;onRow
    <thead className="sticky top-0 z-10 bg-card"><tr>{section.columns.map((c,i)=><th key={c.key} className={`border-b px-3 py-2 whitespace-nowrap ${i===0?'sticky start-0 z-20 bg-card text-start min-w-64':'text-end'}`}>{reportLabel(c.label,language)}</th>)}</tr></thead>
    <tbody>{section.rows.map(row=><tr key={row.id} className={`border-b border-border/50 hover:bg-muted/50 ${/summary$/.test(section.id)||/total|net-income/.test(row.id)?'font-semibold':''}`} >{section.columns.map((c,i)=>{
     const v=c.key==='label'?(row.values.label??row.label):row.values[c.key];
+    const formatted=typeof v==='number'?v.toLocaleString('en-US',{minimumFractionDigits:c.kind==='money'?2:0,maximumFractionDigits:2}):v==null?'—':reportLabel(String(v),language);
     return <td key={c.key} className={`px-3 py-1.5 leading-5 ${i===0?'sticky start-0 bg-card text-start':'text-end whitespace-nowrap tabular-nums'}`} style={i===0?{paddingInlineStart:12+(row.depth||0)*12}:undefined}>
-     {i===0?<button type="button" className="text-start font-medium hover:text-primary hover:underline" onClick={()=>onRowClick(row)}>{reportLabel(String(v??''),language)}</button>:<bdi dir="ltr">{typeof v==='number'?v.toLocaleString('en-US',{minimumFractionDigits:c.kind==='money'?2:0,maximumFractionDigits:2}):v==null?'—':reportLabel(String(v),language)}</bdi>}
+     {i===0?<button type="button" className="text-start font-medium hover:text-primary hover:underline" onClick={()=>onRowClick(row)}>{formatted}</button>:<bdi dir="ltr">{formatted}</bdi>}
     </td>;
    })}</tr>)}{!section.rows.length&&<tr><td colSpan={section.columns.length} className="p-3 text-muted-foreground">{t('لا توجد بيانات في الفترة','No records in this period')}</td></tr>}</tbody>
   </table>)}</div>
