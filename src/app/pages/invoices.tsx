@@ -510,16 +510,6 @@ export function Invoices() {
       return;
     }
 
-    if (action !== "draft") {
-      const missing = activeLines.filter(l => !l.accountId && !products.find(p => p.id === l.productId)?.incomeAccountId);
-      if (missing.length) {
-        setInvalidLineIds(new Set(missing.map(l => l.id)));
-        // Account law (CEO 2026-09-08): the approve/send message names the real cause.
-        setCreateError(t("لا يمكن اعتماد الفاتورة: لم تُسجَّل بنودها بالشكل الصحيح — اختر حسابًا لكل بند.", "Cannot approve: the lines were not recorded correctly — choose an account for every line."));
-        return;
-      }
-    }
-
     // For draft we only persist completed lines to avoid إنشاء سطور ناقصة بالخطأ.
     const linesToPersist = action === "draft" ? completeLines : activeLines;
     if (linesToPersist.length === 0) {
@@ -662,10 +652,6 @@ export function Invoices() {
       });
       if (hasIncomplete) {
         push("error", t("لا يمكن الاعتماد: يوجد بند ناقص (الوصف/الكمية/السعر)", "Cannot approve: there is an incomplete line (description/quantity/price)"));
-        return;
-      }
-      if (lineItems.some((l: any) => !l.accountId && !l.product?.incomeAccountId)) {
-        push("error", t("اختر حساب الإيراد لكل بند قبل الاعتماد.", "Select a revenue account for every line before approval."));
         return;
       }
       await api.invoices.update(inv.id, { status: "APPROVED" });
@@ -1056,9 +1042,10 @@ export function Invoices() {
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">{t("حساب الإيراد مطلوب لكل بند عند الاعتماد. يمكنك حفظ مسودة حتى يكتمل الربط المحاسبي.", "Each line requires a revenue account for approval. Save a draft while completing the accounting mappings.")}</p>
+            <p className="text-xs text-muted-foreground">{t("يمكنك اختيار حساب لكل بند. عند تركه فارغًا يُستخدم حساب الشركة الافتراضي أو إيراد عام، ويُحفظ القيد مع الاعتماد.", "Choose a line account, or use the company default/general revenue. Approval saves the accounting entry together with the invoice.")}</p>
             {/* Items table v2 · with product picker + account picker */}
             <ItemsTable
+              defaultAccountLabel={t("إيراد عام / افتراضي الشركة", "General revenue / company default")}
               lines={lines}
               setLines={setLines}
               mode={taxMode}

@@ -81,18 +81,27 @@ for (const lang of ['ar', 'en'] as const) {
   })
 }
 
-test('bill editor · approve with an emptied account → red line + CEO message (ar)', async ({ page }) => {
+test('bill editor · empty account reaches atomic approval and surfaces server posting failure (ar)', async ({ page }) => {
   await prepareVisualApp(page, 'ar')
   await commonRoutes(page)
   await page.route('https://api.entix.io/api/accounts/suggest', (route: any) => route.fulfill({ json: { accountId: null, code: null, name: null, via: 'none', confidence: 0 } }))
   await page.route('https://api.entix.io/api/contacts**', (route: any) => route.fulfill({ json: { items: [SUPPLIER], total: 1, page: 1, limit: 200 } }))
   await page.route('https://api.entix.io/api/bills', (route: any) => route.fulfill({ json: { items: [], total: 1 } }))
-  await page.route('https://api.entix.io/api/bills/bill-ocr-1', (route: any) => route.fulfill({ json: BILL_FULL }))
+  let approved = false
+  await page.route('https://api.entix.io/api/bills/bill-ocr-1', (route: any) => {
+    if (route.request().method() === 'PATCH') {
+      approved = true
+      return route.fulfill({status:422,json:{error:'ledger_control_account_required',messageAr:'حدد حساب الذمم الدائنة قبل الاعتماد.',messageEn:'Configure accounts payable before approval.'}})
+    }
+    return route.fulfill({json:BILL_FULL})
+  })
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto('/app/purchases/bills/bill-ocr-1')
   await expect(page.getByRole('heading', { name: /BILL-2026-000417/ })).toBeVisible()
   await page.getByRole('button', { name: 'اعتماد', exact: true }).click()
-  await expect(page.getByTestId('items-table-error')).toContainText('لا يمكن اعتماد الفاتورة')
+  await expect(page.getByText('حدد حساب الذمم الدائنة قبل الاعتماد.', {exact:true})).toBeVisible()
+  expect(approved).toBe(true)
+  await expect(page.getByRole('button', {name:'اعتماد',exact:true})).toBeVisible()
 })
 
 test('invoice editor · suggested revenue account (ar)', async ({ page }) => {

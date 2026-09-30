@@ -302,18 +302,6 @@ export function PurchaseBills() {
     if (!form.contactId) { setCreateError(t("اختر المورد", "Select supplier")); return; }
     const validLines = lines.filter((l) => l.description.trim() && l.unitPrice);
     if (validLines.length === 0) { setCreateError(t("أضف بنداً واحداً على الأقل (وصف + سعر)", "Add at least one line (description + price)")); return; }
-    // Account law (2026-09-08): a bill is never approved with an account-less line ·
-    // drafts save freely. line.accountId → product.expenseAccountId is the same rule the API applies.
-    if (action !== "draft") {
-      const missing = validLines.filter((l) => !l.accountId && !products.find((p: any) => p.id === l.productId)?.expenseAccountId);
-      if (missing.length) {
-        const msg = t("لا يمكن اعتماد الفاتورة: لم تُسجَّل بنودها بالشكل الصحيح — اختر حسابًا لكل بند.", "Cannot approve: the lines were not recorded correctly — choose an account for every line.");
-        setInvalidLineIds(new Set(missing.map((l) => l.id)));
-        setLineError(msg);
-        setCreateError(msg);
-        return;
-      }
-    }
     setBusy(true);
     try {
       const totals = computeTotals(lines);
@@ -623,7 +611,9 @@ export function PurchaseBills() {
             </div>
 
             <Button type="button" variant="outline" onClick={() => setShowDimensions(!showDimensions)} aria-expanded={showDimensions}>{t("ربط بفرع أو مشروع (اختياري)", "Branch or project (optional)")}</Button>
+            <p className="text-xs text-muted-foreground">{t("اختر حساب التكلفة أو الأصل لكل بند. الفارغ يستخدم افتراضي الشركة أو مصروفًا عامًا عند الاعتماد.", "Choose a cost or asset account per line. Empty lines use the company default or general expense on approval.")}</p>
             <ItemsTable
+              defaultAccountLabel={t("مصروف عام / افتراضي الشركة", "General expense / company default")}
               lines={lines}
               setLines={setLines}
               mode={taxMode}
