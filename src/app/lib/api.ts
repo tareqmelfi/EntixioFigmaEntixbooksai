@@ -3853,6 +3853,8 @@ export const apiBaseUrl = API_BASE
 export type AiKeyMode = 'BYOK' | 'HOSTED_FREE' | 'HOSTED_PRO' | 'HOSTED_BUSINESS' | 'PAYG';
 
 export interface AiBillingConfig {
+  requestLimit: number;
+  requestsThisPeriod: number;
   mode: AiKeyMode;
   byokProvider: 'openrouter' | 'anthropic' | null;
   byokKeyHint: string | null; // sk-...XXXX
@@ -3866,6 +3868,7 @@ export interface AiBillingConfig {
 }
 
 export interface AiBillingUpdate {
+  requestLimit?: number;
   mode?: AiKeyMode;
   byokProvider?: 'openrouter' | 'anthropic';
   byokKey?: string;
