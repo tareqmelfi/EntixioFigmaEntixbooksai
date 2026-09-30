@@ -64,8 +64,12 @@ test('month strip selects across years and every annual metric survives wide PDF
  expect(workbook.worksheets[0].columnCount).toBe(14);expect(workbook.worksheets[0].getCell('N7').value).toBe(1200);
  await page.getByRole('button',{name:'تصدير التقرير',exact:true}).click();await page.getByRole('button',{name:'PDF / طباعة',exact:true}).click();
  const output=page.getByTestId('report-output-pages');await expect(output).toHaveAttribute('data-ready','true');
- // 12 months and total split into 3 panels, with all 30 identities repeated.
- await expect(output.locator('tbody tr')).toHaveCount(90);
+ // 12 months and total split into 2 panels, with all 30 identities repeated.
+ await expect(output.locator('tbody tr')).toHaveCount(60);
+ expect(await output.locator('.report-output-sheet').count()).toBeLessThanOrEqual(4);
+ await output.locator('.report-output-sheet').first().screenshot({path:info.outputPath('monthly-pdf-preview.png')});
+ const widths=await output.locator('tbody tr').first().locator('td').evaluateAll(c=>c.map(e=>e.getBoundingClientRect().width));expect(widths[0]/widths.reduce((a,b)=>a+b,0)).toBeLessThan(.4);
+ for(const w of widths.slice(1))expect(w).toBeGreaterThan(85);
  for(const sheet of await output.locator('.report-output-sheet').all()){
   expect(await sheet.evaluate(e=>{const b=e.querySelector('.report-page-body')!;return b.scrollHeight<=b.clientHeight+1})).toBe(true);
  }
