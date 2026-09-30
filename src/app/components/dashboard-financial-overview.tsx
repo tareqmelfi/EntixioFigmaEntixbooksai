@@ -62,7 +62,7 @@ function OpenBalances({data,title,scope,href}: {data?:DashboardOpenBalances;titl
   </Panel>;
 }
 
-export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical}: {data:DashboardSummary & {postingCoverage?:PostingCoverage};period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void}) {
+export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical,onPosted}: {data:DashboardSummary & {postingCoverage?:PostingCoverage};period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void;onPosted?:()=>void}) {
   const {t,language}=useLanguage();
   const [requestedGrouping,setChartGrouping]=useState<'auto'|'months'|'years'|'history'>('auto');
   const hasLedgerTrend=data.profitLoss.some(row=>row.dataAvailability?.hasActivity)||(data.yearlyTrend||[]).some(row=>row.dataAvailability?.hasActivity);
@@ -126,7 +126,7 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       ] as const).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
       <span className="text-content-secondary" data-testid="flow-dates">{scopedText(flowDates)} · {cur}</span>
     </div>
-    <DashboardPostingCoverage coverage={data.postingCoverage} source={p?.source}/>
+    <DashboardPostingCoverage key={`${p?.fromDate}-${p?.toDate}`} coverage={data.postingCoverage} source={p?.source} from={p?.fromDate} to={p?.toDate} onPosted={onPosted}/>
     <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
 
     <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3" data-testid="dashboard-primary-row">

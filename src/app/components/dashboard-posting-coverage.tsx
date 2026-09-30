@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { PostingReview } from './posting-review';
+import { Button } from './ui/button';
 import { Link } from 'react-router';
 import { useLanguage } from './LanguageContext';
 import { displayLocale } from '../lib/number-display';
@@ -9,8 +12,9 @@ export interface PostingCoverage {
   groups: Array<{kind:string;currency:string;count:number;net:number;tax:number;gross:number;draftCount:number;draftGross:number;unlinkedCount:number;unlinkedGross:number}>;
 }
 
-export function DashboardPostingCoverage({coverage,source}: {coverage?:PostingCoverage;source?:string}) {
+export function DashboardPostingCoverage({coverage,from,to,onPosted}: {coverage?:PostingCoverage;source?:string;from?:string|null;to?:string;onPosted?:()=>void}) {
   const {t}=useLanguage();
+  const [review,setReview]=useState(false);
   if (!coverage) return null;
   const labels:Record<string,[string,string,string]>={
     invoice:['فواتير المبيعات','Sales invoices','/app/invoices'],
@@ -22,11 +26,12 @@ export function DashboardPostingCoverage({coverage,source}: {coverage?:PostingCo
   };
   const amount=(value:number)=>value.toLocaleString(displayLocale('en-US'),{minimumFractionDigits:2,maximumFractionDigits:2});
   return <section data-testid="dashboard-posting-coverage" className="min-w-0 rounded-lg border border-border bg-card p-4">
-    {coverage.unlinkedCount>0 && <div role="status" className="mb-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
-      <p className="font-semibold">{t('مطابقة المستندات مع الدفاتر غير مكتملة','Document-to-ledger reconciliation is incomplete')}</p>
-      <p className="mt-1">{coverage.unlinkedCount} {t('مستندًا بلا قيد مرحّل مرتبط. يلزم مراجعة الربط قبل الاعتماد على النتائج؛ لا تُضاف مبالغ المستندات إليها تلقائيًا لتجنب التكرار.','documents have no linked posted journal. Review posting links before relying on the results; document amounts are not automatically added to prevent duplication.')}</p>
+    {coverage.unlinkedCount>0 && <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+      <p role="status">{coverage.unlinkedCount} {t('مستندًا يحتاج استكمال قيده؛ الأرباح تعرض القيود المرحلة فقط.','documents need journal completion; profit includes posted journals only.')}</p>
+      <Button size="sm" onClick={()=>setReview(v=>!v)}>{review?t('إغلاق المراجعة','Close review'):t('مراجعة واعتماد','Review and approve')}</Button>
     </div>}
-    {coverage.unlinkedCount>0 && <p className="mb-3 text-xs font-medium">{source==='ledger'?t('الأرباح أدناه من القيود المرحلة فقط، وقد تكون ناقصة بسبب المستندات غير المرتبطة.','Profit below uses posted journals only and may be incomplete because of unlinked documents.'):t('النتائج أدناه تقديرية من المستندات؛ لا توجد دفاتر مكتملة يمكن اعتمادها.','Figures below are document estimates, not reconciled ledger results.')}</p>}
+    {review&&<PostingReview from={from} to={to} onPosted={onPosted}/>}
+    <details className="mt-2"><summary className="cursor-pointer text-xs text-content-secondary">{t('تفاصيل المستندات والمسودات','Document and draft totals')}</summary>
     <h2 className="text-sm font-semibold">{t('المستندات المسجلة · الفترة المختارة','Recorded documents · selected period')}</h2>
     <p className="mt-1 text-xs text-content-secondary">{t('مجاميع تشغيلية حسب العملة، وليست صافي ربح. المسودات منفصلة وغير محتسبة. وجود رابط قيد لا يثبت اكتمال المطابقة.','Operational totals by currency, not net profit. Drafts are separate and excluded. A journal link alone does not certify reconciliation.')}</p>
     {!coverage.groups.length ? <p className="mt-3 text-xs">{t('لا توجد مستندات في الفترة المختارة.','No documents in the selected period.')}</p> : <div className="mt-3 overflow-x-auto"><table className="w-full min-w-[760px] text-xs">
@@ -39,5 +44,6 @@ export function DashboardPostingCoverage({coverage,source}: {coverage?:PostingCo
         <td className="px-2 py-2 text-content-secondary">{row.draftCount}{row.draftCount>0&&<> · <bdi>{amount(row.draftGross)} {row.currency}</bdi></>}</td>
       </tr>})}</tbody>
     </table></div>}
+    </details>
   </section>;
 }
