@@ -103,18 +103,19 @@ export function Settings() {
   const [aiConfig, setAiConfig] = useState<AiBillingConfig | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
   const [byokKey, setByokKey] = useState("");
-  const [byokProvider, setByokProvider] = useState<"openrouter" | "anthropic">("openrouter");
+  const byokProvider = "openrouter" as const;
+  const [aiRequestLimit, setAiRequestLimit] = useState("1000");
   const [emailStatus, setEmailStatus] = useState<any>(null);
   const [inboxStatus, setInboxStatus] = useState<any>(null);
   const { toasts, push, dismiss } = useToasts();
   const [pendingSignOut, setPendingSignOut] = useState(false);
   const { t } = useLanguage();
   const MODE_LABELS: Record<AiKeyMode, { label: string; price: string; alloc: string }> = {
-    BYOK:            { label: t("مفتاحي الخاص (BYOK)", "Bring Your Own Key (BYOK)"),   price: "$0",      alloc: t("غير محدود", "Unlimited") },
+    BYOK:            { label: t("مفتاحي الخاص (BYOK)", "Bring Your Own Key (BYOK)"),   price: "$0",      alloc: t("بحسب الحد المحدد", "Configured limit") },
     HOSTED_FREE:     { label: t("مجاني", "Free"),                  price: "$0",      alloc: t("$5/شهر", "$5/month") },
     HOSTED_PRO:      { label: t("احترافي", "Pro"),                price: t("$19/شهر", "$19/month"), alloc: t("$30/شهر", "$30/month") },
     HOSTED_BUSINESS: { label: t("أعمال", "Business"),                  price: t("$49/شهر", "$49/month"), alloc: t("$100/شهر", "$100/month") },
-    PAYG:            { label: t("ادفع عند الاستخدام", "Pay as you go"),     price: t("$1.20 لكل $1", "$1.20 per $1"),    alloc: t("غير محدود", "Unlimited") },
+    PAYG:            { label: t("ادفع عند الاستخدام", "Pay as you go"),     price: t("$1.20 لكل $1", "$1.20 per $1"),    alloc: t("بحسب الحد المحدد", "Configured limit") },
   };
 
   useEffect(() => {
@@ -222,6 +223,7 @@ export function Settings() {
     try {
       const c = await api.aiBilling.get();
       setAiConfig(c);
+      setAiRequestLimit(String(c.requestLimit));
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل تحميل إعدادات AI", "Failed to load AI settings"));
     }
@@ -236,6 +238,7 @@ export function Settings() {
     try {
       const c = await api.aiBilling.update({ mode });
       setAiConfig(c);
+      setAiRequestLimit(String(c.requestLimit));
       push("success", t(`تم التحويل إلى ${MODE_LABELS[mode].label}`, `Switched to ${MODE_LABELS[mode].label}`));
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل التحديث", "Update failed"));
@@ -251,6 +254,7 @@ export function Settings() {
     try {
       const c = await api.aiBilling.update({ mode: "BYOK", byokProvider, byokKey: byokKey.trim() });
       setAiConfig(c);
+      setAiRequestLimit(String(c.requestLimit));
       setByokKey("");
       push("success", t("تم حفظ المفتاح وتفعيل BYOK", "Key saved and BYOK activated"));
     } catch (e: any) {
@@ -263,6 +267,7 @@ export function Settings() {
     try {
       const c = await api.aiBilling.update({ clearByok: true, mode: "HOSTED_FREE" });
       setAiConfig(c);
+      setAiRequestLimit(String(c.requestLimit));
       push("success", t("تم حذف المفتاح · رجعت للباقة المجانية", "Key deleted · reverted to the free plan"));
     } catch (e: any) {
       push("error", e instanceof ApiError ? e.message : t("فشل الحذف", "Delete failed"));
@@ -608,7 +613,7 @@ export function Settings() {
                       </span>
                     )}
                   </div>
-                  {aiConfig.mode !== "BYOK" && aiConfig.mode !== "PAYG" && (
+                  {aiConfig.mode !== "BYOK" && (
                     <>
                       <div className="flex items-center justify-between text-xs text-muted-foreground mt-3 mb-1">
                         <span>{t("المستخدَم", "Used")}: <span className="font-english text-foreground">${displayDigits(Number(aiConfig.spentThisPeriod).toFixed(2))}</span></span>
@@ -658,7 +663,7 @@ export function Settings() {
                     <h3 className="text-sm text-foreground" style={{ fontWeight: 600 }}>{t("مفتاحي الخاص (BYOK)", "Bring Your Own Key (BYOK)")}</h3>
                   </div>
                   <p className="text-xs text-muted-foreground mb-3">
-                    {t("استخدم مفتاح OpenRouter أو Anthropic الخاص بك · لا تكاليف منا · المفتاح مشفّر بـAES-256-GCM في قاعدة البيانات", "Use your own OpenRouter or Anthropic key · no cost from us · the key is encrypted with AES-256-GCM in the database")}
+                    {t("استخدم مفتاح OpenRouter الخاص بشركتك · التكلفة على حسابك لدى المزود · لا نستخدم رصيد المنصة عند فشل مفتاحك · المفتاح مشفّر ولا يظهر بعد حفظه", "Use your company OpenRouter key. Your provider bills you; a failed key never falls back to platform credit. Keys are encrypted and hidden after saving.")}
                   </p>
 
                   {aiConfig.byokKeyHint ? (
@@ -686,19 +691,16 @@ export function Settings() {
                             {t("اختبار الاتصال", "Test connection")}
                           </Button>
                           <Button onClick={handleClearByok} variant="outline" disabled={aiBusy} className="border-danger-border text-danger hover:bg-danger-subtle">
-                            {t("حذف المفتاح", "Delete key")}
+                            {t("إزالة المفتاح واستخدام رصيد المنصة", "Remove key and use platform credit")}
                           </Button>
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="space-y-3">
+                  ) : null}
+                    <div className="space-y-3 mt-3">
                       <div>
                         <Label className="text-foreground/80 text-xs">{t("المزود", "Provider")}</Label>
-                        <select value={byokProvider} onChange={(e) => setByokProvider(e.target.value as any)} className="w-full mt-1 rounded-md border border-border px-3 py-2 text-sm bg-card">
-                          <option value="openrouter">{t("OpenRouter (موصى به · أسعار أفضل)", "OpenRouter (recommended · better pricing)")}</option>
-                          <option value="anthropic">{t("Anthropic (مباشر)", "Anthropic (direct)")}</option>
-                        </select>
+                        <p className="text-sm mt-1">OpenRouter</p>
                       </div>
                       <div>
                         <Label className="text-foreground/80 text-xs">{t("المفتاح", "Key")}</Label>
@@ -718,7 +720,19 @@ export function Settings() {
                         {aiBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ المفتاح وتفعيل BYOK", "Save key and activate BYOK")}
                       </Button>
                     </div>
-                  )}
+                </div>
+
+                <div className="rounded-lg border border-border p-4 space-y-3">
+                  <Label htmlFor="ai-request-limit">{t("حد طلبات الذكاء الاصطناعي لكل 30 يومًا", "AI request limit per 30 days")}</Label>
+                  <p className="text-sm">{t("الطلبات المستخدمة", "Requests used")}: {aiConfig.requestsThisPeriod} / {aiConfig.requestLimit}</p>
+                  <Input id="ai-request-limit" type="number" min={1} max={100000} step={1} value={aiRequestLimit} onChange={e => setAiRequestLimit(e.target.value)} />
+                  <Button disabled={aiBusy || !Number.isInteger(Number(aiRequestLimit)) || Number(aiRequestLimit) < 1 || Number(aiRequestLimit) > 100000} onClick={async () => {
+                    setAiBusy(true);
+                    try { setAiConfig(await api.aiBilling.update({ requestLimit: Number(aiRequestLimit) })); push("success", t("تم حفظ الحد", "Limit saved")); }
+                    catch { push("error", t("تعذر حفظ الحد", "Could not save limit")); }
+                    finally { setAiBusy(false); }
+                  }}>{t("حفظ حد الطلبات", "Save request limit")}</Button>
+                  <p className="text-xs text-muted-foreground">{t("يشمل الحد محاولات الطلب، حتى عند فشل المزود. حد رصيد المنصة مستقل، وحد الفاتورة لدى OpenRouter تضبطه من حسابك هناك.", "The limit includes attempted requests, including provider failures. Platform credit has a separate budget; set your OpenRouter spending cap in your provider account.")}</p>
                 </div>
 
                 <p className="text-xs text-muted-foreground">
