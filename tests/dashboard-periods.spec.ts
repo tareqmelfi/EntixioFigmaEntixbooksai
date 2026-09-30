@@ -267,3 +267,24 @@ for (const width of [390, 1440]) test(`invoice activity remains visible with emp
   await expect(page.getByTestId('flow-kpis')).not.toContainText('514.00');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
 });
+
+for (const width of [390,1440]) test(`posting gaps are prominent without doubling profit or currencies at ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:1000});
+  await setup(page,data=>({...data,postingCoverage:{basis:'document_journal_links',status:'needs_review',unlinkedCount:18,groups:[
+    {kind:'invoice',currency:'SAR',count:18,net:1098238.66,tax:164735.80,gross:1262974.46,draftCount:14,draftGross:1353813.50,unlinkedCount:17,unlinkedGross:1261594.46},
+    {kind:'expense',currency:'USD',count:1,net:20,tax:3,gross:23,draftCount:0,draftGross:0,unlinkedCount:1,unlinkedGross:23},
+  ]}}));
+  const panel=page.getByTestId('dashboard-posting-coverage');
+  await expect(panel).toContainText('مطابقة المستندات مع الدفاتر غير مكتملة');
+  await expect(panel).toContainText('18 مستندًا');
+  await expect(panel.locator('tbody tr')).toHaveCount(2);
+  await expect(panel.locator('tbody tr').first()).toContainText('1,262,974.46');
+  await expect(panel.locator('tbody tr').first()).toContainText('1,353,813.50 SAR');
+  await expect(panel.getByRole('link',{name:'فواتير المبيعات'})).toHaveAttribute('href','/app/invoices');
+  await expect(page.getByTestId('flow-kpis')).toContainText('900.00');
+  await expect(page.getByTestId('flow-kpis')).not.toContainText('1,262,974.46');
+  await expect(page.getByTestId('flow-kpis')).toContainText('أرقام القيود المرحلة فقط');
+  expect(await panel.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('[data-testid="flow-kpis"]')!)&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+  await page.screenshot({path:`/tmp/entix-dashboard-posting-${width}.png`,fullPage:false});
+});

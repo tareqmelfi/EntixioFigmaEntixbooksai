@@ -7,6 +7,7 @@ import { displayDigits, displayLocale } from '../lib/number-display';
 import { useLanguage } from './LanguageContext';
 import { Card } from './ui/card';
 import { DashboardFigures } from './dashboard-figures';
+import { DashboardPostingCoverage, type PostingCoverage } from './dashboard-posting-coverage';
 
 const BOX = 'gap-2.5 p-4 md:gap-3 md:px-5 md:py-[18px] xl:gap-4 xl:px-6 xl:py-[22px] min-w-0';
 const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-5)', 'var(--chart-4)'];
@@ -61,7 +62,7 @@ function OpenBalances({data,title,scope,href}: {data?:DashboardOpenBalances;titl
   </Panel>;
 }
 
-export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical}: {data:DashboardSummary;period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void}) {
+export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical}: {data:DashboardSummary & {postingCoverage?:PostingCoverage};period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void}) {
   const {t,language}=useLanguage();
   const [requestedGrouping,setChartGrouping]=useState<'auto'|'months'|'years'|'history'>('auto');
   const hasLedgerTrend=data.profitLoss.some(row=>row.dataAvailability?.hasActivity)||(data.yearlyTrend||[]).some(row=>row.dataAvailability?.hasActivity);
@@ -125,7 +126,8 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       ] as const).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
       <span className="text-content-secondary" data-testid="flow-dates">{scopedText(flowDates)} · {cur}</span>
     </div>
-    <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
+    <DashboardPostingCoverage coverage={data.postingCoverage} source={p?.source}/>
+    <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
 
     <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3" data-testid="dashboard-primary-row">
       <div className="min-w-0 lg:col-span-2"><Panel title={chartGrouping==='history'?t('الأرباح والخسائر · القوائم السابقة','Profit & Loss · prior statements'):chartGrouping==='years'?t('الأرباح والخسائر · حسب السنة','Profit & Loss · by year'):t('الأرباح والخسائر · آخر 12 شهرًا','Profit & Loss · last 12 months')} scope={chartGrouping==='history'?t('مرجع محفوظ مستقل عن دفاتر الفترة الحالية','Saved reference separate from current-period books'):chartDates(rawPl)} testId="flow-profit-loss">
