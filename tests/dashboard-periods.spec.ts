@@ -159,8 +159,9 @@ test('report all-time link preserves scope, missing values, remembered summary a
   await page.getByRole('button',{name:/تفصيل|Full detail/}).click();
   await expect(page.getByText('Synthetic full detail',{exact:true})).toBeVisible();
   await expect(page.getByText('لا توجد بيانات مسجلة للفترة',{exact:true})).toBeVisible();
-  await expect(page.locator('.entix-report-paper')).not.toContainText('0.00');
-  await expect(page.locator('.entix-report-paper')).not.toContainText('1970');
+  await expect(page.getByTestId('report-data-table')).not.toContainText('0.00');
+  await expect(page.getByTestId('report-data-table')).not.toContainText('1970');
+  await expect(page.getByTestId('report-data-table').locator('tbody td')).toHaveText(['—','—']);
   expect(calls[0]).toContain('allTime=1');
   expect(new URL(calls[0]).searchParams.has('from')).toBe(false);
   await page.getByRole('button',{name:'تحديث',exact:true}).click();

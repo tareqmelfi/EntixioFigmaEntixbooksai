@@ -1,3 +1,4 @@
+import { monthlyReport } from '../lib/report-months';
 import { summarizeReport } from "../lib/report-layout";
 /** Standalone report output, isolated from the scrolling application shell. */
 import { useEffect, useMemo, useState } from "react";
@@ -29,6 +30,7 @@ export function ReportPrintView() {
   const contactId = searchParams.get("contactId") || undefined;
   const branchId = searchParams.get("branchId") || undefined;
   const projectId = searchParams.get("projectId") || undefined;
+  const monthly = searchParams.get("groupBy") === "month" && id === "income-statement";
   const summary = searchParams.get("detail") === "summary";
   const autoPrint = searchParams.get("print") === "1";
 
@@ -38,8 +40,9 @@ export function ReportPrintView() {
       setLoading(true); setError(null);
       try {
         if (!printOrgId) throw new ApiError(400, t("افتح التقرير من داخل الشركة ثم اختر الطباعة.", "Open the report from your company, then choose Print."));
-        const payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
+        let payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
         if (payload.org.id !== printOrgId) throw new ApiError(409, t("تغيّرت الشركة. أعد فتح التقرير من الشركة المطلوبة.", "Company mismatch. Reopen the report from the intended company."));
+        if (monthly) payload = await monthlyReport(payload, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId,projectId,contactId},printOrgId));
         const fullOrg = await api.orgs.get(payload.org.id);
         if (!alive) return;
         setReport(payload);
@@ -49,7 +52,7 @@ export function ReportPrintView() {
       } finally { if (alive) setLoading(false); }
     })();
     return () => { alive = false; };
-  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId]);
+  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId, monthly]);
 
   const visibleReport = useMemo(() => report && summary ? summarizeReport(report) : report, [report, summary]);
   if (loading) return <div className="flex min-h-dvh items-center justify-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;

@@ -1,5 +1,12 @@
 import type { ReportColumn, ReportPayload, ReportPrintSettings, ReportSection } from './api';
 
+export const isMonthlyReport = (report: ReportPayload) => report.sections.some(section => section.columns.some(column => /^\d{4}-\d{2}$/.test(column.key)));
+
+export function reportColumnWidth(section: ReportSection, column: ReportColumn) {
+  if (section.columns.some(c => /^\d{4}-\d{2}$/.test(c.key))) return { width: column.key === 'label' ? '30%' : `${70 / (section.columns.length - 1)}%` };
+  return isCompactReportColumn(column) ? { width: '1%' } : undefined;
+}
+
 /** Auto-layout gives descriptions the spare width instead of expanding amounts. */
 export function isCompactReportColumn(column: ReportColumn) {
   return column.kind === 'money' || column.kind === 'number' || column.kind === 'date'
@@ -27,7 +34,8 @@ export function reportLayoutSections(report: ReportPayload, settings: ReportPrin
     const columns = visibleColumns(section, settings);
     if (columns.length <= 8) return [{ ...section, columns }];
     const [identity, ...metrics] = columns;
-    const panelCount = Math.ceil(metrics.length / 6);
+    const panelSize = isMonthlyReport(report) ? 7 : 6;
+    const panelCount = Math.ceil(metrics.length / panelSize);
     return Array.from({ length: panelCount }, (_, index) => {
       const [ar, en] = section.title.split('␟');
       const suffix = ` (${index + 1}/${panelCount})`;
@@ -35,7 +43,7 @@ export function reportLayoutSections(report: ReportPayload, settings: ReportPrin
         ...section,
         id: `${section.id}-panel-${index + 1}`,
         title: `${ar}${suffix}${en ? `␟${en}${suffix}` : ''}`,
-        columns: [identity, ...metrics.slice(index * 6, (index + 1) * 6)],
+        columns: [identity, ...metrics.slice(index * panelSize, (index + 1) * panelSize)],
       };
     });
   });

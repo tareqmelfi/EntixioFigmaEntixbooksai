@@ -1,4 +1,4 @@
-import { isCompactReportColumn, reportColumnLabel, reportLayoutSections, reportLayoutSettings } from "../lib/report-layout";
+import { isMonthlyReport, reportColumnWidth, reportColumnLabel, reportLayoutSections, reportLayoutSettings } from "../lib/report-layout";
 import { displayDigits, displayLocale } from "../lib/number-display";
 import type { CSSProperties } from "react";
 import type { ReportPayload, ReportPrintSettings, ReportRow } from "../lib/api";
@@ -135,7 +135,7 @@ export function ReportDocument({
 
   return (
     <article
-      className="entix-report-paper document-paper overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none"
+      className={`entix-report-paper document-paper overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""}`}
       dir={dir}
       style={style}
     >
@@ -191,7 +191,7 @@ export function ReportDocument({
               {section.description && <p className="mt-0.5 text-xs text-muted-foreground"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
             <table className="document-table report-readable-table w-full border-collapse">
-              <colgroup>{columns.map(column => <col key={column.key} style={isCompactReportColumn(column) ? { width: "1%" } : undefined} />)}</colgroup>
+              <colgroup>{columns.map(column => <col key={column.key} style={reportColumnWidth(section, column)} />)}</colgroup>
               <thead>
                 <tr style={{ borderTop: "1.5px solid var(--report-primary)", borderBottom: "1px solid #cbd5e1" }}>
                   {columns.map((column) => (

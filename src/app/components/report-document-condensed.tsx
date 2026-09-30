@@ -1,4 +1,4 @@
-import { isCompactReportColumn, reportColumnLabel, reportLayoutSections } from "../lib/report-layout";
+import { isMonthlyReport, reportColumnWidth, reportColumnLabel, reportLayoutSections } from "../lib/report-layout";
 import { displayLocale } from "../lib/number-display";
 /**
  * Condensed bilingual report template (CEO 2026-08-25 · Z12).
@@ -82,7 +82,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const generated = new Date(report.generatedAt).toLocaleString(displayLocale(isEn ? "en-GB" : "ar-SA-u-nu-latn"), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <article className="entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none" dir={dir} style={style}>
+    <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""}`} dir={dir} style={style}>
       {/* ── header ── */}
       <header className="flex items-start justify-between gap-6 px-8 pt-7">
         <div className="min-w-0 text-start">
@@ -133,7 +133,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                 {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
               <table className="document-table report-readable-table w-full border-collapse">
-                <colgroup>{columns.map(column => <col key={column.key} style={isCompactReportColumn(column) ? { width: "1%" } : undefined} />)}</colgroup>
+                <colgroup>{columns.map(column => <col key={column.key} style={reportColumnWidth(section, column)} />)}</colgroup>
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (

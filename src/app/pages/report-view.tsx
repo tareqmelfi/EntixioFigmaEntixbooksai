@@ -1,3 +1,7 @@
+import { monthlyReport } from '../lib/report-months';
+import { exportReportCsv, exportReportExcel } from '../lib/report-export';
+import { ReportDataTable } from '../components/report-data-table';
+import { ReportMonthStrip } from '../components/report-month-strip';
 import { summarizeReport } from "../lib/report-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
@@ -7,7 +11,6 @@ import { InlineAlert, PageHeader } from "../components/product";
 import { DateInput } from "../components/date-input";
 import { Card, CardContent } from "../components/ui/card";
 import { ReportDocument, normalizeReportSettings } from "../components/report-document";
-import { splitBi } from "../components/report-document-condensed";
 import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchFilter } from "../components/branch-field";
@@ -31,7 +34,7 @@ const isDetailSection = (id: string) => /-detail$|-crosscheck$/.test(id);
 const VIEW_MODE_KEY = "entix-report-view-mode";
 
 /** Single compact export dropdown — icon-only trigger, formats inside the menu. */
-function ExportMenu({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () => void; disabled?: boolean }) {
+function ExportMenu({ onCsv, onPdf, onExcel, disabled }: { onExcel: () => void; onCsv: () => void; onPdf: () => void; disabled?: boolean }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -52,6 +55,7 @@ function ExportMenu({ onCsv, onPdf, disabled }: { onCsv: () => void; onPdf: () =
           <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={() => { setOpen(false); onPdf(); }}>
             <Printer className="h-4 w-4 text-muted-foreground" />{t("PDF / طباعة", "PDF / Print")}
           </button>
+          <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={() => { setOpen(false); onExcel(); }}>Excel (.xlsx)</button>
           <button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted" onClick={() => { setOpen(false); onCsv(); }}>
             <Download className="h-4 w-4 text-muted-foreground" />CSV
           </button>
@@ -76,6 +80,9 @@ function SingleReportView() {
   // Comparative layout (user ask 2026-08-19 — Apple-style year-over-year):
   // toggle sends compareTo = the day before the current window starts.
   const allTime = !from && searchParams.get("allTime") === "1";
+  const [monthly, setMonthly] = useState(searchParams.get("groupBy") === "month");
+  const [compact, setCompact] = useState(true);
+  const [exportBusy, setExportBusy] = useState(false);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
   // B1 · branch scope ("" = all · "none" = unassigned · id)
@@ -106,8 +113,8 @@ function SingleReportView() {
   };
 
   useEffect(() => {
-    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
-  }, [from, to, allTime, compare, branchId, projectId, contactId, setSearchParams]);
+    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(monthly && id === "income-statement" ? {groupBy:"month"} : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
+  }, [from, to, allTime, compare, monthly, id, branchId, projectId, contactId, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -116,13 +123,17 @@ function SingleReportView() {
       setError(null);
       try {
         // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
-        const data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
+        let data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
+        if (monthly && id === "income-statement" && !allTime) {
+          const base = data;
+          data = await monthlyReport(base, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId:branchId||undefined,projectId:projectId||undefined,contactId:contactId||undefined},base.org.id));
+        }
         if (alive) {
           setReport(data);
           setSelectedRow(null);
         }
       } catch (e: any) {
-        if (alive) setError(e instanceof ApiError ? e.message : t("تعذر تحميل التقرير", "Could not load the report"));
+        if (alive) setError(e instanceof ApiError ? e.message : t("تعذر تحميل التقرير كاملًا. تحقق من الفترة (حتى 36 شهرًا) وأعد التحديث؛ لم تُعرض نتائج جزئية.", "Could not load the complete report. Check the period (up to 36 months) and refresh; partial results were not displayed."));
       } finally {
         if (alive) setLoading(false);
       }
@@ -130,7 +141,7 @@ function SingleReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, allTime, compareTo, branchId, projectId, contactId, refreshVersion]);
+  }, [id, from, to, allTime, compareTo, monthly, branchId, projectId, contactId, refreshVersion]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -144,39 +155,27 @@ function SingleReportView() {
   // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.
   // Printing from inside it produced a blank page — `h-dvh` + `overflow:hidden`
   // ancestors clipped the document before the print stylesheet ever ran.
-  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${monthly && id === "income-statement" ? "&groupBy=month" : ""}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
   const printHref = `/print/report/${id}?${printQuery}`;
 
-  const exportCsv = () => {
-    if (!report) return;
-    const lines = ["Section,Row,Key,Value"];
-    for (const section of report.sections) {
-      for (const row of section.rows) {
-        for (const [key, value] of Object.entries(row.values)) {
-          const sectionTitle = (() => { const b = splitBi(section.title); return b.en ? `${b.ar} / ${b.en}` : b.ar; })();
-          lines.push([sectionTitle, row.label, key, value ?? ""].map((item) => `"${String(item).replace(/"/g, '""')}"`).join(","));
-        }
-      }
-    }
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `entix-${report.id}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportCsv = () => { if (visibleReport) exportReportCsv(visibleReport, language); };
+  const exportExcel = async () => {
+    if (!visibleReport) return;
+    setExportBusy(true);
+    try { await exportReportExcel(visibleReport, language); }
+    catch { setError(t("تعذر تصدير Excel؛ حاول مجددًا", "Excel export failed; try again")); }
+    finally { setExportBusy(false); }
   };
 
   return (
-    <div className="space-y-4">
-      <PageHeader
+    <div className="space-y-2">
+      <PageHeader className="[&_h1]:text-2xl"
         eyebrow={(
           <button onClick={() => navigate("/app/reports")} className="inline-flex items-center gap-2 text-xs text-content-secondary hover:text-foreground">
             <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("التقارير", "Reports")}
           </button>
         )}
         title={language === "en" ? (report?.englishTitle || report?.title || t("تقرير", "Report")) : (report?.title || t("تقرير", "Report"))}
-        description={language === "en" ? (report?.title || "Live report") : (report?.englishTitle || "Live report")}
         actions={(
           <>
           {hasDetailSections && (
@@ -197,13 +196,14 @@ function SingleReportView() {
           </Button>
           {/* One compact export control — formats live inside the menu (no
               PDF/CSV/Excel text cluttering the toolbar, user ask 2026-08-19). */}
-          <ExportMenu onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report || loading || !!error} />
+          <Button variant="outline" onClick={() => setCompact(v => !v)}>{compact ? t("عرض المستند", "Document view") : t("جدول مكثف", "Compact table")}</Button>
+          <ExportMenu onExcel={exportExcel} onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report || loading || !!error || exportBusy} />
           </>
         )}
       />
 
       <Card className="border-border">
-        <CardContent className="grid gap-3 p-4 sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto_auto] [&>*]:min-w-0">
+        <CardContent className="grid gap-2 p-2 sm:grid-cols-2 sm:items-end xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto_auto_auto] [&>*]:min-w-0">
           <label className="space-y-1 text-sm text-foreground/80">
             <span className="font-semibold">{allTime ? t("كل الفترات المسجلة", "All recorded periods") : t("من تاريخ", "From date")}</span>
             <DateInput value={from} onChange={setFrom} inputClassName="h-10 text-sm" />
@@ -216,7 +216,7 @@ function SingleReportView() {
           <ProjectFilter value={projectId} onChange={setProjectId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
           <button
             type="button"
-            disabled={allTime}
+            disabled={allTime || monthly}
             onClick={() => setCompare((v) => !v)}
             className={`flex h-10 items-center justify-center gap-2 rounded-lg border px-3 text-sm font-semibold transition ${compare ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-foreground/80 hover:bg-muted"}`}
             title={t("قارن بالفترة السابقة وفق نطاق التقرير", "Compare against the preceding report period")}
@@ -229,6 +229,7 @@ function SingleReportView() {
         </CardContent>
       </Card>
 
+      <ReportMonthStrip from={from} to={to} onChange={(a,b) => { setFrom(a); setTo(b); }} actions={id === "income-statement" && <button type="button" disabled={allTime} aria-pressed={monthly} className="rounded border border-border px-3 py-2 text-sm" onClick={() => {setMonthly(v=>!v);setCompare(false);}}>{monthly ? t("عرض إجمالي الفترة", "Show period total") : t("الأشهر في أعمدة", "Months as columns")}</button>} />
       {report?.comparePeriod && <p className="text-xs text-content-secondary">{t("فترة المقارنة:", "Comparison period:")} <bdi>{report.comparePeriod.from} — {report.comparePeriod.to}</bdi></p>}
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
@@ -237,12 +238,10 @@ function SingleReportView() {
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <div className="mt-3 text-sm text-muted-foreground">{t("جاري تحميل التقرير...", "Loading report...")}</div>
         </div>
-      ) : report && visibleReport ? (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="min-w-0 overflow-x-auto rounded-lg bg-surface-subtle p-4">
-            <ReportDocument report={visibleReport} settings={settings} onRowClick={setSelectedRow} />
-          </div>
-          <aside className="space-y-3">
+      ) : !error && report && visibleReport ? (
+        <div className={`grid gap-4 ${selectedRow ? "xl:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
+          <div className="min-w-0">{compact ? <ReportDataTable report={visibleReport} onRowClick={setSelectedRow} /> : <div className="overflow-x-auto rounded-lg bg-surface-subtle p-4"><ReportDocument report={visibleReport} settings={settings} onRowClick={setSelectedRow} /></div>}</div>
+          {selectedRow && <aside className="space-y-3"><button type="button" className="text-xs text-primary" onClick={()=>setSelectedRow(null)}>{t("إغلاق التفاصيل", "Close details")}</button>
             <Card className="border-border">
               <CardContent className="p-4">
                 <h2 className="text-lg font-bold text-foreground">{t("تفاصيل الصف", "Row details")}</h2>
@@ -274,7 +273,7 @@ function SingleReportView() {
             <Button variant="outline" className="w-full" onClick={() => navigate(`/app/reports/${id}/print?${printQuery}`)}>
               <ArrowLeft className="me-2 h-4 w-4" />{t("فتح مصمم الطباعة", "Open print designer")}
             </Button>
-          </aside>
+          </aside>}
         </div>
       ) : null}
     </div>
