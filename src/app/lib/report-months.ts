@@ -9,7 +9,7 @@ export function reportMonths(from: string, to: string): MonthWindow[] {
     const first = cursor.toISOString().slice(0, 10);
     const last = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
     result.push({ key: first.slice(0, 7), from: first < from ? from : first, to: last > to ? to : last,
-      label: `${cursor.toLocaleDateString('ar-SA', { month: 'short', year: 'numeric', calendar: 'gregory', timeZone: 'UTC' })}␟${cursor.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })}` });
+      label: `${cursor.toLocaleDateString('ar-SA', { month: 'short', year: 'numeric', calendar: 'gregory', numberingSystem: 'latn', timeZone: 'UTC' })}␟${cursor.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })}` });
     cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
   return result;
