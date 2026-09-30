@@ -249,3 +249,20 @@ test('historical mode has an honest empty state when no reference is saved',asyn
   await expect(page.getByTestId('historical-profit-chart')).toContainText('لا توجد قوائم سابقة محفوظة');
   await expect(card.locator('.recharts-wrapper')).toHaveCount(0);
 });
+
+for (const width of [390, 1440]) test(`invoice activity remains visible with empty ledger and separate currencies at ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:1000});
+  await setup(page,data=>({...noLedgerTrend(data),invoiceActivity:[
+    {month:'2026-08',currency:'USD',count:6,draftCount:1,net:514,tax:0,gross:514,unlinkedCount:1},
+    {month:'2026-08',currency:'SAR',count:2,draftCount:0,net:3940,tax:0,gross:3940,unlinkedCount:0}
+  ]}));
+  await page.getByTestId('flow-profit-loss').getByRole('button',{name:'شهري',exact:true}).click();
+  await expect(page.getByTestId('flow-profit-loss')).toContainText('آخر 12 شهرًا');
+  const panel=page.getByTestId('dashboard-invoice-activity');
+  await expect(panel).toContainText('بلا قيد مبيعات مرتبط');
+  await expect(panel.locator('tbody tr')).toHaveCount(2);
+  await expect(panel).toContainText('514.00');await expect(panel).toContainText('3,940.00');
+  await expect(panel).not.toContainText('4,454.00');
+  await expect(page.getByTestId('flow-kpis')).not.toContainText('514.00');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+});
