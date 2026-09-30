@@ -17,10 +17,16 @@ import { api, ApiError, type ApiKeyItem, type ApiKeyScope } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 
 const SCOPE_META: Record<ApiKeyScope, { ar: string; en: string; hintAr: string; hintEn: string }> = {
-  read: { ar: "قراءة", en: "Read", hintAr: "الحسابات · مراكز التكلفة · المنتجات", hintEn: "Accounts · cost centers · products" },
+  read: { ar: "قراءة", en: "Read", hintAr: "الحسابات · جهات الاتصال · المستندات المتاحة عبر API · المرفقات", hintEn: "Accounts · contacts · documents available through API · attachments" },
   "write:accounts": { ar: "كتابة: دليل الحسابات", en: "Write: chart of accounts", hintAr: "استيراد/تحديث الحسابات دفعةً واحدة", hintEn: "Bulk import/update accounts" },
   "write:cost_centers": { ar: "كتابة: مراكز التكلفة", en: "Write: cost centers", hintAr: "استيراد/تحديث مراكز التكلفة", hintEn: "Bulk import/update cost centers" },
   "write:products": { ar: "كتابة: المنتجات والخدمات", en: "Write: products & services", hintAr: "استيراد/تحديث المنتجات مع ربطها بحسابات الإيراد", hintEn: "Bulk import/update products linked to revenue accounts" },
+  "write:contacts": { ar: "كتابة: جهات الاتصال", en: "Write: contacts", hintAr: "استيراد العملاء والموردين", hintEn: "Import customers and suppliers" },
+  "write:invoices": { ar: "كتابة: فواتير المبيعات", en: "Write: sales invoices", hintAr: "استيراد الفواتير وبنودها؛ يتيح الاعتماد والترحيل", hintEn: "Import invoices and lines; permits approval and posting" },
+  "write:bills": { ar: "كتابة: فواتير المشتريات", en: "Write: purchase bills", hintAr: "استيراد المشتريات وبنودها؛ يتيح الاعتماد والترحيل", hintEn: "Import bills and lines; permits approval and posting" },
+  "write:expenses": { ar: "كتابة: المصروفات", en: "Write: expenses", hintAr: "استيراد المصروفات؛ يتيح الاعتماد والترحيل", hintEn: "Import expenses; permits approval and posting" },
+  "write:journals": { ar: "كتابة: القيود", en: "Write: journals", hintAr: "استيراد قيود محاسبية متوازنة", hintEn: "Import balanced journal entries" },
+  "write:attachments": { ar: "إضافة: المرفقات فقط", en: "Append: attachments only", hintAr: "ربط الأصول بالمستندات الموجودة دون تعديل مبالغها أو اعتمادها", hintEn: "Attach originals to existing documents without changing amounts or approving them" },
 };
 
 const EXPIRY_OPTIONS: Array<{ days: number; ar: string; en: string }> = [
@@ -181,7 +187,7 @@ export function ApiKeysTab({ canManage, push }: { canManage: boolean; push: (kin
                     );
                   })}
                 </div>
-                <p className="mt-2 text-xs text-muted-foreground">{t("الفواتير والقيود غير متاحة للمفاتيح في هذه المرحلة.", "Invoices and journals are not available to keys in this phase.")}</p>
+                <p className="mt-2 text-xs text-muted-foreground">{t("اختر الصلاحيات المطلوبة فقط. لإرفاق الملفات دون ترحيل مالي، اختر «إضافة: المرفقات فقط».", "Select only the permissions needed. For files without financial posting, select “Append: attachments only”.")}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button onClick={create} disabled={busy} className="bg-primary hover:bg-primary/90">

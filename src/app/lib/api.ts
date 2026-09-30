@@ -2307,7 +2307,7 @@ export interface Org {
   numberingSettings?: any
 }
 
-export type ApiKeyScope = 'read' | 'write:accounts' | 'write:cost_centers' | 'write:products'
+export type ApiKeyScope = 'read' | 'write:accounts' | 'write:cost_centers' | 'write:products' | 'write:contacts' | 'write:invoices' | 'write:bills' | 'write:expenses' | 'write:journals' | 'write:attachments'
 export interface ApiKeyItem {
   id: string
   name: string
