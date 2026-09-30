@@ -1,3 +1,4 @@
+import { monthlyReport } from '../lib/report-months';
 import { summarizeReport } from "../lib/report-layout";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ArrowRight, Loader2, Palette, Save } from "lucide-react";
@@ -38,6 +39,7 @@ export function ReportPrintDesigner() {
   const contactId = searchParams.get("contactId") || undefined;
   const branchId = searchParams.get("branchId") || undefined;
   const projectId = searchParams.get("projectId") || undefined;
+  const monthly = searchParams.get("groupBy") === "month" && id === "income-statement";
 
   useEffect(() => {
     let alive = true;
@@ -46,8 +48,9 @@ export function ReportPrintDesigner() {
       setError(null);
       try {
         if (!printOrgId) throw new ApiError(400, t("افتح التقرير من داخل الشركة ثم اختر الطباعة.", "Open the report from your company, then choose Print."));
-        const payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
+        let payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
         if (payload.org.id !== printOrgId) throw new ApiError(409, t("تغيّرت الشركة. أعد فتح التقرير.", "Company mismatch. Reopen the report."));
+        if (monthly) payload = await monthlyReport(payload, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId,projectId,contactId},printOrgId));
         const fullOrg = await api.orgs.get(payload.org.id);
         const nextSettings = normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports);
         if (alive) {
@@ -64,7 +67,7 @@ export function ReportPrintDesigner() {
     return () => {
       alive = false;
     };
-  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId]);
+  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId, monthly]);
 
   const visibleReport = useMemo(() => report && summary ? summarizeReport(report) : report, [report, summary]);
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
@@ -118,7 +121,7 @@ export function ReportPrintDesigner() {
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
           <div className="mt-3 text-sm text-muted-foreground">{t("جاري تجهيز المعاينة...", "Preparing preview...")}</div>
         </div>
-      ) : report ? (
+      ) : !error && report ? (
         <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <aside className="report-designer-chrome space-y-4">
             <Card className="border-border">
