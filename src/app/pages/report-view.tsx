@@ -1,3 +1,4 @@
+import { presentReport } from '../lib/report-presentation';
 import { monthlyReport } from '../lib/report-months';
 import { exportReportCsv, exportReportExcel } from '../lib/report-export';
 import { ReportDataTable } from '../components/report-data-table';
@@ -83,6 +84,7 @@ function SingleReportView() {
   const [monthly, setMonthly] = useState(searchParams.get("groupBy") === "month");
   const [compact, setCompact] = useState(true);
   const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
   // B1 · branch scope ("" = all · "none" = unassigned · id)
@@ -148,8 +150,8 @@ function SingleReportView() {
   const hasDetailSections = useMemo(() => (report?.sections || []).some((s) => isDetailSection(s.id)), [report]);
   const visibleReport = useMemo(() => {
     if (!report) return report;
-    if (detailMode === "full" || !hasDetailSections) return report;
-    return summarizeReport(report);
+    if (detailMode === "full" || !hasDetailSections) return presentReport(report);
+    return presentReport(summarizeReport(report));
   }, [report, detailMode, hasDetailSections]);
 
   // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.
@@ -161,9 +163,9 @@ function SingleReportView() {
   const exportCsv = () => { if (visibleReport) exportReportCsv(visibleReport, language); };
   const exportExcel = async () => {
     if (!visibleReport) return;
-    setExportBusy(true);
+    setExportBusy(true); setExportError(null);
     try { await exportReportExcel(visibleReport, language); }
-    catch { setError(t("تعذر تصدير Excel؛ حاول مجددًا", "Excel export failed; try again")); }
+    catch { setExportError(t("تعذر تصدير Excel أو تحميل الشعار. افتح تنسيق التقرير للتحقق من الشعار أو اختيار بدون شعار ثم أعد المحاولة.", "Excel export or logo loading failed. Open report design to check the logo or choose No logo, then retry.")); }
     finally { setExportBusy(false); }
   };
 
@@ -196,6 +198,7 @@ function SingleReportView() {
           </Button>
           {/* One compact export control — formats live inside the menu (no
               PDF/CSV/Excel text cluttering the toolbar, user ask 2026-08-19). */}
+          <Button variant="outline" disabled={!report || loading || !!error} onClick={() => navigate(`/app/reports/${id}/print?${printQuery}`)}>{t("تنسيق وشعار التقرير", "Report design & logo")}</Button>
           <Button variant="outline" onClick={() => setCompact(v => !v)}>{compact ? t("عرض المستند", "Document view") : t("جدول مكثف", "Compact table")}</Button>
           <ExportMenu onExcel={exportExcel} onCsv={exportCsv} onPdf={() => navigate(printHref)} disabled={!report || loading || !!error || exportBusy} />
           </>
@@ -232,6 +235,7 @@ function SingleReportView() {
       <ReportMonthStrip from={from} to={to} onChange={(a,b) => { setFrom(a); setTo(b); }} actions={id === "income-statement" && <button type="button" disabled={allTime} aria-pressed={monthly} className="rounded border border-border px-3 py-2 text-sm" onClick={() => {setMonthly(v=>!v);setCompare(false);}}>{monthly ? t("عرض إجمالي الفترة", "Show period total") : t("الأشهر في أعمدة", "Months as columns")}</button>} />
       {report?.comparePeriod && <p className="text-xs text-content-secondary">{t("فترة المقارنة:", "Comparison period:")} <bdi>{report.comparePeriod.from} — {report.comparePeriod.to}</bdi></p>}
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
+      {exportError && <InlineAlert tone="critical">{exportError}</InlineAlert>}
 
       {loading ? (
         <div className="rounded-lg border border-border bg-card py-20 text-center">

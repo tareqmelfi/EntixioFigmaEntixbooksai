@@ -1,3 +1,5 @@
+import { exportReportExcel } from '../lib/report-export';
+import { presentReport } from '../lib/report-presentation';
 import { monthlyReport } from '../lib/report-months';
 import { summarizeReport } from "../lib/report-layout";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -28,6 +30,8 @@ export function ReportPrintDesigner() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const [fallbackOrgId] = useState(() => readTabOrgId());
   const printOrgId = searchParams.get("orgId") || fallbackOrgId;
@@ -69,7 +73,7 @@ export function ReportPrintDesigner() {
     };
   }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId, monthly]);
 
-  const visibleReport = useMemo(() => report && summary ? summarizeReport(report) : report, [report, summary]);
+  const visibleReport = useMemo(() => report ? presentReport(summary ? summarizeReport(report) : report) : report, [report, summary]);
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);
   const selectClass = "h-10 w-full rounded-lg border border-border bg-card px-3 text-sm outline-none focus:border-primary";
 
@@ -105,6 +109,13 @@ export function ReportPrintDesigner() {
           <p className="mt-1 text-sm text-muted-foreground">{t("تحكم في الشعار والشكل ثم اطبع أو احفظ PDF.", "Control logo and layout, then print or save as PDF.")}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" disabled={!visibleReport || exporting} onClick={async () => {
+            if (!visibleReport) return;
+            setExporting(true); setExportError(null);
+            try { await exportReportExcel(visibleReport, resolved.language || appLanguage, resolved); }
+            catch { setExportError(t("تعذر تصدير التقرير أو تحميل الشعار. راجع الشعار أو اختر بدون شعار وأعد المحاولة.", "Could not export the report or load its logo. Check the logo or select No logo and retry.")); }
+            finally { setExporting(false); }
+          }}>{exporting ? t("تجهيز Excel…", "Preparing Excel…") : "Excel (.xlsx)"}</Button>
           <Button variant="outline" onClick={saveSettings} disabled={saving || !org}>
             {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
             {t("حفظ كإعداد شركة", "Save as company default")}
@@ -113,6 +124,7 @@ export function ReportPrintDesigner() {
         </div>
       </div>
 
+      {exportError && <p role="alert" className="text-sm text-danger">{exportError}</p>}
       {saved && <div className="report-designer-chrome rounded-lg border border-success-border bg-success-subtle px-3 py-2 text-sm text-success">{t("تم حفظ قالب التقارير للشركة.", "Report template saved for the company.")}</div>}
       {error && <div className="report-designer-chrome rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{error}</div>}
 
@@ -137,6 +149,7 @@ export function ReportPrintDesigner() {
                     <option value="classic">{t("كلاسيكي", "Classic")}</option>
                   </select>
                 </Control>
+                <a href="/app/settings" className="block text-xs text-primary underline">{t("رفع أو تغيير شعار الشركة من الإعدادات", "Upload or change the company logo in Settings")}</a>
                 <Control label={t("الشعار", "Logo")}>
                   <select value={resolved.logoSource} onChange={(e) => update("logoSource", e.target.value as any)} className={selectClass}>
                     <option value="print">{t("شعار الطباعة", "Print logo")}</option>

@@ -143,13 +143,17 @@
 .report-output-sheet .print-page-number { display: none; }
 .report-output-sheet .report-page-counter { direction: ltr; text-align: center; font-size: 9px; line-height: 14px; color: #4b5563; }
 
-/* Monthly matrices distribute the numeric columns evenly and keep their header short. */
-.entix-report-paper.report-monthly .report-readable-table { table-layout: fixed; }
-.entix-report-paper.report-monthly > header { padding: 2mm 0; }
-.entix-report-paper.report-monthly > header + div { padding: 1mm 0; }
-.entix-report-paper.report-monthly > header img { max-height: 10mm; }
-.entix-report-paper.report-monthly .report-readable-table td { font-size: var(--report-font-size); }
-.entix-report-paper.report-monthly .report-readable-table td bdi { line-height: inherit; }
+/* Wide financial matrices reserve page space for accounts, with compact branding. */
+.entix-report-paper:is(.report-monthly, .report-trial-balance) .report-readable-table { table-layout: fixed; }
+.entix-report-paper:is(.report-monthly, .report-trial-balance) > header { padding: 2mm 0; }
+.entix-report-paper:is(.report-monthly, .report-trial-balance) > header + div { padding: 1mm 0; }
+.entix-report-paper:is(.report-monthly, .report-trial-balance) > header img { max-height: 10mm; }
+.entix-report-paper:is(.report-monthly, .report-trial-balance) .report-readable-table td { font-size: var(--report-font-size); }
+.entix-report-paper:is(.report-monthly, .report-trial-balance) .report-readable-table td bdi { line-height: inherit; }
+
+/* Arabic application typography must not expand the compact report line boxes. */
+.entix-report-paper.report-trial-balance .report-readable-table td .report-bilingual,
+.entix-report-paper.report-trial-balance .report-readable-table td .report-bilingual > span { line-height: inherit; }
 
 @media print {
   @page {

@@ -82,7 +82,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const generated = new Date(report.generatedAt).toLocaleString(displayLocale(isEn ? "en-GB" : "ar-SA-u-nu-latn"), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""}`} dir={dir} style={style}>
+    <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""} ${report.id === "trial-balance" ? "report-trial-balance" : ""}`} dir={dir} style={style}>
       {/* ── header ── */}
       <header className="flex items-start justify-between gap-6 px-8 pt-7">
         <div className="min-w-0 text-start">
@@ -158,7 +158,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                           const align = column.align === "end" ? "end" : column.align === "center" ? "center" : "start";
                           return (
                             <td key={`${row.id}-${column.key}`}
-                              className={`${total ? "border-t border-border-strong font-bold text-foreground" : "text-foreground"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}`}
+                              className={`${total ? "border-t border-border-strong font-bold text-foreground" : "text-foreground"}${column.key === "label" ? (report.id === "trial-balance" ? " whitespace-normal break-words" : " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap") : " whitespace-nowrap"}`}
                               style={{ padding: "var(--report-cell-padding)", textAlign: align, ...(column.key === "label" && depth > 0 ? { paddingInlineStart: `${depth * 16 + 10}px`, color: "#475569" } : {}) }}
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>
                               {v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span>
