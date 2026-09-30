@@ -1,3 +1,4 @@
+import { presentReport } from '../lib/report-presentation';
 import { monthlyReport } from '../lib/report-months';
 import { summarizeReport } from "../lib/report-layout";
 /** Standalone report output, isolated from the scrolling application shell. */
@@ -54,7 +55,7 @@ export function ReportPrintView() {
     return () => { alive = false; };
   }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId, monthly]);
 
-  const visibleReport = useMemo(() => report && summary ? summarizeReport(report) : report, [report, summary]);
+  const visibleReport = useMemo(() => report ? presentReport(summary ? summarizeReport(report) : report) : report, [report, summary]);
   if (loading) return <div className="flex min-h-dvh items-center justify-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
   if (error || !visibleReport || !settings) return <div className="flex min-h-dvh items-center justify-center bg-white px-6 text-center"><p className="text-sm text-danger" data-render-error>{error || t("لا يوجد تقرير", "No report")}</p></div>;
 

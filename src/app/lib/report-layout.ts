@@ -3,6 +3,7 @@ import type { ReportColumn, ReportPayload, ReportPrintSettings, ReportSection } 
 export const isMonthlyReport = (report: ReportPayload) => report.sections.some(section => section.columns.some(column => /^\d{4}-\d{2}$/.test(column.key)));
 
 export function reportColumnWidth(section: ReportSection, column: ReportColumn) {
+  if (section.columns.some(c => c.key === 'openingDebit')) return { width: column.key === 'label' ? '28%' : column.key === 'type' ? '12%' : '10%' };
   if (section.columns.some(c => /^\d{4}-\d{2}$/.test(c.key))) return { width: column.key === 'label' ? '30%' : `${70 / (section.columns.length - 1)}%` };
   return isCompactReportColumn(column) ? { width: '1%' } : undefined;
 }
