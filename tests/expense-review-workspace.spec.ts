@@ -96,3 +96,18 @@ test('paid edit opens inline review and draft edit retains every stored attachme
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBe(true);
 });
+
+test('server throttling resumes a review without duplicating its accepted change', async ({ page }) => {
+  const requests = await setup(page); let reads = 0, writes = 0;
+  await page.route('**/api/expenses/review-0', route => ++reads === 1 ? route.fulfill({ status: 429, headers: { 'Retry-After': '1', 'Access-Control-Expose-Headers': 'Retry-After' }, json: { error: 'rate_limit' } }) : route.fallback());
+  await page.route('**/api/expenses/review-0/review', route => ++writes === 1 ? route.fulfill({ status: 429, headers: { 'Retry-After': '1', 'Access-Control-Expose-Headers': 'Retry-After' }, json: { error: 'rate_limit' } }) : route.fallback());
+  await page.goto('/app/expenses');
+  await page.getByRole('checkbox', { name: 'تحديد EXP-REVIEW-0', exact: true }).check();
+  await page.getByRole('button', { name: 'تغيير الحساب / التصنيف' }).click();
+  const form = page.getByRole('region', { name: 'تعديل الحساب والتصنيف' });
+  await expect(form).toContainText('مهلة مؤقتة');
+  await form.getByLabel('سبب التعديل').fill('تصحيح التصنيف');
+  await form.getByRole('button', { name: 'حفظ التعديل' }).click();
+  await expect(form).toContainText('تم الحفظ');
+  expect(reads).toBe(2); expect(writes).toBe(2); expect(requests).toHaveLength(1);
+});

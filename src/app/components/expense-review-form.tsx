@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, getOrgId, type Expense } from '../lib/api';
-import { saveExpenseReview, type ReviewExpense } from '../lib/expense-review';
+import { getOrgId, type Expense } from '../lib/api';
+import { loadExpenseReviews, saveExpenseReview, type ReviewExpense } from '../lib/expense-review';
 import { humanizeError } from '../lib/error-messages';
 import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
@@ -17,6 +17,7 @@ export function ExpenseReviewForm({ ids, accounts, onSaved, onClose }: {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [waiting, setWaiting] = useState(0);
   const [accountId, setAccountId] = useState('');
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
@@ -25,7 +26,7 @@ export function ExpenseReviewForm({ ids, accounts, onSaved, onClose }: {
   const [scope] = useState(getOrgId);
   useEffect(() => {
     let active = true;
-    Promise.all(ids.map(id => api.expenses.get(id))).then(rows => {
+    loadExpenseReviews(ids, seconds => { if (active) setWaiting(seconds); }).then(rows => {
       if (!active) return;
       setRecords(rows as ReviewExpense[]);
       if (rows.length === 1) { setCategory(rows[0].category); setNotes(rows[0].notes || ''); }
@@ -40,7 +41,7 @@ export function ExpenseReviewForm({ ids, accounts, onSaved, onClose }: {
       try {
         const saved = await saveExpenseReview(record.id, { expectedUpdatedAt: record.updatedAt,
           ...(accountId ? { accountId } : {}), ...(category.trim() ? { category: category.trim() } : {}),
-          ...(records.length === 1 ? { notes } : {}), reason: reason.trim() });
+          ...(records.length === 1 ? { notes } : {}), reason: reason.trim() }, setWaiting);
         onSaved(saved);
         setResults(previous => [...previous.filter(r => r.id !== record.id), { id: record.id, number: record.number }]);
       } catch (e) {
@@ -61,6 +62,7 @@ export function ExpenseReviewForm({ ids, accounts, onSaved, onClose }: {
       {records.length === 1 && <label className="block space-y-1 text-sm"><span>{t('ملاحظات', 'Notes')}</span><textarea className="w-full rounded-md border border-border p-2" rows={2} value={notes} onChange={e => setNotes(e.target.value)} /></label>}
       <label className="block space-y-1 text-sm"><span>{t('سبب التعديل', 'Reason for change')}</span><Input value={reason} onChange={e => setReason(e.target.value)} maxLength={500} /></label></fieldset>
     </>}
+    {waiting > 0 && <p role="status" className="text-sm text-content-secondary">{t("مهلة مؤقتة من الخادم؛ تستكمل العملية تلقائيًا خلال", "Server rate limit; automatically resuming within")} {waiting} {t("ثانية", "seconds")}</p>}
     {error && <p role="alert" className="text-sm text-danger">{error}</p>}
     {results.length > 0 && <ul aria-live="polite" className="space-y-1 text-sm">{results.map(r => <li key={r.id} className={r.error ? 'text-danger' : 'text-success'}><bdi>{r.number}</bdi>: {r.error || t('تم الحفظ', 'Saved')}</li>)}</ul>}
     <div className="flex gap-2"><Button disabled={busy || loading || records.length !== ids.length || reason.trim().length < 3 || (records.length > 1 && !accountId && !category.trim()) || results.length > 0} onClick={save}>{busy ? t('جارٍ الحفظ…', 'Saving…') : t('حفظ التعديل', 'Save changes')}</Button><Button variant="outline" disabled={busy} onClick={onClose}>{t('إغلاق', 'Close')}</Button></div>
