@@ -5,6 +5,7 @@ export type FinancialPeriod = { income: ReportPayload; balance: ReportPayload; o
 export const accountGroups = [
   ['cogs', 'تكلفة المبيعات', 'Cost of sales', 'expense'],
   ['finance', 'تكلفة التمويل', 'Finance expense', 'expense'],
+  ['financeIncome', 'إيراد الفوائد والتمويل', 'Interest and financing income', 'revenue'],
   ['depreciation', 'الإهلاك والإطفاء', 'Depreciation and amortisation', 'expense'],
   ['tax', 'ضريبة الدخل والزكاة', 'Income tax and zakat', 'expense'],
   ['currentAssets', 'الأصول المتداولة', 'Current assets', 'asset'],
@@ -49,11 +50,12 @@ export function mappingError(mapping: AccountMapping) {
   if (new Set(liquid).size !== liquid.length) return bi('لا تكرر حسابًا بين النقد والمخزون والذمم.', 'Do not repeat accounts across cash, inventory and receivables.');
   return null;
 }
-export function availableAccounts(periods: FinancialPeriod[], type: 'expense' | 'asset' | 'liability') {
+export function availableAccounts(periods: FinancialPeriod[], type: 'expense' | 'revenue' | 'asset' | 'liability') {
   const byId = new Map<string, ReportRow>();
-  for (const p of periods) for (const r of type === 'expense' ? [p.income] : [p.balance, p.opening]) {
-    for (const row of rows(r, type === 'expense' ? 'income-ledger-detail' : `position-${type === 'asset' ? 'assets' : 'liabilities'}-detail`)) {
-      if (type !== 'expense' || row.id.startsWith('exp-')) byId.set(row.id, row);
+  const income = type === 'expense' || type === 'revenue';
+  for (const p of periods) for (const r of income ? [p.income] : [p.balance, p.opening]) {
+    for (const row of rows(r, income ? 'income-ledger-detail' : `position-${type === 'asset' ? 'assets' : 'liabilities'}-detail`)) {
+      if (!income || row.id.startsWith(type === 'expense' ? 'exp-' : 'rev-')) byId.set(row.id, row);
     }
   }
   return [...byId.values()];
@@ -61,9 +63,10 @@ export function availableAccounts(periods: FinancialPeriod[], type: 'expense' | 
 function mapped(p: FinancialPeriod, group: Group, mapping: AccountMapping, opening = false) {
   if (!mapping[group]) return null;
   const type = accountGroups.find(g => g[0] === group)![3];
-  const report = type === 'expense' ? p.income : opening ? p.opening : p.balance;
+  const income = type === 'expense' || type === 'revenue';
+  const report = income ? p.income : opening ? p.opening : p.balance;
   if (!valid(report)) return null;
-  const sectionId = type === 'expense' ? 'income-ledger-detail' : `position-${type === 'asset' ? 'assets' : 'liabilities'}-detail`;
+  const sectionId = income ? 'income-ledger-detail' : `position-${type === 'asset' ? 'assets' : 'liabilities'}-detail`;
   const details = rows(report, sectionId);
   // Missing inactive accounts in a complete, available report have no balance.
   let total = 0;
@@ -84,12 +87,13 @@ export function metrics(p: FinancialPeriod, mapping: AccountMapping) {
   const startAssets = rowAmount(p.opening, 'financial-position', 'assets-total');
   const startEquity = rowAmount(p.opening, 'financial-position', 'equity-total');
   const cogs = mapped(p, 'cogs', mapping), finance = mapped(p, 'finance', mapping), tax = mapped(p, 'tax', mapping), depreciation = mapped(p, 'depreciation', mapping);
-  const ebit = sum(sum(net, finance), tax), ebitda = sum(ebit, depreciation), gross = difference(revenue, cogs);
+  const financeIncome = mapped(p, 'financeIncome', mapping);
+  const ebit = difference(sum(sum(net, finance), tax), financeIncome), ebitda = sum(ebit, depreciation), gross = difference(revenue, cogs);
   const currentAssets = mapped(p, 'currentAssets', mapping), currentLiabilities = mapped(p, 'currentLiabilities', mapping);
   const inventory = mapped(p, 'inventory', mapping), cash = mapped(p, 'cash', mapping), debt = mapped(p, 'debt', mapping);
   const days = (Date.parse(p.income.period.to) - Date.parse(p.income.period.from!)) / 86400000 + 1;
   const averageAR = calc(mapped(p, 'receivables', mapping), mapped(p, 'receivables', mapping, true), (a, b) => (a + b) / 2);
-  return { revenue, expenses, net, assets, liabilities, equity, cogs, finance, tax, depreciation, gross, ebit, ebitda, cash, debt, currentAssets, currentLiabilities,
+  return { revenue, expenses, net, assets, liabilities, equity, cogs, finance, financeIncome, tax, depreciation, gross, ebit, ebitda, cash, debt, currentAssets, currentLiabilities,
     netMargin: ratio(net, revenue, 100), expenseRatio: ratio(expenses, revenue, 100), grossMargin: ratio(gross, revenue, 100), ebitdaMargin: ratio(ebitda, revenue, 100),
     currentRatio: ratio(currentAssets, currentLiabilities), quickRatio: ratio(difference(currentAssets, inventory), currentLiabilities), cashRatio: ratio(cash, currentLiabilities),
     workingCapital: difference(currentAssets, currentLiabilities), liabilitiesRatio: ratio(liabilities, assets, 100), debtEquity: ratio(debt, equity),
@@ -106,7 +110,7 @@ export const metricDefinitions: { key: MetricKey; label: string; unit: 'money' |
   { key: 'net', label: bi('صافي الربح / الخسارة','Net profit / loss'), unit:'money', formula: bi('الإيرادات − المصروفات','Revenue − expenses'), favorable:'up' },
   { key: 'netMargin', label:bi('هامش صافي الربح','Net margin'), unit:'percent', formula:bi('صافي الربح ÷ الإيرادات','Net profit ÷ revenue'), favorable:'up' },
   { key:'grossMargin',label:bi('هامش مجمل الربح','Gross margin'),unit:'percent',formula:bi('(الإيرادات − تكلفة المبيعات) ÷ الإيرادات','(Revenue − cost of sales) ÷ revenue'),favorable:'up' },
-  { key:'ebitda',label:'EBITDA',unit:'money',formula:bi('صافي الربح + التمويل + ضريبة الدخل + الإهلاك؛ ليس تدفقًا نقديًا','Net profit + finance expense + income tax + depreciation; not cash flow'),favorable:'up' },
+  { key:'ebitda',label:'EBITDA',unit:'money',formula:bi('صافي الربح + تكلفة التمويل − إيراد التمويل + ضريبة الدخل + الإهلاك؛ ليس نقدًا','Net profit + finance expense − financing income + income tax + depreciation; not cash flow'),favorable:'up' },
   { key:'ebitdaMargin',label:bi('هامش EBITDA','EBITDA margin'),unit:'percent',formula:bi('EBITDA ÷ الإيرادات','EBITDA ÷ revenue'),favorable:'up' },
   { key:'expenses',label:bi('المصروفات','Expenses'),unit:'money',formula:bi('قائمة الدخل · جميع المصروفات','Income statement · all expenses') },
   { key:'expenseRatio',label:bi('التكلفة لكل 100 إيراد','Cost per 100 revenue'),unit:'percent',formula:bi('المصروفات ÷ الإيرادات × 100','Expenses ÷ revenue × 100'),favorable:'down' },

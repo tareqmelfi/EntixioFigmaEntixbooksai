@@ -42,3 +42,5 @@
 .owner-report.report-theme-plain .owner-lead,.owner-report.report-theme-plain .owner-note { background:white; }
 .owner-report.report-theme-plain .owner-negative,.owner-report.report-theme-grayscale .owner-negative,.owner-report.report-neutral-values .owner-negative,
 .owner-report.report-theme-plain [data-trend],.owner-report.report-theme-grayscale [data-trend],.owner-report.report-neutral-values [data-trend] { color:inherit; }
+
+.owner-report:not(.report-theme-plain) .owner-table th { background:var(--report-section); color:var(--report-foreground); }
