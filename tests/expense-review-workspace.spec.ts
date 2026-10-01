@@ -88,6 +88,11 @@ test('paid edit opens inline review and draft edit retains every stored attachme
   await page.getByRole('button', { name: 'تعديل', exact: true }).click();
   await expect(page.getByText('receipt.png', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('support.png', { exact: true }).first()).toBeVisible();
+  const receipt = page.getByRole('img', { name: 'receipt.png', exact: true });
+  await expect(receipt).toHaveCSS('object-fit', 'contain');
+  const bounds = (await receipt.boundingBox())!;
+  expect(bounds.y + bounds.height).toBeLessThan(page.viewportSize()!.height - 60);
+  await page.screenshot({ path: '/tmp/entix-expense-editor-desktop.png' });
   await page.setViewportSize({ width: 390, height: 844 });
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBe(true);
 });

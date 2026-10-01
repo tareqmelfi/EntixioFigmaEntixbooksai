@@ -22,6 +22,7 @@ import { AlertTriangle, CheckCircle2, Images, Upload, Sparkles, X, FileText, Ima
 import { Button } from "./ui/button";
 import { api } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
+import { AttachmentViewer } from "./attachment-viewer";
 
 export interface DocumentPreviewProps {
   className?: string;
@@ -31,6 +32,8 @@ export interface DocumentPreviewProps {
   showLatestOnly?: boolean;
   /** Hide local preview removal when the parent owns persisted attachment deletion. */
   allowFileRemoval?: boolean;
+  /** Bound the complete page preview to the space beside the editor. */
+  previewHeight?: string;
   /** Accept attribute for input · default any */
   accept?: string;
   /** Max file size in MB · default 25 */
@@ -107,6 +110,7 @@ export function DocumentPreviewPane({
   onExtract,
   showLatestOnly = true,
   allowFileRemoval = true,
+  previewHeight,
   accept = ".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv",
   maxSizeMb = 25,
   initialFiles = [],
@@ -367,8 +371,8 @@ export function DocumentPreviewPane({
           )}
 
           {/* Main preview */}
-          <div className="relative flex-1 min-h-[400px] bg-muted flex items-center justify-center p-2">
-            {active && renderPreview(active, t)}
+          <div className={`relative bg-muted flex items-center justify-center p-2 ${previewHeight ? "shrink-0" : "flex-1 min-h-[400px]"}`} style={previewHeight ? { height: previewHeight } : undefined}>
+            {active && renderPreview(active, t, Boolean(previewHeight))}
             {active?.extracting && (
               <div className="absolute inset-2 flex items-center justify-center rounded-lg bg-card/82 backdrop-blur-sm">
                 <div className="w-full max-w-xs">
@@ -466,15 +470,18 @@ function ProcessingBanner({ state, compact = false }: { state: ProcessingState; 
   );
 }
 
-function renderPreview(item: FileItem, t: (ar: string, en: string) => string) {
+function renderPreview(item: FileItem, t: (ar: string, en: string) => string, constrained = false) {
+  if (constrained && !item.url.startsWith("blob:")) {
+    return <div className="h-full min-h-0 w-full"><AttachmentViewer attachment={{ name: item.name, type: item.type, url: item.url }} height="100%" /></div>;
+  }
   const mime = item.type.toLowerCase();
   const heicLike = mime.includes("heic") || mime.includes("heif") || /\.(heic|heif)$/i.test(item.name);
   if (mime.includes("pdf")) {
     return (
       <iframe
-        src={`${item.url}#toolbar=0&navpanes=0&view=FitH`}
+        src={`${item.url}#toolbar=0&navpanes=0&view=${constrained ? "Fit" : "FitH"}`}
         className="w-full h-full bg-card rounded shadow-sm"
-        style={{ minHeight: 400 }}
+        style={{ minHeight: constrained ? 0 : 400 }}
         title={item.name}
       />
     );
@@ -497,7 +504,7 @@ function renderPreview(item: FileItem, t: (ar: string, en: string) => string) {
       <img
         src={item.url}
         alt={item.name}
-        className="max-w-full max-h-[600px] object-contain rounded shadow-sm bg-card"
+        className={`${constrained ? "h-full w-full min-h-0" : "max-w-full max-h-[600px]"} object-contain rounded shadow-sm bg-card`}
       />
     );
   }

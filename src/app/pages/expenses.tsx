@@ -1476,6 +1476,7 @@ export function Expenses() {
               className="min-w-0 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4"
               showLatestOnly={false}
               allowFileRemoval={false}
+              previewHeight="clamp(240px, calc(100dvh - 25rem), 620px)"
               hint={t("ارفع إيصالاً أو فاتورة مصروف", "Upload a receipt or expense invoice")}
               onFilesAdded={handleFilesAdded}
               onExtract={handleExtract}
