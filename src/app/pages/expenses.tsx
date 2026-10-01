@@ -1,3 +1,4 @@
+import { ExpenseReviewForm } from "../components/expense-review-form";
 import { roundDocumentMoney } from "../lib/document-money";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { isFinancialNotice } from "../lib/financial-notice";
@@ -676,6 +677,11 @@ export function Expenses() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [reviewIds, setReviewIds] = useState<string[]>([]);
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkErrors, setBulkErrors] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<ExpenseStatusKey | "ALL">("ALL");
   const [createOpen, setCreateOpen] = useState(false);
   const { goBack: goBackToSource } = useReturnTo();
@@ -882,6 +888,33 @@ export function Expenses() {
       || (e.vendorName || "").includes(searchQuery)
       || (e.contact?.displayName || "").includes(searchQuery))
   );
+  const visibleChecked = filtered.filter(e => checkedIds.has(e.id));
+  // Selection belongs to the visible filter, so hidden records can never be mutated.
+  useEffect(() => { setCheckedIds(new Set()); setBulkDeleteConfirm(false); setReviewIds([]); }, [searchQuery, statusFilter, branchFilterId, projectFilterId]);
+  const onReviewSaved = (expense: ApiExpense) => {
+    setItems(rows => rows.map(row => row.id === expense.id ? expense : row));
+    setSelected(current => current?.id === expense.id ? expense : current);
+  };
+  async function deleteSelectedDrafts() {
+    setBulkBusy(true); setBulkDeleteConfirm(false); setBulkErrors([]);
+    const scope = getOrgId();
+    for (const row of visibleChecked) {
+      if (getOrgId() !== scope) break;
+      try {
+        const full = await api.expenses.get(row.id);
+        if (getOrgId() !== scope) throw new Error(t('تغيرت الشركة؛ أعد فتح القائمة.', 'Company changed; reopen the list.'));
+        if (full.status !== 'DRAFT') throw new Error(t('الحذف الجماعي للمسودات فقط؛ المصروف المعتمد يحتاج تصحيحًا.', 'Bulk deletion is for drafts only; approved expenses require correction.'));
+        await api.expenses.remove(row.id);
+        setItems(rows => rows.filter(item => item.id !== row.id));
+        setCheckedIds(ids => { const next = new Set(ids); next.delete(row.id); return next; });
+      } catch (e) { setBulkErrors(errors => [...errors, `${row.number}: ${humanizeError(e, language)}`]); }
+    }
+    await refresh(); setBulkBusy(false);
+  }
+  async function editFromList(expense: ApiExpense) {
+    try { const full = await api.expenses.get(expense.id); setSelected(full); openEdit(full); }
+    catch (e) { push('error', humanizeError(e, language)); }
+  }
   const total = Number(summary.sumTotal || 0);
   const avg = Number(summary.avgTotal || 0);
   // Currency-honest totals (owner report 2026-08-21): single currency → label
@@ -963,9 +996,10 @@ export function Expenses() {
 
   function openEdit(expense: ApiExpense) {
     const settlement = (expense.extractedJson as any)?.currencySettlement || {};
-    if (settlement.version === 2 && expense.status !== 'DRAFT') {
-      push('error', t('هذا المصروف مدفوع ومرحّل. يمكن إضافة المرفقات من تفاصيله؛ تعديل المبلغ يتطلب تسوية.', 'This expense is paid and posted. Add attachments in its details; changing amounts requires a correction.')); return;
+    if (expense.status !== 'DRAFT') {
+      setReviewIds([expense.id]); return;
     }
+    setReviewIds([]);
     setShowSplits(Array.isArray(expense.paymentSplits) && expense.paymentSplits.length > 1);
     setShowDetails(false);
     const sourceCurrency = normalizeCurrency(settlement.sourceCurrency || expense.currency || "SAR");
@@ -1371,13 +1405,14 @@ export function Expenses() {
   const paymentRowsTotal = paymentTotal(paymentRows);
   const hasActiveDraft = !editingId && hasDraftContent(formData);
   const savedAtLabel = draftTimeLabel(draftSavedAt);
-  const initialFiles = formData.attachments.length
-    ? formData.attachments.map((a) => ({
+  const initialFiles = [
+    ...(editingId ? detailAttachments.filter(a => !formData.attachments.some(f => f.name === a.name)).map(a => ({ name: a.name, type: a.type, url: a.url || (a.base64 ? `data:${a.type};base64,${a.base64}` : "") })) : []),
+    ...formData.attachments.map((a) => ({
         name: a.name,
         type: a.type,
         url: attachmentPreviewUrl(a),
-      }))
-    : [];
+      })),
+  ];
 
   // Flush a new expense draft when section navigation unmounts the editor,
   // including a click before the debounced autosave has fired.
@@ -1436,9 +1471,12 @@ export function Expenses() {
             </div>
           }
         >
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(320px,0.7fr)_minmax(0,1.3fr)] items-start">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
             <DocumentPreviewPane
-              className="xl:sticky xl:top-4 min-h-[200px] md:min-h-[360px]"
+              className="min-w-0 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4"
+              showLatestOnly={false}
+              allowFileRemoval={false}
+              previewHeight="clamp(240px, calc(100dvh - 25rem), 620px)"
               hint={t("ارفع إيصالاً أو فاتورة مصروف", "Upload a receipt or expense invoice")}
               onFilesAdded={handleFilesAdded}
               onExtract={handleExtract}
@@ -1446,7 +1484,7 @@ export function Expenses() {
               initialFiles={initialFiles}
             />
 
-            <div className="space-y-4">
+            <div className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-1">
               <div className="rounded-lg border border-border p-3 text-sm">
                 <b>{t("دفعت الآن", "Paid now")}</b> · {t("سجّل الشراء والدفع معًا هنا.", "Record the purchase and payment together here.")}
                 <Link className="block mt-2 text-primary underline" to="/app/purchases/bills?new=1">{t("لم تدفع بعد؟ سجّل فاتورة مورد مستحقة", "Not paid yet? Record a supplier bill")}</Link>
@@ -1886,7 +1924,7 @@ export function Expenses() {
       : [{ method: selected.paymentMethod, amount: Number(selected.total || 0), reference: selected.reference || null }];
     const vendorName = selected.contact?.displayName || selected.vendorName || t("غير محدد", "Unspecified");
     const selectedSettlement = (selected.extractedJson as any)?.currencySettlement as CurrencySettlement | undefined;
-    const backToList = () => { setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); };
+    const backToList = () => { setReviewIds([]); setSelected(null); if (/\/app\/expenses\/[^/]+/.test(location.pathname)) navigate("/app/expenses"); };
     const th = "text-[11px] tracking-[0.06em]";
     return (
       <div className="space-y-6">
@@ -1919,7 +1957,7 @@ export function Expenses() {
               {pendingDelete === selected.id ? (
                 <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
               ) : (
-                <Button variant="secondary" onClick={() => setPendingDelete(selected.id)} className="h-10 px-[18px] text-sm text-danger">
+                <Button variant="secondary" disabled={selected.status !== 'DRAFT'} onClick={() => setPendingDelete(selected.id)} className="h-10 px-[18px] text-sm text-danger">
                   <Trash2 className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("حذف", "Delete")}
                 </Button>
               )}</>}
@@ -1936,8 +1974,8 @@ export function Expenses() {
           <Metric label={t("طريقة الدفع", "Payment method")} value={<span className="font-sans text-base font-medium text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</span>} />
         </MetricStrip>
 
-        <div className="grid grid-cols-1 gap-6">
-          <aside aria-label={t("مرفقات المصروف", "Expense attachments")} className="min-w-0 rounded-lg border border-border bg-card p-3 sm:p-5">
+        <div data-testid="expense-review-workspace" className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+          <aside aria-label={t("مرفقات المصروف", "Expense attachments")} className="min-w-0 rounded-lg border border-border bg-card p-3 lg:col-start-2 lg:row-start-1 lg:sticky lg:top-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="flex items-center gap-2 text-section font-semibold text-foreground">
                 <Paperclip className="h-4 w-4 text-content-secondary" strokeWidth={1.75} /> {t("المرفقات", "Attachments")}
@@ -1998,8 +2036,8 @@ export function Expenses() {
                       {t("التالي", "Next")} <ChevronLeft className="h-4 w-4 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />
                     </button>
                   </div>
-                  {/* Full-width receipt with optional fullscreen; never squeezed beside the ledger */}
-                  <AttachmentViewer attachment={detailAttachments[activeAttIdx]} height="clamp(420px, 78dvh, 1100px)" />
+                  {/* Keep the whole receipt visible beside the record; width zoom is optional */}
+                  <AttachmentViewer attachment={detailAttachments[activeAttIdx]} height="clamp(280px, 62dvh, 760px)" />
                   {/* thumbnails strip */}
                   {detailAttachments.length > 1 && (
                     <div className="flex gap-2 overflow-x-auto pb-1">
@@ -2020,28 +2058,30 @@ export function Expenses() {
               )}
             </div>
           </aside>
-          <div className="min-w-0 space-y-6">
+          <div data-testid="expense-review-details" className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-1">
+            {reviewIds.length > 0 && <ExpenseReviewForm key={reviewIds.join('|')} ids={reviewIds} accounts={accounts} onSaved={onReviewSaved} onClose={() => setReviewIds([])} />}
+
 
 
             {selectedSettlement && (
               <section className="rounded-lg border border-border border-s-[3px] border-s-primary bg-card p-5">
                 <h2 className="text-section font-semibold text-foreground">{t("تسوية العملة", "Currency Settlement")}</h2>
-                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="min-w-0">
                     <p className="text-xs text-content-secondary">{t("عملة الفاتورة", "Invoice currency")}</p>
-                    <p dir="ltr" className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
+                    <p dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.sourceTotal, selectedSettlement.sourceCurrency)}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-content-secondary">{t("القيمة العادلة", "Fair value")}</p>
-                    <p dir="ltr" className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
+                    <p dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.bookBaseAmount, selectedSettlement.baseCurrency)}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-content-secondary">{t("السحب البنكي", "Bank withdrawal")}</p>
-                    <p dir="ltr" className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
+                    <p dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="truncate font-display text-[18px] leading-6 tabular-nums text-foreground">{money2(selectedSettlement.actualPaidAmount, selectedSettlement.actualPaidCurrency)}</p>
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs text-content-secondary">{t("الفرق", "Difference")}</p>
-                    <p dir="ltr" className={`truncate font-display text-[18px] leading-6 tabular-nums ${selectedSettlement.difference > 0 ? "text-warning" : selectedSettlement.difference < 0 ? "text-success" : "text-foreground"}`}>
+                    <p dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className={`truncate font-display text-[18px] leading-6 tabular-nums ${selectedSettlement.difference > 0 ? "text-warning" : selectedSettlement.difference < 0 ? "text-success" : "text-foreground"}`}>
                       {money2(selectedSettlement.difference, selectedSettlement.actualPaidCurrency)}
                     </p>
                     <p className="text-[11px] text-content-secondary">{selectedSettlement.treatmentLabel}</p>
@@ -2064,7 +2104,7 @@ export function Expenses() {
                     <TableHead className={th}>{t("الطريقة", "Method")}</TableHead>
                     <TableHead className={th}>{t("المرجع", "Reference")}</TableHead>
                     <TableHead className={th}>{t("الحساب", "Account")}</TableHead>
-                    <TableHead className={`${th} text-end`}>{t("المبلغ", "Amount")}</TableHead>
+                    <TableHead className={`${th} text-start`}>{t("المبلغ", "Amount")}</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {paymentSplits.map((payment, idx) => (
@@ -2072,7 +2112,7 @@ export function Expenses() {
                         <TableCell className="align-middle"><span className="block truncate">{paymentMethodLabels(t)[payment.method]}</span></TableCell>
                         <TableCell className="align-middle overflow-hidden"><span dir="ltr" className={`block truncate font-code text-xs ${language === "ar" ? "text-right" : "text-left"}`} title={payment.reference || payment.cardLast4 || ""}>{payment.reference || payment.cardLast4 || "—"}</span></TableCell>
                         <TableCell className="align-middle overflow-hidden"><span className="block truncate"><bdi dir="auto">{payment.accountName || (isStripeSource ? t("رصيد Stripe", "Stripe balance") : "—")}</bdi></span></TableCell>
-                        <TableCell className="text-end align-middle"><span dir="ltr" className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(payment.amount, payment.currency || selected.currency)}</span></TableCell>
+                        <TableCell className="text-start align-middle"><span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(payment.amount, payment.currency || selected.currency)}</span></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -2099,32 +2139,32 @@ export function Expenses() {
               <h2 className="text-section font-semibold text-foreground">{t("الأصناف والضريبة", "Items & Tax")}</h2>
               {lineItems.length ? (
                 <div className="ledger-table overflow-x-auto">
-                  <Table className="table-fixed min-w-[820px]">
+                  <Table className="table-auto min-w-[620px]">
                     <colgroup>
                       <col />{/* الوصف · flexible */}
-                      <col style={{ width: "180px" }} />{/* الحساب */}
-                      <col style={{ width: "70px" }} />{/* الكمية */}
-                      <col style={{ width: "160px" }} />{/* السعر · 1,880,899.52 SAR */}
-                      <col style={{ width: "70px" }} />{/* VAT */}
-                      <col style={{ width: "160px" }} />{/* الإجمالي */}
+                      <col style={{ width: "125px" }} />{/* الحساب */}
+                      <col style={{ width: "50px" }} />{/* الكمية */}
+                      <col style={{ width: "105px" }} />{/* السعر */}
+                      <col style={{ width: "65px" }} />{/* VAT */}
+                      <col style={{ width: "105px" }} />{/* الإجمالي */}
                     </colgroup>
                     <TableHeader><TableRow className="hover:bg-transparent">
                       <TableHead className={th}>{t("الوصف", "Description")}</TableHead>
                       <TableHead className={th}>{t("الحساب", "Account")}</TableHead>
-                      <TableHead className={`${th} text-end`}>{t("الكمية", "Qty")}</TableHead>
-                      <TableHead className={`${th} text-end`}>{t("السعر", "Price")}</TableHead>
-                      <TableHead className={`${th} text-end`}>VAT</TableHead>
-                      <TableHead className={`${th} text-end`}>{t("الإجمالي", "Total")}</TableHead>
+                      <TableHead className={`${th} text-start`}>{t("الكمية", "Qty")}</TableHead>
+                      <TableHead className={`${th} text-start`}>{t("السعر", "Price")}</TableHead>
+                      <TableHead className={`${th} text-start`}>VAT</TableHead>
+                      <TableHead className={`${th} text-start`}>{t("الإجمالي", "Total")}</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
                       {lineItems.map((line, idx) => (
                         <TableRow key={idx} className="h-11 hover:bg-transparent">
                           <TableCell className="align-middle overflow-hidden"><span className="block truncate" title={line.description}><bdi dir="auto">{line.description}</bdi></span></TableCell>
                           <TableCell className="align-middle overflow-hidden text-xs text-content-secondary"><span className="block truncate"><bdi dir="auto">{line.accountName || (() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${account.nameAr || account.name}` : line.category || "—"; })()}</bdi></span></TableCell>
-                          <TableCell className="text-end align-middle"><span dir="ltr" className="font-english tabular-nums">{line.quantity || 1}</span></TableCell>
-                          <TableCell className="text-end align-middle"><span dir="ltr" className="block whitespace-nowrap font-english tabular-nums">{money2(line.unitPrice || 0, selected.currency)}</span></TableCell>
-                          <TableCell className="text-end align-middle"><span dir="ltr" className="font-english tabular-nums">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</span></TableCell>
-                          <TableCell className="text-end align-middle"><span dir="ltr" className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)), selected.currency)}</span></TableCell>
+                          <TableCell className="text-start align-middle"><span dir="ltr" className="font-english tabular-nums">{line.quantity || 1}</span></TableCell>
+                          <TableCell className="text-start align-middle"><span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-english tabular-nums">{money2(line.unitPrice || 0, selected.currency)}</span></TableCell>
+                          <TableCell className="text-start align-middle"><span dir="ltr" className="whitespace-nowrap font-english tabular-nums">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</span></TableCell>
+                          <TableCell className="text-start align-middle"><span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)), selected.currency)}</span></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -2211,9 +2251,20 @@ export function Expenses() {
           ))}
         </div>
         <p className="text-xs text-content-secondary">{t("حالة السجل كما حُفظت. الاعتماد لا يعني الدفع؛ الأعداد تخص السجلات المحمّلة.", "Status as recorded. Approval does not mean payment; counts cover the loaded records.")}</p>
+        {visibleChecked.length > 0 && <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3" aria-label={t('إجراءات المحدد', 'Selected actions')}>
+          <span className="text-sm">{t('المحدد', 'Selected')}: {visibleChecked.length}</span>
+          <Button variant="outline" disabled={bulkBusy} onClick={() => setReviewIds(visibleChecked.map(e => e.id))}>{t('تغيير الحساب / التصنيف', 'Change account / category')}</Button>
+          <Button variant="outline" disabled={bulkBusy || visibleChecked.some(e => e.status !== 'DRAFT')} onClick={() => setBulkDeleteConfirm(true)}>{t('حذف المسودات المحددة', 'Delete selected drafts')}</Button>
+          <Button variant="ghost" disabled={bulkBusy} onClick={() => { setCheckedIds(new Set()); setReviewIds([]); setBulkDeleteConfirm(false); }}>{t('إلغاء التحديد', 'Clear selection')}</Button>
+          {visibleChecked.some(e => e.status !== 'DRAFT') && <span className="text-xs text-content-secondary">{t('المعتمد يُصحّح محاسبيًا؛ الحذف الجماعي للمسودات.', 'Posted records use accounting corrections; bulk deletion is for drafts.')}</span>}
+          {bulkDeleteConfirm && <InlineConfirm onConfirm={deleteSelectedDrafts} onCancel={() => setBulkDeleteConfirm(false)} />}
+        </div>}
+        {bulkErrors.length > 0 && <div role="alert" className="text-sm text-danger">{bulkErrors.map(e => <p key={e}>{e}</p>)}</div>}
+        {reviewIds.length > 0 && <ExpenseReviewForm key={reviewIds.join('|')} ids={reviewIds} accounts={accounts} onSaved={onReviewSaved} onClose={() => setReviewIds([])} />}
         <div className="ledger-table overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
-            <Table className="table-fixed min-w-[1160px]">
+            <Table className="table-fixed min-w-[1220px]">
               <colgroup>
+                <col style={{ width: "44px" }} />
                 <col style={{ width: "230px" }} />{/* رقم · mono ids run to 30+ chars (ENTIX-FEE-txn_…) — never a % width */}
                 <col style={{ width: "120px" }} />{/* الحالة المسجلة */}
                 <col />
@@ -2224,22 +2275,24 @@ export function Expenses() {
               </colgroup>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead><input type="checkbox" aria-label={t('تحديد المعروض', 'Select visible expenses')} disabled={bulkBusy || !filtered.length} checked={!!filtered.length && filtered.every(e => checkedIds.has(e.id))} onChange={event => setCheckedIds(event.target.checked ? new Set(filtered.map(e => e.id)) : new Set())} /></TableHead>
                   <TableHead>{t("رقم", "No.")}</TableHead>
                   <TableHead>{t("الحالة", "Status")}</TableHead>
                   <TableHead>{t("المورد / التصنيف", "Supplier / Category")}</TableHead>
                   <TableHead>{t("رقم الفاتورة", "Invoice No.")}</TableHead>
                   <TableHead>{t("التاريخ", "Date")}</TableHead>
-                  <TableHead className="text-end">{t("المبلغ", "Amount")}</TableHead>
+                  <TableHead className="text-start">{t("المبلغ", "Amount")}</TableHead>
                   <TableHead>{t("إجراءات", "Actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loading && <TableRow className="hover:bg-transparent"><TableCell colSpan={7} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</TableCell></TableRow>}
+                {loading && <TableRow className="hover:bg-transparent"><TableCell colSpan={8} className="py-8 text-center text-muted-foreground text-sm">{t("جارٍ التحميل...", "Loading...")}</TableCell></TableRow>}
                 {!loading && filtered.length === 0 && (
-                  <TableRow className="hover:bg-transparent"><TableCell colSpan={7} className="py-12 text-center"><Receipt className="h-8 w-8 mx-auto text-muted-foreground mb-3" strokeWidth={1.75} /><p className="text-sm text-muted-foreground">{items.length ? t("لا توجد مصروفات تطابق البحث والحالة المحددة", "No expenses match the search and selected status") : t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></TableCell></TableRow>
+                  <TableRow className="hover:bg-transparent"><TableCell colSpan={8} className="py-12 text-center"><Receipt className="h-8 w-8 mx-auto text-muted-foreground mb-3" strokeWidth={1.75} /><p className="text-sm text-muted-foreground">{items.length ? t("لا توجد مصروفات تطابق البحث والحالة المحددة", "No expenses match the search and selected status") : t("لا توجد مصروفات · اضغط مصروف جديد لإضافة أول مصروف", "No expenses · Click New expense to add your first expense")}</p></TableCell></TableRow>
                 )}
                 {!loading && filtered.map((e) => (
                   <TableRow key={e.id} onClick={() => openExpense(e)} className="h-12 cursor-pointer" title={t("فتح المصروف", "Open expense")}>
+                    <TableCell onClick={event => event.stopPropagation()}><input type="checkbox" aria-label={`${t('تحديد', 'Select')} ${e.number}`} disabled={bulkBusy} checked={checkedIds.has(e.id)} onChange={event => setCheckedIds(ids => { const next = new Set(ids); event.target.checked ? next.add(e.id) : next.delete(e.id); return next; })} /></TableCell>
                     <TableCell className="align-middle overflow-hidden">
                       <Link to={`/app/expenses/${e.id}`} onClick={(ev) => { ev.preventDefault(); ev.stopPropagation(); openExpense(e); }} title={e.number} className="block max-w-full hover:underline underline-offset-4">
                         <span dir="ltr" className={`block truncate font-code text-sm font-semibold text-foreground ${language === "ar" ? "text-right" : "text-left"}`}>{e.number}</span>
@@ -2252,19 +2305,20 @@ export function Expenses() {
                     </TableCell>
                     <TableCell className="align-middle overflow-hidden"><span dir="ltr" className={`block truncate font-code text-xs text-content-secondary ${language === "ar" ? "text-right" : "text-left"}`} title={e.documentNumber || e.reference || ""}>{e.documentNumber || e.reference || "—"}</span></TableCell>
                     <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{e.date.slice(0, 10)}</span></TableCell>
-                    <TableCell className="text-end align-middle">
-                      <span dir="ltr" className="block whitespace-nowrap font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(e.total, e.currency)}</span>
-                      {Number(e.taxAmount) > 0 && <span dir="ltr" className="block whitespace-nowrap text-[10px] text-content-secondary tabular-nums">VAT {money2(e.taxAmount, e.currency)}</span>}
+                    <TableCell className="text-start align-middle">
+                      <span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(e.total, e.currency)}</span>
+                      {Number(e.taxAmount) > 0 && <span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap text-[10px] text-content-secondary tabular-nums">VAT {money2(e.taxAmount, e.currency)}</span>}
                     </TableCell>
                     <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
-                      <div className="flex items-center gap-1 whitespace-nowrap">
+                      <div className="flex flex-wrap items-center gap-1">
+                        {!e.externalId?.startsWith('stripe:') && <button onClick={() => editFromList(e)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t('تعديل', 'Edit')}><Edit3 className="h-4 w-4" /></button>}
                         <button onClick={() => openExpense(e)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("فتح المصروف", "Open expense")}><Eye className="h-4 w-4" strokeWidth={1.75} /></button>
                         {e.attachmentCount ? <FileImage className="h-4 w-4 text-content-secondary" strokeWidth={1.75} aria-label={t("مرفقات", "Attachments")} /> : null}
                         {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-success" strokeWidth={1.75} aria-label="VAT" /> : null}
                         {pendingDelete === e.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
-                          <button onClick={() => setPendingDelete(e.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
+                          <button disabled={e.status !== 'DRAFT'} onClick={() => setPendingDelete(e.id)} className="rounded-full p-1.5 text-danger hover:bg-surface-hover" title={t("حذف", "Delete")}><Trash2 className="h-4 w-4" strokeWidth={1.75} /></button>
                         )}
                       </div>
                     </TableCell>

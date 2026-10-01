@@ -75,6 +75,8 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
     } catch { return null; }
   }, [attachment.base64, attachment.url, blobType]);
 
+  useEffect(() => { setFitWidth(false); }, [src, attachment.name]);
+
   // Revoke blob URLs to avoid leaks
   useEffect(() => {
     return () => {
@@ -100,10 +102,10 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
             {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             {fullscreen ? t("إنهاء ملء الشاشة", "Exit full screen") : t("ملء الشاشة", "Full screen")}
           </button>
-          {isPdf && <button type="button" className={actionClass} onClick={() => setFitWidth(value => !value)}>
+          <button type="button" aria-pressed={fitWidth} className={actionClass} onClick={() => setFitWidth(value => !value)}>
             <ScanLine className="h-4 w-4" />
             {fitWidth ? t("عرض الصفحة كاملة", "Show whole page") : t("تكبير لعرض المستند", "Fit document width")}
-          </button>}
+          </button>
           <a href={src} target="_blank" rel="noopener noreferrer" className={actionClass}>
             <ExternalLink className="h-4 w-4" />{t("فتح في تبويب جديد", "Open in new tab")}
           </a>
@@ -120,7 +122,7 @@ export function AttachmentViewer({ attachment, height = 620 }: { attachment: Vie
           />
         ) : (
           <div className="min-h-0 flex-1 overflow-auto">
-            <img src={src} alt={attachment.name} className="mx-auto block h-auto w-full" />
+            <img src={src} alt={attachment.name} className={fitWidth ? "mx-auto block h-auto w-full" : "mx-auto block h-full w-full object-contain"} />
           </div>
         )}
       </div>
