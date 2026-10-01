@@ -14,7 +14,7 @@ export function exportReportCsv(report:ReportPayload,language:string) {
 }
 export async function reportWorkbook(report:ReportPayload,language:string, options: { settings?: ReportPrintSettings; logo?: {base64:string;width:number;height:number} } = {}) {
  const { default: ExcelJS }=await import('exceljs'); const book=new ExcelJS.Workbook();
- book.creator='Entix';book.created=new Date(report.generatedAt); const sheet=book.addWorksheet(language==='ar'?'التقرير':'Report',{views:[{rightToLeft:language==='ar',state:'frozen',ySplit:6,xSplit:1}],pageSetup:{orientation:reportLayoutSettings(report,options.settings||{}).orientation as 'portrait'|'landscape',paperSize:({A4:9,A3:8,Letter:1,Legal:5} as const)[options.settings?.paper||'A4'] as PaperSize,fitToPage:true,fitToWidth:1,fitToHeight:0}});
+ book.creator='Entix';book.created=new Date(report.generatedAt); const sheet=book.addWorksheet(language==='ar'?'التقرير':'Report',{views:[{rightToLeft:language==='ar',state:'frozen',ySplit:6,xSplit:1}],pageSetup:{orientation:reportLayoutSettings(report,options.settings||{}).orientation as 'portrait'|'landscape',paperSize:({A4:9,A3:8,Letter:1,Legal:5} as const)[options.settings?.paper||'A4'] as PaperSize,blackAndWhite:options.settings?.colorMode==='plain'||options.settings?.colorMode==='grayscale',fitToPage:true,fitToWidth:1,fitToHeight:0}});
  const count=Math.max(2,...report.sections.map(s=>s.columns.length));
  const logoRow=options.logo&&count<4?1:0;
  const settings=options.settings||{};

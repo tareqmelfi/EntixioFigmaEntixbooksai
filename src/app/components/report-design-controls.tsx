@@ -21,6 +21,7 @@ export function ReportDesignControls({ settings, onChange, book = false }: { set
       {select('fontScale', t('حجم الخط', 'Font size'), [['compact', t('صغير', 'Small')], ['normal', t('عادي', 'Normal')], ['large', t('كبير', 'Large')]], 'normal')}
       {select('density', t('كثافة الجدول', 'Table density'), [['compact', t('مضغوط', 'Compact')], ['standard', t('قياسي', 'Standard')], ['comfortable', t('مريح', 'Comfortable')]], 'standard')}
     </>}
+    <p className="text-xs text-muted-foreground">{t('الأغلفة والفواصل لملفات PDF والطباعة', 'Covers and dividers apply to PDF and printing')}</p>
     {toggle('showCover', t('غلاف أمامي', 'Front cover'), book)}
     {toggle('showBackCover', t('غلاف أخير', 'Back cover'), false)}
     {(settings.showCover || settings.showBackCover || settings.showSectionDividers) && select('coverStyle', t('تصميم الغلاف', 'Cover design'), [['dark', t('داكن · بشعار مناسب للخلفية', 'Dark · reverse logo')], ['light', t('فاتح', 'Light')], ['formal', t('رسمي بدون خلفية ملونة', 'Formal · no colored background')]], 'dark')}

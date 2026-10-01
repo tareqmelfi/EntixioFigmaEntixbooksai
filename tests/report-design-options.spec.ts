@@ -31,6 +31,7 @@ test('designer applies font, equation, monochrome and paper choices to actual PD
   await expect(output.locator('.report-negative')).toHaveCSS('color', 'rgb(17, 17, 17)');
   await expect(output.locator('th').first()).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(output.locator('article')).toHaveCSS('font-family', '"IBM Plex Sans Arabic", sans-serif, sans-serif');
+  await expect(output.locator('tbody td bdi').first()).toHaveCSS('font-family', '"IBM Plex Sans Arabic", sans-serif, sans-serif');
   const box = await output.locator('article').boundingBox();
   expect(box!.width).toBeCloseTo(420 * 96 / 25.4, 0);
   expect(box!.height).toBeCloseTo(297 * 96 / 25.4, 0);
@@ -61,6 +62,7 @@ test('Excel preserves numeric cells and formal choices, A3 and the repeated head
   const book = await reportWorkbook(report, 'ar', { settings: { paper: 'A3', colorMode: 'plain', fontFamily: 'plex', showEquation: true } });
   const sheet = book.worksheets[0];
   expect(sheet.pageSetup.paperSize).toBe(8);
+  expect(sheet.pageSetup.blackAndWhite).toBe(true);
   const rows: any[] = []; sheet.eachRow(row => rows.push(row));
   const negative = rows.find(row => row.getCell(2).value === -200)!;
   expect(negative.getCell(2).numFmt).not.toContain('[Red]');
