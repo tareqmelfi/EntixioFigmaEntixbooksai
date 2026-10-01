@@ -16,6 +16,7 @@ import { api, ApiError, type ReportPayload, type ReportRow } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { BranchFilter } from "../components/branch-field";
 import { ProjectFilter } from "../components/project-field";
+import { OwnerManagementReport } from "./owner-management-report";
 import { ManagementReportBook } from "./management-report-book";
 
 function todayIso() {
@@ -68,7 +69,7 @@ function ExportMenu({ onCsv, onPdf, onExcel, disabled }: { onExcel: () => void; 
 
 export function ReportView() {
   const { id } = useParams();
-  return id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView />;
+  return id === "owner-management" ? <OwnerManagementReport /> : id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView />;
 }
 
 function SingleReportView() {

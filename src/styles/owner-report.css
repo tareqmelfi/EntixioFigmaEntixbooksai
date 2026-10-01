@@ -1,0 +1,46 @@
+.owner-report { font-family:var(--report-font); color:#203649; background:#fff; }
+.owner-report .owner-page-heading { display:grid; grid-template-columns:1fr 1.7fr 1fr; align-items:start; gap:4mm; border-top:2px solid var(--owner-accent); padding:3mm 0; margin-bottom:3mm; }
+.owner-page-heading > div:nth-child(2) { text-align:center; }
+.owner-page-heading h1 { font-size:15px; font-weight:700; color:var(--report-primary); margin:1mm 0; }
+.owner-page-heading p,.owner-page-heading small { display:block; font-size:8px; line-height:1.6; }
+.owner-page-heading .owner-company { font-size:10px; font-weight:600; }
+.owner-page-heading img { max-width:30mm; max-height:10mm; object-fit:contain; float:inline-end; background:transparent; }
+.owner-report .owner-body { font-size:var(--report-font-size); line-height:1.7; }
+.owner-report .owner-body > * { margin:0 0 4mm; }
+.owner-report .owner-body h2 { font-size:13px; color:var(--report-primary); font-weight:700; margin:0 0 2mm; }
+.owner-report .owner-lead { background:var(--report-stripe); border-inline-start:3px solid var(--owner-accent); padding:4mm; }
+.owner-report .owner-lead > span { color:var(--owner-accent); font-size:8px; letter-spacing:.04em; }
+.owner-report .owner-lead h2 { font-size:21px; margin:1mm 0 3mm; }
+.owner-lead strong { font-size:21px; }
+.owner-report .owner-kpi-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:2.5mm; }
+.owner-kpi { padding:3mm; border:1px solid var(--report-rule); border-top:2px solid var(--owner-accent); border-radius:1mm; min-width:0; }
+.owner-kpi p { font-size:10px; margin:0; }
+.owner-kpi strong { display:block; font-size:20px; line-height:1.7; color:var(--report-primary); }
+.owner-kpi strong small { font-size:9px; }
+.owner-kpi > small { display:block; font-size:8px; color:#607486; line-height:1.5; }
+.owner-kpi > span { display:block; font-size:9px; margin:1mm 0; color:#64748b; }
+.owner-kpi [data-trend=good] { color:#176853; }
+.owner-kpi [data-trend=bad],.owner-negative { color:#a1443a; }
+.owner-spark { width:100%; height:22px; display:block; color:var(--owner-accent); margin-bottom:1mm; }
+.owner-chart-panel { border:1px solid var(--report-rule); padding:3mm; border-radius:1mm; }
+.owner-chart-panel > p { font-size:9px; color:#597081; background:var(--report-stripe); padding:2mm; }
+.owner-chart svg { width:100%; height:190px; display:block; overflow:visible; }
+.owner-chart svg text { font:10px Arial,sans-serif; fill:#576a7a; }
+.owner-legend { display:flex; justify-content:center; gap:4mm; flex-wrap:wrap; font-size:9px; }
+.owner-legend i { display:inline-block; width:9px; height:3px; margin-inline-end:4px; vertical-align:middle; }
+.owner-report .owner-table { table-layout:fixed; width:100%; border-collapse:collapse; font-size:calc(9px * var(--owner-scale)); }
+.owner-table th { font-size:9px; font-weight:600; background:var(--report-header); color:var(--report-primary); border-bottom:1px solid var(--report-primary); }
+.owner-table th,.owner-table td { padding:var(--report-cell-padding); text-align:start; vertical-align:middle; overflow-wrap:anywhere; line-height:1.65; }
+.owner-table td { border-bottom:1px solid var(--report-rule); }
+.owner-table tr:nth-child(even) { background:var(--report-stripe); }
+.owner-table th:first-child,.owner-table td:first-child { width:30%; }
+.owner-table bdi { white-space:nowrap; font-variant-numeric:tabular-nums; }
+.owner-table small { font-size:7px; }
+.owner-report .owner-note { background:var(--report-stripe); padding:2.5mm; border-inline-start:2px solid var(--owner-accent); font-size:9px; }
+.owner-bar-track { height:8px; background:var(--report-stripe); }
+.owner-bar-track i { display:block; background:var(--owner-accent); height:100%; }
+.owner-report.report-theme-plain .owner-lead,.owner-report.report-theme-plain .owner-note { background:white; }
+.owner-report.report-theme-plain .owner-negative,.owner-report.report-theme-grayscale .owner-negative,.owner-report.report-neutral-values .owner-negative,
+.owner-report.report-theme-plain [data-trend],.owner-report.report-theme-grayscale [data-trend],.owner-report.report-neutral-values [data-trend] { color:inherit; }
+
+.owner-report:not(.report-theme-plain) .owner-table th { background:var(--report-section); color:var(--report-foreground); }
