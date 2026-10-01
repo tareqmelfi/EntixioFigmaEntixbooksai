@@ -15,9 +15,9 @@
 .report-book-cover footer { display: flex; justify-content: space-between; gap: 5mm; border-top: 1px solid #527590; padding-top: 5mm; font-size: 11px; line-height: 1.8; }
 .report-book-page > header { border-top: 3px solid #008da6; padding: 5mm 0 4mm; }
 .report-book-page > header .document-title { font-size: 22px; }
-.report-book-page th { background: #102d50; color: #ffffff !important; padding-block: 7px !important; }
+
 .report-book-page .document-table th { min-width: 12mm; overflow-wrap: normal !important; word-break: normal; }
-.report-book-page tbody tr:nth-child(even) { background: #edf5fa; }
+
 .report-book-page td { border-bottom: 1px solid #d8e6ef; }
 .report-book-page .document-section-title { font-size: 16px; }
 .report-book-page .report-page-footer { color: #527590; border-top: 1px solid #d8e6ef; }
@@ -25,4 +25,3 @@
 
 /* Chapters share the compact report template; keep the separate cover intact. */
 .report-book-page.report-condensed > header { border-top: 0; padding: 0 0 2mm; }
-.report-book-page.report-condensed th { padding-block: 2px !important; }

@@ -2,7 +2,7 @@ import { socialFooterHtml, socialFooterSettings, socialFooterOnPage } from './do
 import type { ReportPrintSettings } from './api';
 
 export function reportPaperSize(settings: ReportPrintSettings) {
-  const portrait = settings.paper === 'Letter' ? [215.9, 279.4] : [210, 297];
+  const portrait = ({ A4: [210, 297], A3: [297, 420], Letter: [215.9, 279.4], Legal: [215.9, 355.6] } as const)[settings.paper || 'A4'];
   const [width, height] = settings.orientation === 'landscape' ? [...portrait].reverse() : portrait;
   return { width, height };
 }

@@ -1,7 +1,29 @@
 import type { Invoice } from '../lib/api';
+import { Link } from 'react-router';
 import { invoiceZatcaState, INVOICE_ZATCA_LABELS } from '../lib/invoice-zatca-state';
 import { useLanguage } from './LanguageContext';
 import { StatusBadge } from './product';
+const SHORT_LABELS = {
+  accepted: ['مقبولة', 'Accepted'], rejected: ['مرفوضة', 'Rejected'],
+  review: ['مراجعة', 'Review'], sending: ['جارٍ الإرسال', 'Sending'],
+  pending: ['بالانتظار', 'Queued'], uncertain: ['غير مؤكدة', 'Unconfirmed'],
+  not_sent: ['لم تُرسل', 'Not sent'], test: ['تجريبي', 'Test'], unverified: ['تحقق', 'Verify'],
+} as const;
+
+/** A quiet, read-only shortcut; opening a status never submits the invoice. */
+export function InvoiceZatcaLink({ invoice }: { invoice: Pick<Invoice, 'id' | 'zatcaDelivery' | 'zatcaStatus'> }) {
+  const { t } = useLanguage();
+  const state = invoiceZatcaState(invoice);
+  const label = t(INVOICE_ZATCA_LABELS[state][0], INVOICE_ZATCA_LABELS[state][1]);
+  const tone = state === 'accepted' ? 'text-success' : state === 'rejected' ? 'text-danger' : ['not_sent', 'test'].includes(state) ? 'text-muted-foreground' : 'text-warning';
+  return <Link to={`/app/invoices/${invoice.id}`} data-zatca-state={state}
+    aria-label={`${t('عرض الفاتورة وحالة الهيئة', 'View invoice and ZATCA status')}: ${label}`}
+    title={[label, invoice.zatcaDelivery?.message, t('اضغط لمتابعة الحالة', 'Open to review status')].filter(Boolean).join(' · ')}
+    onClick={event => event.stopPropagation()}
+    className={`inline-flex min-h-6 items-center gap-1 whitespace-nowrap rounded px-1 text-[10px] leading-4 hover:underline focus-visible:outline-2 focus-visible:outline-primary ${tone}`}>
+    <span aria-hidden="true" className="h-1 w-1 shrink-0 rounded-full bg-current" />{t(SHORT_LABELS[state][0], SHORT_LABELS[state][1])}
+  </Link>;
+}
 export function InvoiceZatcaBadge({ invoice }: { invoice: Pick<Invoice, 'zatcaDelivery' | 'zatcaStatus'> }) {
   const { t } = useLanguage();
   const state = invoiceZatcaState(invoice);

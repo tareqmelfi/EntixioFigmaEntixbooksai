@@ -1,3 +1,6 @@
+import { reportAppearance, reportTheme, reportSign } from '../lib/report-appearance';
+import { reportPaperSize } from '../lib/report-pagination';
+import { ReportEquation } from './report-equation';
 import { isMonthlyReport, reportColumnWidth, reportColumnLabel, reportLayoutSections } from "../lib/report-layout";
 import { displayLocale } from "../lib/number-display";
 /**
@@ -33,7 +36,7 @@ const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal",
 const isTotalRow = (row: ReportRow) => /(^|-)total$/.test(row.id) || row.id === "net-income" || row.id === "current-earnings";
 const num = (v: number) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg"; both?: boolean }) {
+function Bi({ value, lang, primary, size = "md", both: bothEnabled = true, currency }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg"; both?: boolean; currency?: string }) {
   const { ar, en } = splitBi(value);
   const both = bothEnabled && ar && en;
   const main = lang === "ar" ? ar || en : en || ar;
@@ -42,7 +45,7 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { v
   const altCls = size === "lg" ? "text-[11px] font-semibold tracking-wide" : "text-[10px] font-medium";
   return (
     <span className="report-bilingual inline-flex flex-wrap items-baseline gap-x-2">
-      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi></span>
+      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi>{currency && <span className="report-column-currency font-normal"><bdi dir="ltr">({currency})</bdi></span>}</span>
       {both && alt ? <span className={`${altCls} text-muted-foreground`} ><bdi dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</bdi></span> : null}
     </span>
   );
@@ -65,10 +68,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 12.5 : resolved.fontScale === "compact" ? 10 : 10.5;
   const pad = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "1.5px 4px" : "2px 5px";
-  const paperWidth = mode === "print" ? "100%" : resolved.paper === "Letter" ? (resolved.orientation === "landscape" ? "1056px" : "816px") : (resolved.orientation === "landscape" ? "1122px" : "794px");
-  const paperMinHeight = mode === "print" ? undefined : resolved.paper === "Letter" ? (resolved.orientation === "landscape" ? "816px" : "1056px") : (resolved.orientation === "landscape" ? "794px" : "1123px");
-
-  const style = { "--report-primary": resolved.primaryColor, "--report-accent": resolved.accentColor, "--report-font-size": `${fontSize}px`, "--report-cell-padding": pad, width: paperWidth, minHeight: paperMinHeight } as CSSProperties;
+  const dimensions = reportPaperSize(resolved);
+  const style = { ...reportAppearance(resolved), "--report-accent": resolved.accentColor, "--report-font-size": `${fontSize}px`, "--report-cell-padding": pad, width: mode === "print" ? "100%" : `${dimensions.width}mm`, minHeight: mode === "print" ? undefined : `${dimensions.height}mm` } as CSSProperties;
 
   const nameAr = report.org.name || report.org.legalName || "";
   const nameEn = (report.org as any).legalName && (report.org as any).legalName !== report.org.name ? (report.org as any).legalName : "";
@@ -81,7 +82,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const generated = new Date(report.generatedAt).toLocaleString(displayLocale(isEn ? "en-GB" : "ar-SA-u-nu-latn"), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""} ${report.id === "trial-balance" && report.sections.some(section => section.columns.some(column => column.key === "openingDebit")) ? "report-trial-balance" : ""}`} dir={dir} style={style}>
+    <article className={`entix-report-paper document-paper ${reportTheme(resolved)} report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""} ${report.id === "trial-balance" && report.sections.some(section => section.columns.some(column => column.key === "openingDebit")) ? "report-trial-balance" : ""}`} dir={dir} style={style}>
       {/* Branding belongs to the first sheet; the title stays centred on the paper. */}
       <header className="report-compact-header">
         <div className="report-company text-foreground" dir={dir}>
@@ -104,6 +105,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
         {report.notices?.length ? (
           <div className="report-notice border border-warning-border bg-warning-subtle text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : (pair.ar || pair.en); }).join(" · ")}</div>
         ) : null}
+        {resolved.showEquation && <ReportEquation report={report} t={t} />}
         {!report.sections.length && <p role="status">{t("لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.", "No report data is available for the selected period.")}</p>}
         {reportLayoutSections(report, resolved).map((section) => {
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
@@ -111,7 +113,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
           const title = splitBi(section.title);
           const sameTitle = (isEn ? title.en || title.ar : title.ar || title.en) === (isEn ? report.englishTitle : report.title);
           return (
-            <section key={section.id} className="document-keep-together break-inside-avoid">
+            <section key={section.id} data-section-id={section.id} className="document-keep-together break-inside-avoid">
               <div className="report-section-heading text-center">
                 {!sameTitle && <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />}
                 {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
@@ -122,10 +124,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
-                        <Bi value={reportColumnLabel(column)} lang={lang} size="sm" both={bilingual} />
-                        {!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
-                          <span className="report-column-currency font-english text-[9px] font-normal text-muted-foreground/80"><bdi dir="ltr">({report.currency})</bdi></span>
-                        ) : null}
+                        <Bi value={reportColumnLabel(column)} lang={lang} size="sm" both={bilingual}
+                          currency={!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? report.currency : undefined} />
                       </th>
                     ))}
                   </tr>
@@ -135,7 +135,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                     const total = isTotalRow(row);
                     const depth = Math.min(Math.max(row.depth ?? 0, 0), 5);
                     return (
-                      <tr key={row.id} className={`${i % 2 === 1 && !total ? "bg-[#F5F7FB]" : ""}${onRowClick ? " cursor-pointer hover:bg-surface-hover/70" : ""}`} onClick={() => onRowClick?.(row)} style={{ borderBottom: "1px solid #EEF1F6" }}>
+                      <tr key={row.id} data-total={total || undefined} data-depth={depth} className={`${i % 2 === 1 && !total ? "bg-[#F5F7FB]" : ""}${onRowClick ? " cursor-pointer hover:bg-surface-hover/70" : ""}`} onClick={() => onRowClick?.(row)} style={{ borderBottom: "1px solid #EEF1F6" }}>
                         {columns.map((column) => {
                           const v = row.values[column.key];
                           const money = column.kind === "money" || moneyKeys.has(column.key);
@@ -146,8 +146,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                               style={{ padding: "var(--report-cell-padding)", textAlign: align, ...(column.key === "label" && depth > 0 ? { paddingInlineStart: `${depth * 16 + 10}px`, color: "#475569" } : {}) }}
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>
                               {v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span>
-                                : money ? <NumericText className={Number(v) < 0 ? "font-semibold text-danger" : total ? "font-bold" : "font-medium"}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
-                                : column.kind === "number" && typeof v === "number" ? <NumericText>{v.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>
+                                : money ? <NumericText className={`${reportSign(v)} ${total ? "font-bold" : "font-medium"}`}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
+                                : column.kind === "number" && typeof v === "number" ? <NumericText className={reportSign(v)}>{v.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>
                                 : column.key === "label" ? <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />
                                 : <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />}
                             </td>

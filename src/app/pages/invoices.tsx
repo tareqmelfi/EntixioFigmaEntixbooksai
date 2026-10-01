@@ -1,6 +1,6 @@
 import { BidiText } from "../components/bidi-text";
 import { ContactProfileLink } from "../components/contact-profile-link";
-import { InvoiceZatcaBadge, InvoiceZatcaSummary } from "../components/invoice-zatca-badge";
+import { InvoiceZatcaLink, InvoiceZatcaSummary } from "../components/invoice-zatca-badge";
 import { SignatureHistory } from "../components/signature-history";
 import type { SourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
@@ -1450,15 +1450,17 @@ export function Invoices() {
                   <span className="flex min-w-0 flex-col gap-[3px]">
                     <span className="truncate text-sm font-semibold text-foreground"><ContactProfileLink id={i.contactId || i.contact?.id} name={i.contact?.displayName} /></span>
                     <Link to={`/app/invoices/${i.id}`} dir="ltr" className="font-code text-xs text-muted-foreground underline">{i.invoiceNumber} · {i.dueDate?.slice(0, 10)}</Link>
-                    {isSA && <InvoiceZatcaBadge invoice={i} />}
                   </span>
                   <span className="flex shrink-0 flex-col items-end gap-[3px]">
                     <span dir="ltr" className="font-display text-[18px] leading-5 text-foreground tabular-nums">{Number(i.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${statusToneClass(i.status, late)}`}>
                       <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
                       {late > 0 && i.status !== "PAID" && i.status !== "CANCELLED"
                         ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
                         : STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}
+                    </span>
+                    {isSA && <InvoiceZatcaLink invoice={i} />}
                     </span>
                   </span>
                 </div>
@@ -1467,7 +1469,7 @@ export function Invoices() {
           })}
         </ul>
         <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
-        <Table className={`table-fixed ${compactList ? "min-w-[820px]" : "min-w-[980px]"}`}>
+        <Table className={`table-fixed ${compactList ? (isSA ? "min-w-[908px]" : "min-w-[820px]") : (isSA ? "min-w-[1068px]" : "min-w-[980px]")}`}>
           <colgroup>
             <col style={{ width: "200px" }} />{/* الرقم · mono numbers run to 19 chars (ENTIX-XXXXXXXX-0000) — never narrower */}
             <col style={{ minWidth: "110px" }} />{/* العميل · flexible */}
@@ -1476,6 +1478,7 @@ export function Invoices() {
             <col style={{ width: "130px" }} />{/* المبلغ */}
             <col style={{ width: "140px" }} />{/* الحالة */}
             {!compactList && <col style={{ width: "150px" }} />}{/* إجراءات · replaced by the panel action bar in split view */}
+            {isSA && <col style={{ width: "88px" }} />}
           </colgroup>
           <TableHeader><TableRow className="hover:bg-transparent">
             <TableHead>{t("الرقم", "Number")}</TableHead>
@@ -1485,6 +1488,7 @@ export function Invoices() {
             <TableHead className="text-end">{t("المبلغ", "Amount")} <span className="font-english">({orgCurrency})</span></TableHead>
             <TableHead>{t("الحالة", "Status")}</TableHead>
             {!compactList && <TableHead>{t("إجراءات", "Actions")}</TableHead>}
+            {isSA && <TableHead className="text-end">{t("الهيئة", "ZATCA")}</TableHead>}
           </TableRow></TableHeader>
           <TableBody>
             {filtered.map(i => {
@@ -1505,7 +1509,7 @@ export function Invoices() {
                     title={t("فتح الفاتورة", "Open invoice")}
                     className="hover:underline underline-offset-4 cursor-pointer"
                   >
-                    <span dir="ltr" className="font-code text-sm font-semibold text-foreground inline-block">{i.invoiceNumber}</span>{isSA && <span className="block mt-1"><InvoiceZatcaBadge invoice={i} /></span>}
+                    <span dir="ltr" className="font-code text-sm font-semibold text-foreground inline-block">{i.invoiceNumber}</span>
                   </button>
                 </TableCell>
                 <TableCell className="overflow-hidden text-sm text-foreground" title={i.contact?.displayName || ""}>
@@ -1609,6 +1613,7 @@ export function Invoices() {
                   </div>
                 </TableCell>
                 )}
+                {isSA && <TableCell className="text-end align-middle !px-1"><InvoiceZatcaLink invoice={i} /></TableCell>}
               </TableRow>
             );})}
           </TableBody>
@@ -1621,7 +1626,6 @@ export function Invoices() {
         {/* Split view · the selected invoice as a paper document (desktop ≥1280px) */}
         {wideViewport && selected && (
           <aside className="sticky top-4 rounded-lg bg-surface-subtle p-4" aria-label={t("معاينة الفاتورة", "Invoice preview")}>
-            {isSA && <InvoiceZatcaBadge invoice={selected} />}
             <InvoicePreviewPane
               doc={{
                 id: selected.id,
@@ -1656,6 +1660,7 @@ export function Invoices() {
             />
             {/* Row actions for the selected invoice · quiet pills under the paper */}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              {isSA && <InvoiceZatcaLink invoice={selected} />}
               {selected.status !== "PAID" && selected.status !== "CANCELLED" && (
                 <button
                   onClick={() => openRecordPayment(selected)}
