@@ -1842,6 +1842,8 @@ export const api = {
 
   // Invoices
   invoices: {
+    notes: (id: string) => request<{ notes: string | null; termsConditions: string | null; updatedAt: string; canEdit: boolean }>(`/api/invoices/${id}/notes`),
+    updateNotes: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null }) => request<{ notes: string | null; termsConditions: string | null; updatedAt: string }>(`/api/invoices/${id}/notes`, { method: 'PATCH', body }),
     voidInvoiceAdmin: (id: string, body: { reason: string; expectedUpdatedAt: string }) => request<Invoice>(`/api/invoices/${id}/void-admin`, { method: 'POST', body }),
     amendmentPolicy: (id: string) => request<{ canAmend: boolean; canVoidAdmin?: boolean; reason: string | null; country: string }>(`/api/invoices/${id}/amendment-policy`),
     amend: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null; dueDate: string; lines: Array<{ id: string; description: string; quantity: number; unitPrice: number }> }) => request<Invoice>(`/api/invoices/${id}/amend`, { method: 'POST', body }),
