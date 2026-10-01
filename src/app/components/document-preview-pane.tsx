@@ -29,6 +29,8 @@ export interface DocumentPreviewProps {
   onExtract?: (file: File) => Promise<any>;
   /** Show only the latest file in main preview · default true */
   showLatestOnly?: boolean;
+  /** Hide local preview removal when the parent owns persisted attachment deletion. */
+  allowFileRemoval?: boolean;
   /** Accept attribute for input · default any */
   accept?: string;
   /** Max file size in MB · default 25 */
@@ -104,6 +106,7 @@ export function DocumentPreviewPane({
   onFilesAdded,
   onExtract,
   showLatestOnly = true,
+  allowFileRemoval = true,
   accept = ".pdf,.png,.jpg,.jpeg,.heic,.webp,.docx,.xlsx,.csv",
   maxSizeMb = 25,
   initialFiles = [],
@@ -397,10 +400,10 @@ export function DocumentPreviewPane({
                   <div className="w-12 h-14 flex items-center justify-center text-muted-foreground">
                     {f.extracted ? <CheckCircle2 className="h-5 w-5 text-success" /> : f.type.startsWith("image/") ? <ImageIcon className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
                   </div>
-                  <button onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
+                  {allowFileRemoval && <button onClick={(e) => { e.stopPropagation(); removeFile(f.id); }}
                     className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-danger text-primary-foreground flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <X className="h-2.5 w-2.5" />
-                  </button>
+                  </button>}
                   <div className="text-[10px] text-muted-foreground truncate w-12 mt-1">{f.name}</div>
                 </button>
               ))}
