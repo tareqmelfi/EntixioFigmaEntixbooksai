@@ -2139,7 +2139,7 @@ export function Expenses() {
               <h2 className="text-section font-semibold text-foreground">{t("الأصناف والضريبة", "Items & Tax")}</h2>
               {lineItems.length ? (
                 <div className="ledger-table overflow-x-auto">
-                  <Table className="table-fixed min-w-[620px]">
+                  <Table className="table-auto min-w-[620px]">
                     <colgroup>
                       <col />{/* الوصف · flexible */}
                       <col style={{ width: "125px" }} />{/* الحساب */}
