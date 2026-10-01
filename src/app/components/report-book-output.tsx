@@ -1,3 +1,5 @@
+import { ReportCover } from './report-cover';
+import { ReportDesignControls } from './report-design-controls';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import type { ReportPayload, ReportPrintSettings } from '../lib/api';
@@ -5,7 +7,7 @@ import { attachReportSocialFooter, applySocialFooterPages, paginateReport, repor
 import { reportLayoutSettings } from '../lib/report-layout';
 import { readTabOrgId } from '../lib/tab-org-selection';
 import { waitForPrintReady } from '../lib/print-image';
-import { ReportDocument } from './report-document';
+import { ReportDocument, normalizeReportSettings } from './report-document';
 import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
 import '../../styles/report-book.css';
@@ -18,20 +20,15 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const first = reports[0];
-  const paperLogo = first.org.printLogoUrl || first.org.logoUrl;
-  const coverLogo = first.org.printLogoLightUrl || paperLogo;
-  // Use the actual reverse artwork on dark grounds. Without it, lighten the
-  // whole cover rather than putting the regular mark inside a white badge.
-  const lightCover = Boolean(paperLogo && !first.org.printLogoLightUrl);
-  const companyAddress = [first.org.addressLine, first.org.city, first.org.region, first.org.postalCode].filter(Boolean).join(' · ');
-  const companyContact = [first.org.email, first.org.phone, first.org.website].filter(Boolean);
-  const [orientation, setOrientation] = useState<NonNullable<ReportPrintSettings['orientation']>>('auto');
+  const [appearance, setAppearance] = useState<ReportPrintSettings>(() => ({
+    ...normalizeReportSettings({ primaryColor: '#102d50', accentColor: '#008da6', showCover: true, showNotes: true, bilingual: false, ...first.org.paymentSettings?.reports }),
+  }));
+  const [orientation, setOrientation] = useState<NonNullable<ReportPrintSettings['orientation']>>(appearance.orientation || 'auto');
   const settings: ReportPrintSettings = useMemo(() => ({
-    template: 'condensed', paper: first.org.paymentSettings?.reports?.paper || 'A4',
-    orientation: orientation !== 'auto' ? orientation : reports.some(report => reportLayoutSettings<ReportPrintSettings>(report, { showNotes: true }).orientation === 'landscape') ? 'landscape' : 'portrait',
-    language, bilingual: false, showNotes: true, density: 'standard', fontScale: 'normal',
-    primaryColor: '#102d50', accentColor: '#008da6', showCompanyInfo: true, showFooter: true,
-  }), [reports, language, orientation]);
+    ...appearance,
+    orientation: orientation !== 'auto' ? orientation : reports.some(report => reportLayoutSettings<ReportPrintSettings>(report, appearance).orientation === 'landscape') ? 'landscape' : 'portrait',
+    language,
+  }), [reports, language, orientation, appearance]);
   const { width, height } = reportPaperSize(settings);
   const heading = (report: ReportPayload) => language === 'en' ? report.englishTitle : report.title;
   const availability = (report: ReportPayload) => report.status === 'unavailable' || report.dataBasis?.status === 'unavailable'
@@ -78,11 +75,16 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
       const target = pages.current;
       try {
         target.replaceChildren();
-        const cover = source.current.querySelector('.report-book-cover')!.cloneNode(true) as HTMLElement;
-        attachReportSocialFooter(cover, first.org, language);
-        target.append(cover);
+        const copyCover = (selector: string) => {
+          const original = source.current!.querySelector<HTMLElement>(selector);
+          if (!original) return;
+          const copy = original.cloneNode(true) as HTMLElement;
+          attachReportSocialFooter(copy, first.org, language); target.append(copy);
+        };
+        copyCover('[data-cover-kind="front"]');
         const articles = source.current.querySelectorAll<HTMLElement>('.entix-report-paper');
-        const buckets = Array.from(articles, original => {
+        const buckets = Array.from(articles, (original, index) => {
+          if (index > 0) copyCover(`[data-divider-index="${index - 1}"] > article`);
           const article = original.cloneNode(true) as HTMLElement;
           article.classList.add('report-book-page');
           const footerTitle = article.querySelector(':scope > footer > span');
@@ -93,15 +95,17 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
           return bucket;
         });
         const introPages = buckets[0].childElementCount;
-        let offset = 2 + introPages;
+        let offset = (settings.showCover ? 2 : 1) + introPages;
         // Contents row count is bounded by the five selectable chapters.
-        const contentsRows = buckets[0].querySelectorAll('table:first-of-type tbody tr');
+        const contentsRows = buckets[0].querySelectorAll('[data-section-id="contents"] tbody tr');
         reports.forEach((_, index) => {
+          if (settings.showSectionDividers) offset++;
           const row = contentsRows[index];
           row.lastElementChild!.textContent = String(offset);
           offset += buckets[index + 1].childElementCount;
         });
         for (const bucket of buckets) { bucket.replaceWith(...Array.from(bucket.children)); }
+        copyCover('[data-cover-kind="back"]');
         const sheets = target.querySelectorAll<HTMLElement>('.report-output-sheet');
         sheets.forEach((sheet, index) => {
           sheet.dataset.pageNumber = String(index + 1);
@@ -130,25 +134,12 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
   return <div>
     <style>{pageStyle}</style>
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{count ? t(`${count} صفحة · ${reports.length} فصول · ${settings.paper}`, `${count} pages · ${reports.length} chapters · ${settings.paper}`) : t('تجهيز الصفحات…', 'Preparing pages…')}</p><div className="flex gap-2"><label className="flex items-center gap-2 text-sm">{t("الاتجاه", "Orientation")}<select aria-label={t("الاتجاه", "Orientation")} value={orientation} onChange={event=>setOrientation(event.target.value as typeof orientation)} className="rounded-md border border-border bg-card px-2"><option value="auto">{t("تلقائي حسب التقرير", "Automatic for report")}</option><option value="portrait">{t("طولي", "Portrait")}</option><option value="landscape">{t("عرضي", "Landscape")}</option></select></label><Button variant="outline" disabled={!count || busy} onClick={() => print()}>{t('طباعة', 'Print')}</Button><Button data-testid="book-download" disabled={!count || busy} onClick={download}>{busy ? t('تجهيز PDF…', 'Preparing PDF…') : t('تحميل ملف PDF', 'Download PDF book')}</Button></div></div>
+    <details className="no-print mb-4 rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-semibold">{t('تصميم الملف والأغلفة', 'Book design and covers')}</summary><div className="mt-3 max-w-md"><ReportDesignControls settings={settings} book onChange={patch => setAppearance(current => ({ ...current, ...patch }))} /></div></details>
     {error && <p role="alert" className="mb-4 text-danger">{error}</p>}
     <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}>
-      <article className={`report-book-cover report-output-sheet${lightCover ? ' report-book-cover-light' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'} style={{ width: `${width}mm`, height: `${height}mm` }}>
-        <header dir="ltr">
-          <div className="report-book-logo">{coverLogo && <img src={coverLogo} alt={first.org.name} />}</div>
-          <div className="report-book-company" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-            <p className="report-book-company-name"><bdi>{first.org.legalName || first.org.name}</bdi></p>
-            {companyAddress && <p><bdi>{companyAddress}</bdi></p>}
-            {companyContact.length > 0 && <p>{companyContact.map((value, index) => <span key={index}>{index > 0 && ' · '}<bdi>{value}</bdi></span>)}</p>}
-            {(first.org.vatNumber || first.org.crNumber) && <p>
-              {first.org.vatNumber && <span>{first.org.country === 'US' ? 'EIN' : t('الرقم الضريبي', 'Tax ID')}: <bdi>{first.org.vatNumber}</bdi></span>}
-              {first.org.vatNumber && first.org.crNumber && ' · '}
-              {first.org.crNumber && <span>{first.org.country === 'US' ? 'State Filing #' : t('السجل التجاري', 'Registration')}: <bdi>{first.org.crNumber}</bdi></span>}
-            </p>}
-          </div>
-        </header>
-        <main><p className="report-book-kicker">{t('تقارير الإدارة', 'MANAGEMENT REPORTS')}</p><h1>{title}</h1><p className="report-book-period">{first.period.from ? <bdi>{first.period.from} — {first.period.to}</bdi> : <>{t('حتى', 'As of')} <bdi>{first.period.to}</bdi></>}</p><p>{t(`${reports.length} فصول · الجداول المالية والتفاصيل`, `${reports.length} chapters · Financial statements and detail`)}</p></main>
-        <footer><div>{preparedBy && <p>{t('إعداد', 'Prepared by')}: {preparedBy}</p>}<p>{t('تاريخ التجهيز', 'Prepared on')}: <bdi>{first.generatedAt.slice(0, 10)}</bdi></p></div><span>Entix Books · entix.io</span></footer>
-      </article>
+      {settings.showCover && <ReportCover report={first} settings={settings} title={title} preparedBy={preparedBy} subtitle={t(`${reports.length} فصول · الجداول المالية والتفاصيل`, `${reports.length} chapters · Financial statements and detail`)} />}
+      {settings.showBackCover && <ReportCover report={first} settings={settings} title={first.org.legalName || first.org.name} kind="back" preparedBy={preparedBy} />}
+      {settings.showSectionDividers && reports.map((report, index) => <div key={report.id} data-divider-index={index}><ReportCover report={report} settings={settings} title={`${String(index + 1).padStart(2, '0')} · ${heading(report)}`} kind="divider" /></div>)}
       <ReportDocument report={intro} settings={settings} mode="print" />
       {reports.map((report, index) => <ReportDocument key={report.id} report={{ ...report,
         title: `${String(index + 1).padStart(2, '0')} · ${report.title}`, englishTitle: `${String(index + 1).padStart(2, '0')} · ${report.englishTitle}`,

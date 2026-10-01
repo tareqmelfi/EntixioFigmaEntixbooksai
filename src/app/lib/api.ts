@@ -2479,10 +2479,19 @@ export interface ReorderAlert { product: { id: string; sku: string | null; name:
 
 export interface ReportPrintSettings {
   logoSource?: 'print' | 'main' | 'none'
-  paper?: 'A4' | 'Letter'
+  paper?: 'A4' | 'A3' | 'Letter' | 'Legal'
   orientation?: 'auto' | 'portrait' | 'landscape'
   language?: 'ar' | 'en'
   fontScale?: 'compact' | 'normal' | 'large'
+  fontFamily?: 'noto' | 'plex' | 'tajawal'
+  colorMode?: 'color' | 'grayscale' | 'plain'
+  showEquation?: boolean
+  colorValues?: boolean
+  showCover?: boolean
+  showBackCover?: boolean
+  coverStyle?: 'dark' | 'light' | 'formal'
+  /** Chapter separators in multi-report books. */
+  showSectionDividers?: boolean
   density?: 'comfortable' | 'standard' | 'compact'
   primaryColor?: string
   accentColor?: string

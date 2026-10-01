@@ -1,3 +1,6 @@
+import { reportAppearance, reportTheme, reportSign } from '../lib/report-appearance';
+import { reportPaperSize } from '../lib/report-pagination';
+import { ReportEquation } from './report-equation';
 import { isMonthlyReport, reportColumnWidth, reportColumnLabel, reportLayoutSections, reportLayoutSettings } from "../lib/report-layout";
 import { displayDigits, displayLocale } from "../lib/number-display";
 import type { CSSProperties } from "react";
@@ -15,6 +18,8 @@ const defaultSettings: Omit<Required<ReportPrintSettings>, "language"> = {
   orientation: "auto",
   fontScale: "normal",
   density: "standard",
+  fontFamily: "noto", colorMode: "color", showEquation: true, colorValues: true,
+  showCover: false, showBackCover: false, coverStyle: "dark", showSectionDividers: false,
   primaryColor: "#1A1E48",
   accentColor: "#5875DB",
   showCompanyInfo: true,
@@ -38,37 +43,6 @@ const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal",
 // with a rule above — no API change required.
 function isTotalRow(row: ReportRow) {
   return /(^|-)total$/.test(row.id) || row.id === "net-income" || row.id === "current-earnings";
-}
-
-const fmt = (value: number, currency: string) =>
-  `${Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-
-/** Wave-style equation strip: revenue − expenses = net, straight under the
- * header so the arithmetic is visible before any table (user ask 2026-08-19). */
-function EquationStrip({ report, currency, t }: { report: ReportPayload; currency: string; t: (ar: string, en: string) => string }) {
-  if (report.id !== "income-statement") return null;
-  const summary = report.sections.find((s) => s.id === "income-summary");
-  if (!summary) return null;
-  const amount = (id: string) => {
-    const row = summary.rows.find((r) => r.id === id);
-    return row && row.values.amount !== null && row.values.amount !== undefined && row.values.amount !== "" ? Number(row.values.amount) : null;
-  };
-  const revenue = amount("revenue");
-  const expenses = amount("expenses");
-  const net = amount("net-income");
-  if (revenue === null || expenses === null || net === null) return null;
-  return (
-    <div className="report-equation mb-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 rounded-md border border-border bg-surface-subtle/70 px-4 py-3 text-center" dir="ltr">
-      <span className="text-xs text-muted-foreground">{t("الإيرادات", "Revenue")}</span>
-      <NumericText className="text-base font-bold text-foreground">{fmt(revenue, currency)}</NumericText>
-      <span className="text-lg font-bold text-muted-foreground">−</span>
-      <span className="text-xs text-muted-foreground">{t("المصروفات", "Expenses")}</span>
-      <NumericText className="text-base font-bold text-foreground">{fmt(expenses, currency)}</NumericText>
-      <span className="text-lg font-bold text-muted-foreground">=</span>
-      <span className="text-xs text-muted-foreground">{t("صافي الربح / الخسارة", "Net income / (loss)")}</span>
-      <NumericText className={`text-lg font-bold ${net < 0 ? "text-danger" : "text-success"}`}>{fmt(net, currency)}</NumericText>
-    </div>
-  );
 }
 
 export function normalizeReportSettings(settings?: ReportPrintSettings | null): NormalizedReportSettings {
@@ -104,15 +78,10 @@ export function ReportDocument({
   const fontSize = resolved.fontScale === "large" ? 14 : resolved.fontScale === "compact" ? 11.5 : 12.5;
   // Compact-first density: large charts of accounts must fit on fewer pages.
   const cellPadding = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "2px 5px" : "3px 6px";
-  const paperWidth =
-    mode === "print"
-      ? "100%"
-      : resolved.paper === "Letter"
-        ? resolved.orientation === "landscape" ? "1056px" : "816px"
-        : resolved.orientation === "landscape" ? "1122px" : "794px";
+  const paperWidth = mode === "print" ? "100%" : `${reportPaperSize(resolved).width}mm`;
 
   const style = {
-    "--report-primary": resolved.primaryColor,
+    ...reportAppearance(resolved),
     "--report-accent": resolved.accentColor,
     "--report-font-size": `${fontSize}px`,
     "--report-cell-padding": cellPadding,
@@ -135,7 +104,7 @@ export function ReportDocument({
 
   return (
     <article
-      className={`entix-report-paper document-paper overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""}`}
+      className={`entix-report-paper document-paper ${reportTheme(resolved)} overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""}`}
       dir={dir}
       style={style}
     >
@@ -172,12 +141,12 @@ export function ReportDocument({
 
       <main className="space-y-5 px-6 py-5" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
-          <div className="rounded-lg border border-warning-border bg-warning-subtle px-4 py-3 text-sm leading-6 text-warning">
+          <div className="report-notice rounded-lg border border-warning-border bg-warning-subtle px-4 py-3 text-sm leading-6 text-warning">
             {report.notices.map(one).join(" · ")}
           </div>
         ) : null}
 
-        <EquationStrip report={report} currency={report.currency} t={t} />
+        {resolved.showEquation && <ReportEquation report={report} t={t} />}
 
         {!report.sections.length && <p role="status">{t("لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.", "No report data is available for the selected period.")}</p>}
         {reportLayoutSections(report, resolved).map((section) => {
@@ -185,8 +154,8 @@ export function ReportDocument({
           // stay a clean two-column «البند · القيمة» sheet.
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
           return (
-          <section key={section.id} className="document-keep-together break-inside-avoid">
-            <div className="mb-1.5">
+          <section key={section.id} data-section-id={section.id} className="document-keep-together break-inside-avoid">
+            <div className="report-section-heading mb-1.5">
               <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{one(section.title)}</BidiText></h2>
               {section.description && <p className="mt-0.5 text-xs text-muted-foreground"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
@@ -211,6 +180,7 @@ export function ReportDocument({
                   return (
                     <tr
                       key={row.id}
+                      data-total={totalRow || undefined} data-depth={row.depth || 0}
                       className={`${rowIndex % 2 === 1 && !totalRow ? "bg-surface-subtle/70" : ""}${onRowClick ? " cursor-pointer transition hover:bg-surface-hover/70" : ""}`}
                       onClick={() => onRowClick?.(row)}
                     >
@@ -274,10 +244,10 @@ function alignToCss(align?: "start" | "end" | "center") {
 function CellValue({ value, keyName, kind, currency, strong }: { value: string | number | null | undefined; keyName: string; kind?: string; currency: string; strong?: boolean }) {
   if (value === null || value === undefined || value === "") return <span className="text-muted-foreground">—</span>;
   if (kind === "money" || moneyKeys.has(keyName)) {
-    const amount = Number(value || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    return <NumericText className={Number(value) < 0 ? "font-semibold text-danger" : strong ? "font-bold text-foreground" : "font-semibold text-foreground"}>{amount} {currency}</NumericText>;
+    const amount = Math.abs(Number(value || 0)).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return <NumericText className={`${reportSign(value)} ${strong ? "font-bold" : "font-semibold"}`}>{Number(value) < 0 ? `(${amount})` : amount} {currency}</NumericText>;
   }
-  if (kind === "number" && typeof value === "number") return <NumericText>{value.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>;
+  if (kind === "number" && typeof value === "number") return <NumericText className={reportSign(value)}>{value.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>;
   if (kind === "status") return <BidiText className="rounded-full bg-surface-hover px-2 py-0.5 text-xs font-semibold text-foreground">{String(value)}</BidiText>;
   return <BidiText mode="plaintext">{String(value)}</BidiText>;
 }

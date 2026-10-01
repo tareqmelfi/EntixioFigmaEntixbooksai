@@ -1,8 +1,9 @@
+import { ReportCover } from './report-cover';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Download, Loader2, Printer } from 'lucide-react';
 import type { ReportPayload, ReportPrintSettings } from '../lib/api';
-import { attachReportSocialFooter, downloadReportPdf, paginateReport, reportPaperSize } from '../lib/report-pagination';
+import { attachReportSocialFooter, applySocialFooterPages, downloadReportPdf, paginateReport, reportPaperSize } from '../lib/report-pagination';
 import { reportLayoutSettings } from '../lib/report-layout';
 import { waitForPrintReady } from '../lib/print-image';
 import { ReportDocument } from './report-document';
@@ -41,7 +42,15 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
         const article = source.current.querySelector<HTMLElement>('.entix-report-paper');
         if (!article) throw new Error('report_content_missing');
         attachReportSocialFooter(article, report.org, settings.language || language);
-        const total = paginateReport(article, pages.current, settings);
+        paginateReport(article, pages.current, settings);
+        for (const kind of ['front', 'back']) {
+          const cover = source.current.querySelector<HTMLElement>(`[data-cover-kind="${kind}"]`);
+          if (cover) { const clone = cover.cloneNode(true) as HTMLElement; attachReportSocialFooter(clone, report.org, settings.language || language); if (kind === 'front') pages.current.prepend(clone); else pages.current.append(clone); }
+        }
+        const sheets = Array.from(pages.current.querySelectorAll<HTMLElement>('.report-output-sheet'));
+        const total = sheets.length;
+        sheets.forEach((sheet, index) => { sheet.dataset.pageNumber = String(index + 1); const counter = sheet.querySelector('.report-page-counter'); if (counter) counter.textContent = `${index + 1} / ${total}`; });
+        applySocialFooterPages(sheets);
         if (!cancelled) setCount(total);
       } catch {
         pages.current.replaceChildren();
@@ -75,7 +84,9 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
     </div>
     {error && <p role="alert" className="no-print mb-4 text-sm text-danger">{error}</p>}
     {(requestedSettings.orientation === "auto" || !requestedSettings.orientation) && settings.orientation === "landscape" && <p className="no-print mb-3 text-xs text-muted-foreground">{t('اتجاه عرضي تلقائي لقراءة الأعمدة بوضوح.', 'Landscape applied automatically to keep columns readable.')}</p>}
-    <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}><ReportDocument report={report} settings={settings} mode="print" /></div>
+    <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}>{settings.showCover && <ReportCover report={report} settings={settings} title={(settings.language || language) === 'ar' ? report.title : report.englishTitle} preparedBy={settings.preparedBy} />}
+      {settings.showBackCover && <ReportCover kind="back" report={report} settings={settings} title={report.org.legalName || report.org.name} />}
+      <ReportDocument report={report} settings={settings} mode="print" /></div>
     <div className="report-output-scroll"><div ref={pages} className="report-output-pages" data-testid="report-output-pages" data-ready={count > 0} /></div>
   </div>;
 }

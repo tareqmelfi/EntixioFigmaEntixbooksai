@@ -1,3 +1,4 @@
+import { ReportDesignControls } from '../components/report-design-controls';
 import { exportReportExcel } from '../lib/report-export';
 import { presentReport } from '../lib/report-presentation';
 import { monthlyReport } from '../lib/report-months';
@@ -160,7 +161,7 @@ export function ReportPrintDesigner() {
                 <div className="grid grid-cols-2 gap-3">
                   <Control label={t("الورق", "Paper")}>
                     <select value={resolved.paper} onChange={(e) => update("paper", e.target.value as any)} className={selectClass}>
-                      <option value="A4">A4</option>
+                      <option value="A4">A4</option><option value="A3">A3</option><option value="Legal">Legal</option>
                       <option value="Letter">Letter</option>
                     </select>
                   </Control>
@@ -194,6 +195,7 @@ export function ReportPrintDesigner() {
                     <option value="compact">{t("مضغوط", "Compact")}</option>
                   </select>
                 </Control>
+                <ReportDesignControls settings={resolved} onChange={patch => { setSaved(false); setSettings(current => ({ ...current, ...patch })); }} />
                 <div className="grid grid-cols-2 gap-3">
                   <Control label={t("اللون الأساسي", "Primary color")}>
                     <input value={resolved.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} type="color" className="h-10 w-full rounded-lg border border-border bg-card p-1" />

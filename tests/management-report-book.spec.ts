@@ -218,3 +218,31 @@ test('report book still waits for its own logo before preparing pages', async ({
   await expect(page.getByTestId('report-book-pages')).toHaveAttribute('data-ready', 'true');
   expect(await page.getByTestId('report-book-pages').locator('img').first().evaluate((img: HTMLImageElement) => img.naturalWidth)).toBe(100);
 });
+
+test('book options keep chapter pointers correct with dividers, no front cover and a back cover', async ({ page }) => {
+  await setup(page, 'en');
+  await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
+  const output = page.getByTestId('report-book-pages');
+  await expect(output).toHaveAttribute('data-ready', 'true');
+  await page.getByText('Book design and covers', { exact: true }).click();
+  await page.getByLabel('Front cover', { exact: true }).uncheck();
+  await page.getByLabel('Back cover', { exact: true }).check();
+  await page.getByLabel('Chapter divider pages', { exact: true }).check();
+  await page.getByLabel('Cover design', { exact: true }).selectOption('formal');
+  await page.getByLabel('Color mode', { exact: true }).selectOption('plain');
+  await page.getByLabel('Paper', { exact: true }).selectOption('Legal');
+  await expect(output).toHaveAttribute('data-ready', 'true');
+  await expect(output.locator('[data-cover-kind=front]')).toHaveCount(0);
+  await expect(output.locator('[data-cover-kind=divider]')).toHaveCount(4);
+  await expect(output.locator('[data-cover-kind=back]')).toHaveCount(1);
+  const sheets = output.locator('.report-output-sheet');
+  const toc = await output.locator('[data-section-id=contents] tbody tr').evaluateAll(rows => rows.map(row => Number(row.lastElementChild!.textContent)));
+  for (const [i, number] of toc.entries()) {
+    await expect(sheets.nth(number - 1).locator('h1')).toContainText(ids[i]);
+    await expect(sheets.nth(number - 2)).toHaveAttribute('data-cover-kind', 'divider');
+  }
+  const count = await sheets.count();
+  await expect(sheets.last().locator('.report-page-counter')).toHaveText(`${count} / ${count}`);
+  await expect(output.locator('tbody tr')).toHaveCount(4 * 55 + 4 + 1);
+  for (const sheet of await output.locator('.report-book-cover').all()) await expect(sheet).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+});
