@@ -347,7 +347,6 @@ export const router = createBrowserRouter([
       { path: "reports", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "reports/:id", element: lazyElement(() => import("./pages/report-view"), "ReportView"), errorElement: <ErrorBoundary /> },
       { path: "reports/:id/print", element: lazyElement(() => import("./pages/report-print-designer"), "ReportPrintDesigner"), errorElement: <ErrorBoundary /> },
-      { path: "reports/cash-flow", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "reports/profit-loss", element: lazyElement(() => import("./pages/reports"), "Reports"), errorElement: <ErrorBoundary /> },
       { path: "settings", element: lazyElement(() => import("./pages/settings"), "Settings"), errorElement: <ErrorBoundary /> },
       // SPEC-06 · External sheet sources + pipeline boards (M1)

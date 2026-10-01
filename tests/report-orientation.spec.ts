@@ -40,3 +40,14 @@ test('designer switches wide report orientation in PDF and Excel without losing 
   const {default:Excel}=await import('exceljs');const book=new Excel.Workbook();await book.xlsx.readFile(xlsx);expect(book.worksheets[0].pageSetup.orientation).toBe(orientation);expect(book.worksheets[0].getCell('I7').value).toBe(107);
  }
 });
+
+test('cash flow catalog link opens its report and export controls',async({page})=>{
+ await prepareVisualApp(page,'en');const data=sample('cash-flow');data.englishTitle='Cash flow';
+ await page.route(`https://api.entix.io/orgs/${visualOrgId}`,r=>r.fulfill({json:data.org}));
+ await page.route('https://api.entix.io/api/reports/cash-flow*',r=>r.fulfill({json:data}));
+ await page.goto('/app/reports/cash-flow?from=2026-01-01&to=2026-09-30');
+ await expect(page.getByTestId('report-data-table')).toBeVisible();
+ await page.getByRole('button',{name:'Report design & logo',exact:true}).click();
+ await expect(page).toHaveURL(/cash-flow\/print.*from=2026-01-01/);
+ await expect(page.getByTestId('report-download-pdf')).toBeEnabled();
+});
