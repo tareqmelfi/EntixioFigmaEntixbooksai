@@ -309,3 +309,24 @@ test('posting review previews before approval, preserves scope and refreshes das
   await page.getByRole('checkbox').check();await approve.click();
   await expect.poll(()=>applied).toBe(1);expect(previewed).toBe(1);await expect.poll(()=>calls.length).toBe(2);
 });
+
+test('saved dashboard shows unlinked paid invoices and drafts immediately, isolates currencies and journal flows, refreshes on return',async({page})=>{
+  let amount=10000;
+  const row=(kind:string,net:number,draft=false,currency='USD')=>({kind,net,tax:0,gross:net,draft,currency,month:'2026-04',selected:true,trend:true,count:1});
+  await setup(page,data=>({...data,savedActivity:{basis:'saved_documents',includesDrafts:true,rows:[row('invoice',amount),row('invoice',2000,true),row('invoice',99999,false,'SAR'),row('bill',300),row('expense',50,true),row('journal',10000),row('receipt',10000)]}}));
+  await expect(page.getByTestId('saved-invoice')).toContainText('12,000.00');
+  await expect(page.getByTestId('saved-invoice')).toContainText('2,000.00');
+  await expect(page.getByTestId('flow-kpis')).toHaveCount(0);
+  await expect(page.getByTestId('saved-row-journal')).toContainText('10,000.00');
+  await page.getByLabel('عملة الحركة').selectOption('SAR');
+  await expect(page.getByTestId('saved-invoice')).toContainText('99,999.00');
+  await page.getByLabel('عملة الحركة').selectOption('USD');
+  await page.getByRole('button',{name:'الدفاتر المعتمدة',exact:true}).click();
+  await expect(page.getByTestId('flow-kpis')).toContainText('900');
+  await page.getByRole('button',{name:'المستندات المحفوظة',exact:true}).click();
+  amount=15000;
+  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+  await expect(page.getByTestId('saved-invoice')).toContainText('17,000.00');
+  await expect(page.getByTestId('saved-register')).toBeVisible();
+  await expect(page.getByTestId('saved-row-expense').getByRole('link')).toHaveAttribute('href','/app/expenses');
+});
