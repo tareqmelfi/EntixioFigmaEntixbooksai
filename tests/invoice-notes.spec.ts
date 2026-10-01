@@ -20,6 +20,7 @@ for (const lang of ['ar','en'] as const) test(`paid Saudi invoice notes save ind
   await page.getByRole('textbox',{name:lang==='ar'?'ملاحظات الفاتورة':'Invoice notes',exact:true}).fill('الخدمات مسددة بالكامل');
   await page.getByRole('textbox',{name:lang==='ar'?'الشروط المطبوعة':'Printed terms',exact:true}).fill('');
   await page.getByRole('textbox',{name:lang==='ar'?'سبب تعديل النص — مطلوب':'Text change reason — required',exact:true}).fill('تصحيح نص المسودة القديم');
+  await page.screenshot({path:`/tmp/entix-invoice-notes-20261001/notes-editor-${lang}.png`,fullPage:true});
   await save.click();await expect(page.getByText(lang==='ar'?'حُفظت الملاحظات وتم التحقق منها. أعد تنزيل الفاتورة للحصول على النص المحدّث.':'Notes saved and verified. Download the invoice again for the updated text.',{exact:true})).toBeVisible();
   expect(writes).toBe(1);expect(reads).toBeGreaterThan(1);expect(inv.status).toBe('PAID');expect(inv.amountPaid).toBe('172500');
 });
