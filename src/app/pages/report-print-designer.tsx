@@ -166,6 +166,7 @@ export function ReportPrintDesigner() {
                   </Control>
                   <Control label={t("الاتجاه", "Orientation")}>
                     <select value={resolved.orientation} onChange={(e) => update("orientation", e.target.value as any)} className={selectClass}>
+                      <option value="auto">{t("تلقائي حسب التقرير", "Automatic for report")}</option>
                       <option value="portrait">{t("طولي", "Portrait")}</option>
                       <option value="landscape">{t("عرضي", "Landscape")}</option>
                     </select>

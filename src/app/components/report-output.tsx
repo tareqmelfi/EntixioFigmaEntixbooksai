@@ -74,7 +74,7 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
       </div>
     </div>
     {error && <p role="alert" className="no-print mb-4 text-sm text-danger">{error}</p>}
-    {settings.orientation !== requestedSettings.orientation && <p className="no-print mb-3 text-xs text-muted-foreground">{t('اتجاه عرضي تلقائي لقراءة الأعمدة بوضوح.', 'Landscape applied automatically to keep columns readable.')}</p>}
+    {(requestedSettings.orientation === "auto" || !requestedSettings.orientation) && settings.orientation === "landscape" && <p className="no-print mb-3 text-xs text-muted-foreground">{t('اتجاه عرضي تلقائي لقراءة الأعمدة بوضوح.', 'Landscape applied automatically to keep columns readable.')}</p>}
     <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}><ReportDocument report={report} settings={settings} mode="print" /></div>
     <div className="report-output-scroll"><div ref={pages} className="report-output-pages" data-testid="report-output-pages" data-ready={count > 0} /></div>
   </div>;

@@ -3,7 +3,7 @@ import type { ReportColumn, ReportPayload, ReportPrintSettings, ReportSection } 
 export const isMonthlyReport = (report: ReportPayload) => report.sections.some(section => section.columns.some(column => /^\d{4}-\d{2}$/.test(column.key)));
 
 export function reportColumnWidth(section: ReportSection, column: ReportColumn) {
-  if (section.columns.some(c => c.key === 'openingDebit')) return { width: column.key === 'label' ? '28%' : column.key === 'type' ? '12%' : '10%' };
+  if (section.columns.some(c => /^(opening|closing)(Debit|Credit)$/.test(c.key))) return { width: column.key === 'label' ? '28%' : column.key === 'type' ? '12%' : `${60 / (section.columns.length - 2)}%` };
   if (section.columns.some(c => /^\d{4}-\d{2}$/.test(c.key))) return { width: column.key === 'label' ? '30%' : `${70 / (section.columns.length - 1)}%` };
   return isCompactReportColumn(column) ? { width: '1%' } : undefined;
 }
@@ -24,18 +24,21 @@ const visibleColumns = (section: ReportSection, settings: ReportPrintSettings) =
 
 /** Dense reports use a readable sheet instead of shrinking every column. */
 export function reportLayoutSettings<T extends ReportPrintSettings>(report: ReportPayload, settings: T): T {
-  return report.sections.some(section => visibleColumns(section, settings).length >= 7)
-    ? { ...settings, orientation: 'landscape' }
-    : settings;
+  if (settings.orientation === 'portrait' || settings.orientation === 'landscape') return settings;
+  const wide = isMonthlyReport(report) || report.sections.some(section => visibleColumns(section, settings).length >= 7);
+  return { ...settings, orientation: wide ? 'landscape' : 'portrait' };
 }
 
 /** Repeat the identity column in each panel; every metric is kept exactly once. */
 export function reportLayoutSections(report: ReportPayload, settings: ReportPrintSettings): ReportSection[] {
   return report.sections.flatMap(section => {
     const columns = visibleColumns(section, settings);
-    if (columns.length <= 8) return [{ ...section, columns }];
-    const [identity, ...metrics] = columns;
-    const panelSize = isMonthlyReport(report) ? 7 : 6;
+    const portrait = reportLayoutSettings(report, settings).orientation === 'portrait';
+    const trialBalance = report.id === 'trial-balance' && columns.some(c => c.key === 'openingDebit');
+    const identities = trialBalance ? columns.filter(c => c.key === 'label' || c.key === 'type') : columns.slice(0, 1);
+    const metrics = columns.filter(c => !identities.includes(c));
+    const panelSize = portrait ? 4 : isMonthlyReport(report) ? 7 : 6;
+    if (columns.length <= (portrait ? identities.length + panelSize : 8)) return [{ ...section, columns }];
     const panelCount = Math.ceil(metrics.length / panelSize);
     return Array.from({ length: panelCount }, (_, index) => {
       const [ar, en] = section.title.split('␟');
@@ -44,7 +47,7 @@ export function reportLayoutSections(report: ReportPayload, settings: ReportPrin
         ...section,
         id: `${section.id}-panel-${index + 1}`,
         title: `${ar}${suffix}${en ? `␟${en}${suffix}` : ''}`,
-        columns: [identity, ...metrics.slice(index * panelSize, (index + 1) * panelSize)],
+        columns: [...identities, ...metrics.slice(index * panelSize, (index + 1) * panelSize)],
       };
     });
   });

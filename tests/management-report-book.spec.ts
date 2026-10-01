@@ -133,7 +133,8 @@ test('financial snapshot uses recorded income rows and export rejects a changed 
   await expect(output).toHaveAttribute('data-ready', 'true');
   const intro = output.locator('.report-output-sheet').nth(1);
   await expect(intro).toContainText('Financial snapshot');
-  await expect(intro).toContainText('-200.00 USD');
+  await expect(intro).toContainText('(200.00)');
+  await expect(intro).toContainText('(USD)');
   await expect(intro).toContainText('Source: income statement');
   await page.evaluate(() => {
     const saved = JSON.parse(sessionStorage.getItem('entix_tab_org_v1')!);
