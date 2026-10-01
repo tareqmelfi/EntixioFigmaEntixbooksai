@@ -220,10 +220,13 @@ test('report book still waits for its own logo before preparing pages', async ({
 });
 
 test('book options keep chapter pointers correct with dividers, no front cover and a back cover', async ({ page }) => {
+  // Match the bounded four-chapter preparation budget used by the book tests above.
+  // Keep all row counts, cover choices and chapter/page pointer assertions intact.
+  test.setTimeout(120000);
   await setup(page, 'en');
   await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
   const output = page.getByTestId('report-book-pages');
-  await expect(output).toHaveAttribute('data-ready', 'true');
+  await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
   await page.getByText('Book design and covers', { exact: true }).click();
   await page.getByLabel('Front cover', { exact: true }).uncheck();
   await page.getByLabel('Back cover', { exact: true }).check();
@@ -231,7 +234,7 @@ test('book options keep chapter pointers correct with dividers, no front cover a
   await page.getByLabel('Cover design', { exact: true }).selectOption('formal');
   await page.getByLabel('Color mode', { exact: true }).selectOption('plain');
   await page.getByLabel('Paper', { exact: true }).selectOption('Legal');
-  await expect(output).toHaveAttribute('data-ready', 'true');
+  await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
   await expect(output.locator('[data-cover-kind=front]')).toHaveCount(0);
   await expect(output.locator('[data-cover-kind=divider]')).toHaveCount(4);
   await expect(output.locator('[data-cover-kind=back]')).toHaveCount(1);

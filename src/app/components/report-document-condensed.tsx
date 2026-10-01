@@ -36,7 +36,7 @@ const moneyKeys = new Set(["amount", "total", "paid", "open", "tax", "subtotal",
 const isTotalRow = (row: ReportRow) => /(^|-)total$/.test(row.id) || row.id === "net-income" || row.id === "current-earnings";
 const num = (v: number) => Number(v || 0).toLocaleString(displayLocale("en-US"), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg"; both?: boolean }) {
+function Bi({ value, lang, primary, size = "md", both: bothEnabled = true, currency }: { value: string; lang: "ar" | "en"; primary?: boolean; size?: "sm" | "md" | "lg"; both?: boolean; currency?: string }) {
   const { ar, en } = splitBi(value);
   const both = bothEnabled && ar && en;
   const main = lang === "ar" ? ar || en : en || ar;
@@ -45,7 +45,7 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true }: { v
   const altCls = size === "lg" ? "text-[11px] font-semibold tracking-wide" : "text-[10px] font-medium";
   return (
     <span className="report-bilingual inline-flex flex-wrap items-baseline gap-x-2">
-      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi></span>
+      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi>{currency && <span className="report-column-currency font-normal"><bdi dir="ltr"> ({currency})</bdi></span>}</span>
       {both && alt ? <span className={`${altCls} text-muted-foreground`} ><bdi dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</bdi></span> : null}
     </span>
   );
@@ -124,10 +124,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (
                       <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
-                        <Bi value={reportColumnLabel(column)} lang={lang} size="sm" both={bilingual} />
-                        {!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? (
-                          <span className="report-column-currency font-english text-[9px] font-normal text-muted-foreground/80"><bdi dir="ltr">({report.currency})</bdi></span>
-                        ) : null}
+                        <Bi value={reportColumnLabel(column)} lang={lang} size="sm" both={bilingual}
+                          currency={!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? report.currency : undefined} />
                       </th>
                     ))}
                   </tr>
