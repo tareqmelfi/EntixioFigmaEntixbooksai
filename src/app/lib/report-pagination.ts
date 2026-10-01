@@ -73,7 +73,27 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
       const clone = block.cloneNode(true) as HTMLElement;
       const hadContent = body!.childElementCount > 0;
       body!.append(clone);
-      if (!fits() && hadContent) { clone.remove(); newPage(); body!.append(clone); }
+      if (!fits() && hadContent) {
+        clone.remove();
+        const previousSection = body!.lastElementChild as HTMLElement | null;
+        const previousRows = previousSection?.querySelector('table > tbody');
+        // Do not strand a short closing note on a page of its own. Carry the
+        // final detail and total, while keeping the preceding page nonempty.
+        const carry = clone.classList.contains('report-footer-note') && previousRows && previousRows.children.length > 2
+          ? previousSection!.cloneNode(true) as HTMLElement : null;
+        const carriedRows = carry ? Array.from(previousRows!.children).slice(-2) : [];
+        if (carry) {
+          for (const child of Array.from(carry.children)) if (child.tagName !== 'TABLE') child.remove();
+          carry.querySelector('tbody')!.replaceChildren(...carriedRows);
+        }
+        newPage();
+        if (carry) body!.append(carry);
+        body!.append(clone);
+        if (carry && !fits()) {
+          // A long note still owns a page; never sacrifice or clip table rows.
+          carry.remove(); previousRows!.append(...carriedRows);
+        }
+      }
       requireFit();
       continue;
     }
