@@ -3,7 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { prepareVisualApp, visualOrgId } from './fixtures/visual-app';
 
 const ids = ['income-statement', 'balance-sheet', 'cash-flow', 'trial-balance'];
-async function setup(page: import('@playwright/test').Page, language: 'ar' | 'en') {
+const darkLogo = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40"><text y="30" font-size="30" fill="white">TEST</text></svg>');
+const paperLogo = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="40"><text y="30" font-size="30" fill="navy">TEST</text></svg>');
+async function setup(page: import('@playwright/test').Page, language: 'ar' | 'en', reverseLogo: string | null = darkLogo) {
   await prepareVisualApp(page, language);
   await page.route('https://api.entix.io/api/reports/**', route => {
     expect(route.request().headers()['x-org-id']).toBe(visualOrgId);
@@ -11,7 +13,7 @@ async function setup(page: import('@playwright/test').Page, language: 'ar' | 'en
     return route.fulfill({ json: {
       id, title: `التقرير ${id}`, englishTitle: `Report ${id}`, category: 'financial', status: 'live',
       generatedAt: '2026-09-27T17:00:00Z', period: { from: '2026-01-01', to: '2026-09-27' }, currency: 'USD', summary: {},
-      org: { id: visualOrgId, name: 'شركة الاختبار', legalName: 'Report Test LLC', country: 'US', baseCurrency: 'USD', socialLinks: [{ platform: 'instagram', url: 'https://example.com/social' }] },
+      org: { id: visualOrgId, name: 'شركة الاختبار', legalName: 'Report Test LLC', country: 'US', baseCurrency: 'USD', printLogoUrl: paperLogo, printLogoLightUrl: reverseLogo, addressLine: '123 Example Street', email: 'reports@example.invalid', vatNumber: '12-3456789', socialLinks: [{ platform: 'instagram', url: 'https://example.com/social' }] },
       notices: ['Synthetic test data'],
       sections: [{ id: `${id}-detail`, title: 'كامل التفاصيل␟Complete detail',
         columns: [{ key: 'label', label: 'الحساب␟Account' }, { key: 'amount', label: 'الرصيد␟Balance', kind: 'money', align: 'end' }],
@@ -37,6 +39,17 @@ for (const language of ['ar', 'en'] as const) {
     const sheets = output.locator('.report-output-sheet');
     expect(await sheets.count()).toBeGreaterThan(6);
     await expect(sheets.first()).toContainText('Test Analyst');
+    const cover = sheets.first();
+    await expect(cover.locator('header img')).toHaveAttribute('src', darkLogo);
+    await expect(cover.locator('.report-book-company')).toContainText('Report Test LLC');
+    await expect(cover.locator('.report-book-company')).toContainText('123 Example Street');
+    await expect(cover.locator('.report-book-company')).toContainText('reports@example.invalid');
+    const logoBox = await cover.locator('header img').boundingBox();
+    const companyBox = await cover.locator('.report-book-company').boundingBox();
+    expect(logoBox!.x + logoBox!.width).toBeLessThan(companyBox!.x);
+    await expect(cover.locator('header img')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(cover.locator('header img')).toHaveCSS('padding', '0px');
+    await expect(cover).toHaveCSS('background-color', 'rgb(16, 45, 80)');
     const tableRows = output.locator('tbody tr');
     await expect(tableRows).toHaveCount(4 * 55 + 4 + 1 + 2);
     const toc = await sheets.nth(1).locator('tbody').first().locator('tr').evaluateAll(rows => rows.map(row => Number(row.lastElementChild!.textContent)));
@@ -62,6 +75,18 @@ for (const language of ['ar', 'en'] as const) {
     await expect(output).toHaveCount(0);
   });
 }
+
+test('a company without reverse artwork uses a light cover without a logo badge', async ({ page }) => {
+  await setup(page, 'en', null);
+  await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
+  const output = page.getByTestId('report-book-pages');
+  await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
+  const cover = output.locator('.report-book-cover');
+  await expect(cover).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(cover.locator('header img')).toHaveAttribute('src', paperLogo);
+  await expect(cover.locator('header img')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(cover.locator('.report-book-period')).toHaveCSS('color', 'rgb(0, 103, 121)');
+});
 
 test('management book fails closed for wrong company or a failed chapter', async ({ page }) => {
   await setup(page, 'en');

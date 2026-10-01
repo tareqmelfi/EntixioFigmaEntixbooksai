@@ -18,6 +18,13 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const first = reports[0];
+  const paperLogo = first.org.printLogoUrl || first.org.logoUrl;
+  const coverLogo = first.org.printLogoLightUrl || paperLogo;
+  // Use the actual reverse artwork on dark grounds. Without it, lighten the
+  // whole cover rather than putting the regular mark inside a white badge.
+  const lightCover = Boolean(paperLogo && !first.org.printLogoLightUrl);
+  const companyAddress = [first.org.addressLine, first.org.city, first.org.region, first.org.postalCode].filter(Boolean).join(' · ');
+  const companyContact = [first.org.email, first.org.phone, first.org.website].filter(Boolean);
   const [orientation, setOrientation] = useState<NonNullable<ReportPrintSettings['orientation']>>('auto');
   const settings: ReportPrintSettings = useMemo(() => ({
     template: 'condensed', paper: first.org.paymentSettings?.reports?.paper || 'A4',
@@ -125,8 +132,20 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{count ? t(`${count} صفحة · ${reports.length} فصول · ${settings.paper}`, `${count} pages · ${reports.length} chapters · ${settings.paper}`) : t('تجهيز الصفحات…', 'Preparing pages…')}</p><div className="flex gap-2"><label className="flex items-center gap-2 text-sm">{t("الاتجاه", "Orientation")}<select aria-label={t("الاتجاه", "Orientation")} value={orientation} onChange={event=>setOrientation(event.target.value as typeof orientation)} className="rounded-md border border-border bg-card px-2"><option value="auto">{t("تلقائي حسب التقرير", "Automatic for report")}</option><option value="portrait">{t("طولي", "Portrait")}</option><option value="landscape">{t("عرضي", "Landscape")}</option></select></label><Button variant="outline" disabled={!count || busy} onClick={() => print()}>{t('طباعة', 'Print')}</Button><Button data-testid="book-download" disabled={!count || busy} onClick={download}>{busy ? t('تجهيز PDF…', 'Preparing PDF…') : t('تحميل ملف PDF', 'Download PDF book')}</Button></div></div>
     {error && <p role="alert" className="mb-4 text-danger">{error}</p>}
     <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}>
-      <article className="report-book-cover report-output-sheet" dir={language === 'ar' ? 'rtl' : 'ltr'} style={{ width: `${width}mm`, height: `${height}mm` }}>
-        <header>{(first.org.printLogoUrl || first.org.logoUrl) && <img src={first.org.printLogoUrl || first.org.logoUrl!} alt={first.org.name} />}<p>{first.org.legalName || first.org.name}</p></header>
+      <article className={`report-book-cover report-output-sheet${lightCover ? ' report-book-cover-light' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'} style={{ width: `${width}mm`, height: `${height}mm` }}>
+        <header dir="ltr">
+          <div className="report-book-logo">{coverLogo && <img src={coverLogo} alt={first.org.name} />}</div>
+          <div className="report-book-company" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <p className="report-book-company-name"><bdi>{first.org.legalName || first.org.name}</bdi></p>
+            {companyAddress && <p><bdi>{companyAddress}</bdi></p>}
+            {companyContact.length > 0 && <p>{companyContact.map((value, index) => <span key={index}>{index > 0 && ' · '}<bdi>{value}</bdi></span>)}</p>}
+            {(first.org.vatNumber || first.org.crNumber) && <p>
+              {first.org.vatNumber && <span>{first.org.country === 'US' ? 'EIN' : t('الرقم الضريبي', 'Tax ID')}: <bdi>{first.org.vatNumber}</bdi></span>}
+              {first.org.vatNumber && first.org.crNumber && ' · '}
+              {first.org.crNumber && <span>{first.org.country === 'US' ? 'State Filing #' : t('السجل التجاري', 'Registration')}: <bdi>{first.org.crNumber}</bdi></span>}
+            </p>}
+          </div>
+        </header>
         <main><p className="report-book-kicker">{t('تقارير الإدارة', 'MANAGEMENT REPORTS')}</p><h1>{title}</h1><p className="report-book-period">{first.period.from ? <bdi>{first.period.from} — {first.period.to}</bdi> : <>{t('حتى', 'As of')} <bdi>{first.period.to}</bdi></>}</p><p>{t(`${reports.length} فصول · الجداول المالية والتفاصيل`, `${reports.length} chapters · Financial statements and detail`)}</p></main>
         <footer><div>{preparedBy && <p>{t('إعداد', 'Prepared by')}: {preparedBy}</p>}<p>{t('تاريخ التجهيز', 'Prepared on')}: <bdi>{first.generatedAt.slice(0, 10)}</bdi></p></div><span>Entix Books · entix.io</span></footer>
       </article>
