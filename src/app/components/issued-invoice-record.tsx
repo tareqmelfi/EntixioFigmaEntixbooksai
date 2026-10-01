@@ -1,3 +1,4 @@
+import { InvoiceNotesPanel } from './invoice-notes-panel';
 import { useOrgRegion } from "../lib/use-org-region";
 import { InvoiceZatcaBadge } from "./invoice-zatca-badge";
 import { invoiceZatcaState } from "../lib/invoice-zatca-state";
@@ -67,6 +68,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         {!stripeManaged && <Button variant="outline" disabled={paymentBusy || !canRelease} onClick={preparePayment}>{paymentBusy ? t('جارٍ التحقق…', 'Checking…') : t('تجهيز / تحديث رابط الدفع', 'Prepare / refresh payment link')}</Button>}
         {paymentError && <p role="alert" className="text-sm text-warning">{paymentError}</p>}
       </section>}
+      <InvoiceNotesPanel key={invoice.id} invoice={invoice} onDone={onRefresh} />
       <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} initialAction={initialAction} />
       {/* An issued invoice is locked for its MONEY, not for its bookkeeping —
           the account a line landed on can still be corrected (2026-09-21). */}
