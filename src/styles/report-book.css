@@ -18,3 +18,7 @@
 .report-book-page .document-section-title { font-size: 16px; }
 .report-book-page .report-page-footer { color: #527590; border-top: 1px solid #d8e6ef; }
 .report-book-page .report-page-footer footer { border: 0; padding: 3mm 0 0; }
+
+/* Chapters share the compact report template; keep the separate cover intact. */
+.report-book-page.report-condensed > header { border-top: 0; padding: 0 0 2mm; }
+.report-book-page.report-condensed th { padding-block: 2px !important; }

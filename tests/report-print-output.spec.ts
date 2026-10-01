@@ -157,7 +157,7 @@ test('native print receives only report pages in an isolated iframe, never the a
 for (const template of ['condensed', 'classic']) {
   test(`13-column project report keeps names and every metric readable (${template})`, async ({ page }, testInfo) => {
     test.setTimeout(120000)
-    await setup(page, { template, orientation: 'portrait', language: 'ar' }, 3)
+    await setup(page, { template, orientation: 'auto', language: 'ar' }, 3)
     const projects = Array.from({ length: 18 }, (_, index) => ({
       id: `project-${index}`, label: `PRJ-${index}`,
       values: { label: `PRJ-${index} · تصميم وإعادة تأهيل المشروع المعماري الداخلي وتنفيذ الأعمال الإنشائية في حي الملك عبدالله بمدينة الرياض`,

@@ -81,7 +81,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const generated = new Date(report.generatedAt).toLocaleString(displayLocale(isEn ? "en-GB" : "ar-SA-u-nu-latn"), { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
   return (
-    <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""} ${report.id === "trial-balance" ? "report-trial-balance" : ""}`} dir={dir} style={style}>
+    <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""} ${report.id === "trial-balance" && report.sections.some(section => section.columns.some(column => column.key === "openingDebit")) ? "report-trial-balance" : ""}`} dir={dir} style={style}>
       {/* Branding belongs to the first sheet; the title stays centred on the paper. */}
       <header className="report-compact-header">
         <div className="report-company text-foreground" dir={dir}>

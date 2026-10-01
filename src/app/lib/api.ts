@@ -2480,7 +2480,7 @@ export interface ReorderAlert { product: { id: string; sku: string | null; name:
 export interface ReportPrintSettings {
   logoSource?: 'print' | 'main' | 'none'
   paper?: 'A4' | 'Letter'
-  orientation?: 'portrait' | 'landscape'
+  orientation?: 'auto' | 'portrait' | 'landscape'
   language?: 'ar' | 'en'
   fontScale?: 'compact' | 'normal' | 'large'
   density?: 'comfortable' | 'standard' | 'compact'

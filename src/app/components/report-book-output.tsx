@@ -18,12 +18,13 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const first = reports[0];
+  const [orientation, setOrientation] = useState<NonNullable<ReportPrintSettings['orientation']>>('auto');
   const settings: ReportPrintSettings = useMemo(() => ({
-    template: 'classic', paper: first.org.paymentSettings?.reports?.paper || 'A4',
-    orientation: reports.some(report => reportLayoutSettings<ReportPrintSettings>(report, { showNotes: true }).orientation === 'landscape') ? 'landscape' : 'portrait',
+    template: 'condensed', paper: first.org.paymentSettings?.reports?.paper || 'A4',
+    orientation: orientation !== 'auto' ? orientation : reports.some(report => reportLayoutSettings<ReportPrintSettings>(report, { showNotes: true }).orientation === 'landscape') ? 'landscape' : 'portrait',
     language, bilingual: false, showNotes: true, density: 'standard', fontScale: 'normal',
     primaryColor: '#102d50', accentColor: '#008da6', showCompanyInfo: true, showFooter: true,
-  }), [reports, language]);
+  }), [reports, language, orientation]);
   const { width, height } = reportPaperSize(settings);
   const heading = (report: ReportPayload) => language === 'en' ? report.englishTitle : report.title;
   const availability = (report: ReportPayload) => report.status === 'unavailable' || report.dataBasis?.status === 'unavailable'
@@ -121,7 +122,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
 
   return <div>
     <style>{pageStyle}</style>
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{count ? t(`${count} صفحة · ${reports.length} فصول · ${settings.paper}`, `${count} pages · ${reports.length} chapters · ${settings.paper}`) : t('تجهيز الصفحات…', 'Preparing pages…')}</p><div className="flex gap-2"><Button variant="outline" disabled={!count || busy} onClick={() => print()}>{t('طباعة', 'Print')}</Button><Button data-testid="book-download" disabled={!count || busy} onClick={download}>{busy ? t('تجهيز PDF…', 'Preparing PDF…') : t('تحميل ملف PDF', 'Download PDF book')}</Button></div></div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{count ? t(`${count} صفحة · ${reports.length} فصول · ${settings.paper}`, `${count} pages · ${reports.length} chapters · ${settings.paper}`) : t('تجهيز الصفحات…', 'Preparing pages…')}</p><div className="flex gap-2"><label className="flex items-center gap-2 text-sm">{t("الاتجاه", "Orientation")}<select aria-label={t("الاتجاه", "Orientation")} value={orientation} onChange={event=>setOrientation(event.target.value as typeof orientation)} className="rounded-md border border-border bg-card px-2"><option value="auto">{t("تلقائي حسب التقرير", "Automatic for report")}</option><option value="portrait">{t("طولي", "Portrait")}</option><option value="landscape">{t("عرضي", "Landscape")}</option></select></label><Button variant="outline" disabled={!count || busy} onClick={() => print()}>{t('طباعة', 'Print')}</Button><Button data-testid="book-download" disabled={!count || busy} onClick={download}>{busy ? t('تجهيز PDF…', 'Preparing PDF…') : t('تحميل ملف PDF', 'Download PDF book')}</Button></div></div>
     {error && <p role="alert" className="mb-4 text-danger">{error}</p>}
     <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}>
       <article className="report-book-cover report-output-sheet" dir={language === 'ar' ? 'rtl' : 'ltr'} style={{ width: `${width}mm`, height: `${height}mm` }}>

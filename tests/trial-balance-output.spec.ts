@@ -17,7 +17,7 @@ test('trial balance retains ledger values, separates signs, totals in cents and 
  raw.sections[0].rows[0].values.balance=226.25;expect(presentReport(raw).notices?.join('')).toContain('Debits and credits differ');
  raw.sections[0].rows[0].values.opening=null;expect(presentReport(raw).sections[0].rows.at(-1)?.values.openingDebit).toBeNull();
  const book=await reportWorkbook(view,'ar');const bytes=await book.xlsx.writeBuffer();const {default:Excel}=await import('exceljs');const copy=new Excel.Workbook();await copy.xlsx.load(bytes);
- const sheet=copy.worksheets[0];expect(sheet.getCell('C7').value).toBe(100);expect(sheet.getCell('H8').value).toBe(225.25);expect(sheet.getCell('H27').value).toBe(2252.5);expect(sheet.getCell('B7').value).toBe('الأصول');expect(sheet.views[0].rightToLeft).toBe(true);expect(sheet.pageSetup.printTitlesRow).toBe('1:6');expect(sheet.autoFilter).toBeTruthy();
+ const sheet=copy.worksheets[0];expect(sheet.getCell('C7').value).toBe(100);expect(sheet.getCell('H8').value).toBe(225.25);expect(sheet.getCell('H27').value).toBe(2252.5);expect(sheet.getCell('B7').value).toBe('الأصول');expect(sheet.views[0].rightToLeft).toBe(true);expect(sheet.pageSetup.printTitlesRow).toBe('6:6');expect(sheet.autoFilter).toBeTruthy();
 });
 
 test('dense trial balance, branded Excel and PDF share balances and filters',async({page},info)=>{

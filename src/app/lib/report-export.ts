@@ -1,6 +1,7 @@
 import type { ReportPayload, ReportPrintSettings } from './api';
 import { reportLabel } from './report-months';
 import { workbookLogo } from './report-logo';
+import { reportLayoutSettings } from './report-layout';
 const download = (blob: Blob, name: string) => { const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000); };
 const filename=(r:ReportPayload)=>`Entix-${r.id}-${r.period.from||'all'}-${r.period.to}`;
 export function exportReportCsv(report:ReportPayload,language:string) {
@@ -11,7 +12,7 @@ export function exportReportCsv(report:ReportPayload,language:string) {
 }
 export async function reportWorkbook(report:ReportPayload,language:string, options: { settings?: ReportPrintSettings; logo?: {base64:string;width:number;height:number} } = {}) {
  const { default: ExcelJS }=await import('exceljs'); const book=new ExcelJS.Workbook();
- book.creator='Entix';book.created=new Date(report.generatedAt); const sheet=book.addWorksheet(language==='ar'?'التقرير':'Report',{views:[{rightToLeft:language==='ar',state:'frozen',ySplit:6,xSplit:1}],pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0}});
+ book.creator='Entix';book.created=new Date(report.generatedAt); const sheet=book.addWorksheet(language==='ar'?'التقرير':'Report',{views:[{rightToLeft:language==='ar',state:'frozen',ySplit:6,xSplit:1}],pageSetup:{orientation:reportLayoutSettings(report,options.settings||{}).orientation as 'portrait'|'landscape',paperSize:options.settings?.paper==='Letter'?undefined:9,fitToPage:true,fitToWidth:1,fitToHeight:0}});
  const count=Math.max(2,...report.sections.map(s=>s.columns.length));
  const logoRow=options.logo&&count<4?1:0;
  const primary=/^#[0-9a-f]{6}$/i.test(options.settings?.primaryColor||'')?'FF'+options.settings!.primaryColor!.slice(1).toUpperCase():'FF0B1B49';
@@ -38,7 +39,7 @@ export async function reportWorkbook(report:ReportPayload,language:string, optio
  sheet.getColumn(1).width=48;for(let i=2;i<=count;i++)sheet.getColumn(i).width=17;
  const firstHeader=options.logo&&count<4?7:6;
  sheet.views=[{rightToLeft:language==='ar',state:'frozen',ySplit:firstHeader,xSplit:1}];
- sheet.pageSetup.printTitlesRow=report.sections.length===1?`1:${firstHeader}`:`1:${4+logoRow}`;
+ sheet.pageSetup.printTitlesRow=report.sections.length===1?`${firstHeader}:${firstHeader}`:undefined;
  sheet.pageSetup.margins={left:0.25,right:0.25,top:0.35,bottom:0.4,header:0.15,footer:0.2};
  sheet.headerFooter.oddFooter=`&L${report.org.name.replace(/&/g,'&&')}&R${language==='ar'?'صفحة':'Page'} &P / &N`;
  if(report.sections.length===1&&report.sections[0].rows.length)sheet.autoFilter={from:{row:firstHeader,column:1},to:{row:sheet.rowCount-(report.sections[0].rows[report.sections[0].rows.length-1]?.id.endsWith('-total')?1:0),column:count}};

@@ -12,7 +12,7 @@ import { CondensedReportDocument, splitBi } from "./report-document-condensed";
 const defaultSettings: Omit<Required<ReportPrintSettings>, "language"> = {
   logoSource: "print",
   paper: "A4",
-  orientation: "portrait",
+  orientation: "auto",
   fontScale: "normal",
   density: "standard",
   primaryColor: "#1A1E48",
