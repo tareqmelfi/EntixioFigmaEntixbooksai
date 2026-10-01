@@ -164,9 +164,9 @@ useEffect(() => {
     return () => { alive = false; };
   }, [orgId]);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (background = false) => {
     const generation = ++requestGeneration.current;
-    setLoading(true);
+    if (!background) setLoading(true);
     setError(null);
     try {
       const d = await api.dashboard.summary(period);
@@ -179,6 +179,14 @@ useEffect(() => {
   }, [period]);
 
   useEffect(() => { void refresh(); return () => { requestGeneration.current++; }; }, [refresh]);
+
+  useEffect(() => {
+    const refreshVisible = () => { if (document.visibilityState === 'visible') void refresh(true); };
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    const timer = window.setInterval(refreshVisible, 30000);
+    return () => { window.clearInterval(timer); window.removeEventListener('focus', refreshVisible); document.removeEventListener('visibilitychange', refreshVisible); };
+  }, [refresh]);
 
   if (loading) {
     return (

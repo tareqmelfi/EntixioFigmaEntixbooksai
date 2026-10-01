@@ -1,3 +1,4 @@
+import { DashboardSavedActivity } from './dashboard-saved-activity';
 import { HistoricalProfitChart, historicalProfitRows } from './historical-profit-chart';
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
@@ -64,6 +65,8 @@ function OpenBalances({data,title,scope,href}: {data?:DashboardOpenBalances;titl
 
 export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical,onPosted}: {data:DashboardSummary & {postingCoverage?:PostingCoverage};period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void;onPosted?:()=>void}) {
   const {t,language}=useLanguage();
+  const [basis,setBasis]=useState<'saved'|'ledger'>('saved');
+  const savedView=basis==='saved'&&!!data.savedActivity;
   const [requestedGrouping,setChartGrouping]=useState<'auto'|'months'|'years'|'history'>('auto');
   const hasLedgerTrend=data.profitLoss.some(row=>row.dataAvailability?.hasActivity)||(data.yearlyTrend||[]).some(row=>row.dataAvailability?.hasActivity);
   const hasHistoricalValues=historicalProfitRows(historicalRecord).some(row=>row.revenue!==null||row.net!==null);
@@ -126,6 +129,8 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       ] as const).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
       <span className="text-content-secondary" data-testid="flow-dates">{scopedText(flowDates)} · {cur}</span>
     </div>
+    {data.savedActivity&&<div className="flex gap-2 text-xs" role="group" aria-label={t('مصدر لوحة التحكم','Dashboard basis')}><button className="rounded-full border border-border px-4 py-2 aria-pressed:bg-primary aria-pressed:text-primary-foreground" aria-pressed={savedView} onClick={()=>setBasis('saved')}>{t('المستندات المحفوظة','Saved documents')}</button><button className="rounded-full border border-border px-4 py-2 aria-pressed:bg-primary aria-pressed:text-primary-foreground" aria-pressed={!savedView} onClick={()=>setBasis('ledger')}>{t('الدفاتر المعتمدة','Posted books')}</button></div>}
+    {savedView?<DashboardSavedActivity key={data.org.id} data={data}/>:<>
     <DashboardPostingCoverage key={`${p?.fromDate}-${p?.toDate}`} coverage={data.postingCoverage} source={p?.source} from={p?.fromDate} to={p?.toDate} onPosted={onPosted}/>
     <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
 
@@ -198,5 +203,6 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2"><OpenBalances data={data.receivables} title={t('مستحق للشركة — العملاء','Due to the company — customers')} scope={currentScope} href="/app/invoices"/><OpenBalances data={data.payables} title={t('مستحق على الشركة — الموردون','Due by the company — suppliers')} scope={currentScope} href="/app/purchases/bills"/></div>
       <Panel title={t('تفصيل المقارنة الشهرية والسنوية','Monthly and annual comparison detail')} scope={t('مقارنة مستقلة عن اختيار فترة الحركات','Comparison independent of selected activity period')} testId="comparison-details">{comparisonContent}</Panel>
     </div></details>
+    </>}
   </>;
 }

@@ -3156,6 +3156,7 @@ export interface DashboardComparisonPoint {
   dataAvailability?:{hasActivity:boolean};unavailableMetrics?:string[];
 }
 export interface DashboardSummary {
+  savedActivity?: {basis:'saved_documents';includesDrafts:boolean;rows:Array<{kind:string;currency:string;month:string;draft:boolean;selected:boolean;trend:boolean;count:number;net:number;tax:number;gross:number}>};
   invoiceActivity?: Array<{month:string;currency:string;count:number;draftCount:number;net:number;tax:number;gross:number;unlinkedCount:number}>;
   period?: DashboardPeriod;
   unavailableMetrics?: string[];
