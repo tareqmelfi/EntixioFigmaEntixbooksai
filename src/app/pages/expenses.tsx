@@ -2144,7 +2144,7 @@ export function Expenses() {
                       <col style={{ width: "125px" }} />{/* الحساب */}
                       <col style={{ width: "50px" }} />{/* الكمية */}
                       <col style={{ width: "105px" }} />{/* السعر */}
-                      <col style={{ width: "50px" }} />{/* VAT */}
+                      <col style={{ width: "65px" }} />{/* VAT */}
                       <col style={{ width: "105px" }} />{/* الإجمالي */}
                     </colgroup>
                     <TableHeader><TableRow className="hover:bg-transparent">
@@ -2162,7 +2162,7 @@ export function Expenses() {
                           <TableCell className="align-middle overflow-hidden text-xs text-content-secondary"><span className="block truncate"><bdi dir="auto">{line.accountName || (() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${account.nameAr || account.name}` : line.category || "—"; })()}</bdi></span></TableCell>
                           <TableCell className="text-start align-middle"><span dir="ltr" className="font-english tabular-nums">{line.quantity || 1}</span></TableCell>
                           <TableCell className="text-start align-middle"><span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-english tabular-nums">{money2(line.unitPrice || 0, selected.currency)}</span></TableCell>
-                          <TableCell className="text-start align-middle"><span dir="ltr" className="font-english tabular-nums">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</span></TableCell>
+                          <TableCell className="text-start align-middle"><span dir="ltr" className="whitespace-nowrap font-english tabular-nums">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</span></TableCell>
                           <TableCell className="text-start align-middle"><span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-display text-[16px] leading-6 tabular-nums text-foreground">{money2(line.lineTotal ?? ((line.quantity || 1) * (line.unitPrice || 0)), selected.currency)}</span></TableCell>
                         </TableRow>
                       ))}

@@ -65,12 +65,14 @@ test('bulk review keeps records scoped, reports partial failure and does not app
   await expect(page.getByRole('button', { name: 'حذف المسودات المحددة' })).toBeDisabled();
   await page.getByRole('button', { name: 'تغيير الحساب / التصنيف' }).click();
   const form = page.getByRole('region', { name: 'تعديل الحساب والتصنيف' });
+  await form.getByTitle('إبقاء الحساب الحالي', { exact: true }).click();
+  await page.getByText('510 · وجبات', { exact: true }).click();
   await form.getByLabel('التصنيف الجديد (اختياري)', { exact: true }).fill('مراجعة المورد');
   await form.getByLabel('سبب التعديل').fill('تصحيح التصنيف حسب المستند');
   await form.getByRole('button', { name: 'حفظ التعديل' }).click();
   await expect(form).toContainText('تم الحفظ'); await expect(form).toContainText('تغير المصروف');
   expect(requests.map(r => r.id)).toEqual(['review-0', 'review-1']);
-  for(const r of requests) { expect(r.body.expectedUpdatedAt).toBe(items[0].updatedAt); expect(r.body.category).toBe('مراجعة المورد'); expect(r.body.status).toBeUndefined(); expect(r.body.amount).toBeUndefined(); }
+  for(const r of requests) { expect(r.body.expectedUpdatedAt).toBe(items[0].updatedAt); expect(r.body.category).toBe('مراجعة المورد'); expect(r.body.accountId).toBe('new-cost'); expect(r.body.status).toBeUndefined(); expect(r.body.amount).toBeUndefined(); }
   await expect(form.getByRole('button', { name: 'حفظ التعديل' })).toBeDisabled();
   await form.getByRole('button', { name: 'إغلاق' }).click();
   await page.getByRole('searchbox').fill('EXP-REVIEW-0');
