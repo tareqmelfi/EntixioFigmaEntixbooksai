@@ -40,3 +40,52 @@ test('dense trial balance, branded Excel and PDF share balances and filters',asy
  await page.getByRole('combobox',{name:'الشعار',exact:true}).selectOption('none');const noLogoPending=page.waitForEvent('download');await page.getByRole('button',{name:'Excel (.xlsx)',exact:true}).click();const noLogo=info.outputPath('trial-balance-no-logo.xlsx');await(await noLogoPending).saveAs(noLogo);const plain=new Excel.Workbook();await plain.xlsx.readFile(noLogo);expect(plain.worksheets[0].getImages()).toHaveLength(0);
  await page.setViewportSize({width:390,height:844});await page.goto('/app/reports/trial-balance?from=2026-01-01&to=2026-09-30&branchId=branch-test');await expect(table).toBeVisible();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
 });
+
+for (const language of ['ar', 'en']) {
+ test(`compact ${language} report uses first-page branding and one-line numbered footers`, async ({page}, info) => {
+  test.setTimeout(120000);
+  await prepareVisualApp(page, language as 'ar' | 'en');
+  const data = payload();
+  Object.assign(data.org, {legalName:'Report Testing Company', vatNumber:'300000000000003', crNumber:'1010889599', addressLine:'7421 الطريق الدائري الشرقي الفرعي، حي الروضة، الرياض 13213', phone:'800-111-0110', email:'reports@example.test'});
+  Object.assign(data.org.paymentSettings.reports, {language, footerNote:'ملاحظة محفوظة تظهر مرة واحدة كاملة في نهاية التقرير.'});
+  data.notices = ['الأرصدة من القيود المرحلة فقط.␟Balances include posted entries only.'];
+  data.sections[0].rows = Array.from({length:150}, (_,i) => {
+   const row = payload().sections[0].rows[i % 20];
+   const label = `${1000+i} · حساب معدات ومصاريف المشروع بمدينة الرياض ${i}␟Project equipment and expenses account ${i}`;
+   return {...row,id:`account-${i}`,label,values:{...row.values,label}};
+  });
+  await page.route(`https://api.entix.io/orgs/${visualOrgId}`,r=>r.fulfill({json:data.org}));
+  await page.route('https://api.entix.io/api/reports/trial-balance*',r=>r.fulfill({json:data}));
+  await page.goto(`/print/report/trial-balance?orgId=${visualOrgId}`);
+  const output=page.getByTestId('report-output-pages');
+  await expect(output).toHaveAttribute('data-ready','true');
+  const sheets=output.locator('.report-output-sheet');
+  expect(await sheets.count()).toBeGreaterThan(2);
+  await expect(output.locator('tbody tr')).toHaveCount(151);
+  await expect(output.locator('h1')).toHaveCount(1);
+  await expect(output.locator('.report-company')).toHaveCount(1);
+  await expect(output.locator('.report-footer-note')).toHaveCount(1);
+  const metrics=await sheets.evaluateAll(nodes=>nodes.map(sheet=>{
+   const bounds=sheet.getBoundingClientRect(), table=sheet.querySelector('table')!.getBoundingClientRect();
+   const title=sheet.querySelector('h1')?.getBoundingClientRect();
+   const footer=sheet.querySelector('footer')!.getBoundingClientRect();
+   const counter=sheet.querySelector('.report-page-counter')!.getBoundingClientRect();
+   const body=sheet.querySelector('.report-page-body') as HTMLElement;
+   return {tableTop:table.top-bounds.top, center:title ? (title.left+title.right-bounds.left-bounds.right)/2 : null,
+    footerHeight:footer.height,counterTop:counter.top-footer.top,counterBottom:counter.bottom-footer.bottom,
+    fits:body.scrollHeight<=body.clientHeight+1, overflow:Array.from(sheet.querySelectorAll('td,th')).some(cell=>cell.scrollWidth>cell.clientWidth+1),
+    heads:sheet.querySelectorAll('thead').length, rowHeight:sheet.querySelector('tbody tr')!.getBoundingClientRect().height};
+  }));
+  expect(Math.abs(metrics[0].center!)).toBeLessThan(1);
+  expect(metrics[0].tableTop).toBeLessThan(145);
+  for (const [i,m] of metrics.entries()) {
+   if(i>0) expect(m.tableTop).toBeLessThan(35);
+   expect(m.footerHeight).toBeLessThan(21);expect(m.counterTop).toBeGreaterThanOrEqual(0);expect(m.counterBottom).toBeLessThanOrEqual(0);
+   expect(m.fits).toBe(true);expect(m.overflow).toBe(false);expect(m.heads).toBe(1);expect(m.rowHeight).toBeLessThan(32);
+  }
+  for(const index of [0,1,(await sheets.count())-1]) await sheets.nth(index).screenshot({path:info.outputPath(`page-${index+1}.png`)});
+  const pending=page.waitForEvent('download');await page.getByTestId('report-download-pdf').click();
+  const path=info.outputPath(`compact-${language}.pdf`);await(await pending).saveAs(path);
+  const bytes=await readFile(path);expect((bytes.toString('latin1').match(/\/Type \/Page\b/g)||[]).length).toBe(await sheets.count());
+ });
+}
