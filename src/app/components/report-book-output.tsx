@@ -1,6 +1,6 @@
 import { ReportCover } from './report-cover';
 import { ReportDesignControls } from './report-design-controls';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import type { ReportPayload, ReportPrintSettings } from '../lib/api';
 import { attachReportSocialFooter, applySocialFooterPages, paginateReport, reportPaperSize, downloadReportPdf } from '../lib/report-pagination';
@@ -12,7 +12,7 @@ import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
 import '../../styles/report-book.css';
 
-export function ReportBookOutput({ reports, title, preparedBy, notes }: { reports: ReportPayload[]; title: string; preparedBy: string; notes: string }) {
+export function ReportBookOutput({ reports, title, preparedBy, notes, renderChapter, initialSettings }: { reports: ReportPayload[]; title: string; preparedBy: string; notes: string; renderChapter?: (report: ReportPayload, settings: ReportPrintSettings) => ReactNode; initialSettings?: ReportPrintSettings }) {
   const { t, language, numberingSystem } = useLanguage();
   const source = useRef<HTMLDivElement>(null);
   const pages = useRef<HTMLDivElement>(null);
@@ -21,7 +21,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
   const [error, setError] = useState('');
   const first = reports[0];
   const [appearance, setAppearance] = useState<ReportPrintSettings>(() => ({
-    ...normalizeReportSettings({ primaryColor: '#102d50', accentColor: '#008da6', showCover: true, showNotes: true, bilingual: false, ...first.org.paymentSettings?.reports }),
+    ...normalizeReportSettings({ primaryColor: '#102d50', accentColor: '#008da6', showCover: true, showNotes: true, bilingual: false, ...first.org.paymentSettings?.reports, ...initialSettings }),
   }));
   const [orientation, setOrientation] = useState<NonNullable<ReportPrintSettings['orientation']>>(appearance.orientation || 'auto');
   const settings: ReportPrintSettings = useMemo(() => ({
@@ -120,7 +120,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
       }
     })();
     return () => { cancelled = true; };
-  }, [reports, settings, title, preparedBy, notes, language, numberingSystem]);
+  }, [reports, settings, title, preparedBy, notes, language, numberingSystem, renderChapter]);
 
   async function download() {
     if (!pages.current || !count || busy) return;
@@ -141,11 +141,11 @@ export function ReportBookOutput({ reports, title, preparedBy, notes }: { report
       {settings.showBackCover && <ReportCover report={first} settings={settings} title={first.org.legalName || first.org.name} kind="back" preparedBy={preparedBy} />}
       {settings.showSectionDividers && reports.map((report, index) => <div key={report.id} data-divider-index={index}><ReportCover report={report} settings={settings} title={`${String(index + 1).padStart(2, '0')} · ${heading(report)}`} kind="divider" /></div>)}
       <ReportDocument report={intro} settings={settings} mode="print" />
-      {reports.map((report, index) => <ReportDocument key={report.id} report={{ ...report,
+      {reports.map((report, index) => <div key={report.id}>{renderChapter?.(report, settings) || <ReportDocument report={{ ...report,
         title: `${String(index + 1).padStart(2, '0')} · ${report.title}`, englishTitle: `${String(index + 1).padStart(2, '0')} · ${report.englishTitle}`,
         notices: report.status === 'live' && report.dataBasis?.status !== 'unavailable' && report.dataBasis?.status !== 'no_activity'
           ? report.notices : [...(report.notices || []), availability(report)],
-      }} settings={settings} mode="print" />)}
+      }} settings={settings} mode="print" />}</div>)}
     </div>
     <div className="report-output-scroll"><div className="report-output-pages" data-testid="report-book-pages" data-ready={count > 0} ref={pages} /></div>
   </div>;

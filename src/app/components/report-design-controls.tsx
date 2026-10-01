@@ -17,6 +17,7 @@ export function ReportDesignControls({ settings, onChange, book = false }: { set
     {toggle('showEquation', t('معادلة قائمة الدخل', 'Income statement equation'), true)}
     {toggle('colorValues', t('تمييز الموجب والسالب بالألوان', 'Color positive and negative values'), true)}
     {book && <>
+      <div className="grid grid-cols-2 gap-3">{(['primaryColor', 'accentColor'] as const).map(key => <label key={key} className="text-sm space-y-1"><span>{key === 'primaryColor' ? t('لون الشركة الرئيسي', 'Company primary color') : t('لون الرسوم', 'Chart accent color')}</span><input type="color" className="block h-9 w-full rounded border border-border" value={settings[key] || (key === 'primaryColor' ? '#102d50' : '#008da6')} onChange={event => onChange({ [key]: event.target.value })} /></label>)}</div>
       {select('paper', t('الورق', 'Paper'), ['A4', 'A3', 'Letter', 'Legal'].map(p => [p, p]), 'A4')}
       {select('fontScale', t('حجم الخط', 'Font size'), [['compact', t('صغير', 'Small')], ['normal', t('عادي', 'Normal')], ['large', t('كبير', 'Large')]], 'normal')}
       {select('density', t('كثافة الجدول', 'Table density'), [['compact', t('مضغوط', 'Compact')], ['standard', t('قياسي', 'Standard')], ['comfortable', t('مريح', 'Comfortable')]], 'standard')}

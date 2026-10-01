@@ -126,6 +126,7 @@ const REPORT_ICONS: Record<string, ReportIcon> = {
   "balance-sheet": Scale,
   "cash-forecast": CalendarClock,
   "management-pdf": FileText,
+  "owner-management": TrendingUp,
   "consolidated-income": Layers,
   "consolidated-cash-flow": Network,
   "consolidated-balance-sheet": Building2,
@@ -278,6 +279,12 @@ const reportCatalog: ReportDefinition[] = [
     status: "ready",
     formats: ["PDF", "CSV", "Excel"],
     dataSources: ["Open Invoices", "Open Bills", "Payroll", "Bank Accounts"],
+  },
+  {
+    id: "owner-management", category: "financial", title: "وضع الشركة المالي · التقرير البصري",
+    englishTitle: "Owner Financial Review · Visual Report",
+    description: "تقرير عام أو سنوي: مؤشرات ورسوم ومقارنات ونقطة تعادل، مع القوائم المالية وهوية الشركة.",
+    status: "live", isNew: true, formats: ["PDF", "Excel"], dataSources: ["General Ledger", "Financial Statements", "Author Assumptions"],
   },
   {
     id: "management-pdf",
@@ -693,6 +700,7 @@ const EN_DESCRIPTIONS: Record<string, string> = {
   "cash-flow-indirect": "Starts from net profit then adjusts for receivables, inventory, and non-cash entries.",
   "balance-sheet": "Assets, liabilities, and equity from account balances.",
   "cash-forecast": "Forecast of cash from due invoices, expenses, and payments.",
+  "owner-management": "General or annual visual report: indicators, trends, break-even scenarios and company-branded financial statements.",
   "management-pdf": "Management PDF pack: executive summary, profit, cash, tax, and operating metrics.",
   "consolidated-income": "Results of multiple companies or legal branches with intercompany eliminations.",
   "consolidated-cash-flow": "Consolidated cash flows for the group with subsidiary entities shown.",
