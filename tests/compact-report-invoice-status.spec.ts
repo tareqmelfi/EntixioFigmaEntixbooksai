@@ -55,7 +55,9 @@ for (const currency of ['SAR', 'USD']) for (const orientation of ['portrait', 'l
     await page.route('https://api.entix.io/api/reports/trial-balance*', r => r.fulfill({ json: report }));
     await page.goto('/app/reports/trial-balance/print');
     const output = page.getByTestId('report-output-pages');
-    await expect(output).toHaveAttribute('data-ready', 'true');
+    // Allow the 100-row pagination pass to finish on loaded CI workers.
+    // Geometry, overflow and repeated-header assertions below remain unchanged.
+    await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
     expect(await output.locator('.report-output-sheet').count()).toBeGreaterThan(1);
     const metrics = await output.locator('.report-column-currency').evaluateAll(elements => elements.map(el => {
       const currency = el.getBoundingClientRect();

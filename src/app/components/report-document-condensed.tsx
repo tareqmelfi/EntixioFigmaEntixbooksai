@@ -45,7 +45,7 @@ function Bi({ value, lang, primary, size = "md", both: bothEnabled = true, curre
   const altCls = size === "lg" ? "text-[11px] font-semibold tracking-wide" : "text-[10px] font-medium";
   return (
     <span className="report-bilingual inline-flex flex-wrap items-baseline gap-x-2">
-      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi>{currency && <span className="report-column-currency font-normal"><bdi dir="ltr"> ({currency})</bdi></span>}</span>
+      <span className={mainCls} style={primary ? { color: "var(--report-primary)" } : undefined} ><bdi dir={lang === "ar" ? "rtl" : "ltr"}>{main}</bdi>{currency && <span className="report-column-currency font-normal"><bdi dir="ltr">({currency})</bdi></span>}</span>
       {both && alt ? <span className={`${altCls} text-muted-foreground`} ><bdi dir={lang === "ar" ? "ltr" : "rtl"}>{alt}</bdi></span> : null}
     </span>
   );
