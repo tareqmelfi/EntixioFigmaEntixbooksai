@@ -44,7 +44,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     sheet.style.minHeight = '0';
     for (const child of Array.from(source.children)) {
       if (child === originalMain || child === footer || child === social) continue;
-      sheet.append(child.cloneNode(true));
+      if (pages.length === 0) sheet.append(child.cloneNode(true));
     }
     body = originalMain.cloneNode(false) as HTMLElement;
     body.classList.add('report-page-body');
@@ -56,7 +56,9 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     const counter = document.createElement('div');
     counter.className = 'report-page-counter';
     counter.textContent = '1 / 1'; // Reserve counter height before measuring the body.
-    pageFooter.append(counter);
+    // Keep the code and page number in the same measured footer line.
+    const footerLine = pageFooter.querySelector('footer') || pageFooter;
+    footerLine.append(counter);
     sheet.append(pageFooter);
     target.append(sheet);
     pages.push(sheet);
@@ -78,11 +80,11 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     const rows = Array.from(originalTable.querySelectorAll('tbody > tr'));
     let section: HTMLElement;
     let tbody: HTMLElement;
-    const addSection = () => {
+    const addSection = (continuation = false) => {
       section = block.cloneNode(false) as HTMLElement;
       for (const child of Array.from(block.children)) {
         if (child === originalTable) continue;
-        section.append(child.cloneNode(true));
+        if (!continuation) section.append(child.cloneNode(true));
       }
       const table = originalTable.cloneNode(false) as HTMLElement;
       for (const child of Array.from(originalTable.children)) {
@@ -107,7 +109,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
         tbody!.append(clone);
         requireFit();
       } else {
-        newPage(); addSection(); tbody!.append(clone); requireFit();
+        newPage(); addSection(!emptySection); tbody!.append(clone); requireFit();
       }
     }
   }
@@ -206,8 +208,16 @@ async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSe
   pdf.setProperties({ title: filename, creator: 'Entix Books' });
   for (let index = 0; index < pages.length; index++) {
     if (index) pdf.addPage([width, height], width > height ? 'landscape' : 'portrait');
-    const canvas = await html2canvas(pages[index], {
-      ignoreElements: element => element.classList.contains('report-measure-source') || (element.classList.contains('report-output-sheet') && element !== pages[index]),
+    // Render every sheet as the first child of its own mounted snapshot. Removing
+    // preceding sheets only inside html2canvas's clone shifts later-page geometry.
+    const pageMount = root.cloneNode(false) as HTMLElement;
+    pageMount.style.cssText += ';position:fixed;left:-100000px;top:0;pointer-events:none;';
+    const renderSheet = pages[index].cloneNode(true) as HTMLElement;
+    pageMount.append(renderSheet);
+    document.body.append(pageMount);
+    let canvas: HTMLCanvasElement;
+    try { canvas = await html2canvas(renderSheet, {
+      ignoreElements: element => element.classList.contains('report-measure-source') || (element.classList.contains('report-output-sheet') && element !== renderSheet),
       foreignObjectRendering: true, scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false,
       onclone: (doc, element) => {
         normalizePdfColors(element);
@@ -223,6 +233,7 @@ async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSe
         const fonts = doc.createElement('style'); fonts.textContent = fontCss; element.prepend(fonts);
       },
     });
+    } finally { pageMount.remove(); }
     pdf.addImage(canvas, 'PNG', 0, 0, width, height, undefined, 'FAST');
     // Rasterized text has no PDF annotations. Add the complete anchor rectangle
     // so the icon and label both remain clickable in a downloaded PDF.

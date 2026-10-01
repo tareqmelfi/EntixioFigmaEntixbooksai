@@ -4,14 +4,13 @@ import { displayLocale } from "../lib/number-display";
  * Condensed bilingual report template (CEO 2026-08-25 · Z12).
  *
  * Reference: EN-FIN-REF-Report-Style-Sample-Condensed-AR-EN-V01.pdf —
- *   · header: logo on one side, Arabic company name (bold) + letter-spaced
- *     English legal name on the other,
- *   · centred bilingual title block + «(In <currency> · period)» line,
+ *   · first-sheet header: logo left, centred title/period/currency, company right,
+ *   · small company details and compact bilingual tables,
  *   · centred bilingual section titles «English — العربية»,
  *   · condensed tables: tinted alternating rows, thin rules, tabular numbers,
  *     total rows bold with a rule above,
  *   · management/notes commentary block,
- *   · footer PINNED to the bottom of every printed page (disclaimer + ©).
+ *   · one-line footer at the bottom of every sheet; notes follow the tables.
  *
  * Bilingual labels arrive from the API joined by U+241F (?bilingual=1); a
  * plain string renders in the document language only. Numbers use the explicit display preference (Western by default)
@@ -64,8 +63,8 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const bilingual = typeof (resolved as any).bilingual === "boolean" ? (resolved as any).bilingual : orgCountry === "SA";
   const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
-  const fontSize = resolved.fontScale === "large" ? 12.5 : resolved.fontScale === "compact" ? 10.5 : 11.5;
-  const pad = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "2px 5px" : "3px 6px";
+  const fontSize = resolved.fontScale === "large" ? 12.5 : resolved.fontScale === "compact" ? 10 : 10.5;
+  const pad = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "1.5px 4px" : "2px 5px";
   const paperWidth = mode === "print" ? "100%" : resolved.paper === "Letter" ? (resolved.orientation === "landscape" ? "1056px" : "816px") : (resolved.orientation === "landscape" ? "1122px" : "794px");
   const paperMinHeight = mode === "print" ? undefined : resolved.paper === "Letter" ? (resolved.orientation === "landscape" ? "816px" : "1056px") : (resolved.orientation === "landscape" ? "794px" : "1123px");
 
@@ -74,7 +73,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const nameAr = report.org.name || report.org.legalName || "";
   const nameEn = (report.org as any).legalName && (report.org as any).legalName !== report.org.name ? (report.org as any).legalName : "";
   const perRowCurrency = report.sections.some(s => s.columns.some(c => c.key === "currency"));
-  const currencyLine = perRowCurrency ? t("(المبالغ حسب عملة كل صف · غير مدققة)", "(Amounts in each row’s currency · unaudited)") : t(`(المبالغ بـ ${report.currency} · غير مدققة)`, `(In ${report.currency} · unaudited)`);
+  const currencyLine = perRowCurrency ? t("(المبالغ حسب عملة كل صف · غير مدققة)", "(Amounts in each row’s currency · unaudited)") : t(`عملة التقرير: ${report.currency} · غير مدققة`, `report currency: ${report.currency} · unaudited`);
   const periodLine = `${report.period.allTime ? (isEn ? "All recorded periods" : "كل الفترات المسجلة") : report.period.from ?? "—"} → ${report.period.to}`;
   const taxLine = resolved.showTaxInfo ? [report.org.vatNumber ? `${t("الرقم الضريبي", "VAT")} ${report.org.vatNumber}` : null, report.org.crNumber ? `${t("س.ت", "CR")} ${report.org.crNumber}` : null].filter(Boolean).join(" · ") : "";
   const companyLine = resolved.showCompanyInfo ? [report.org.addressLine, report.org.city, report.org.phone, report.org.email].filter(Boolean).join(" · ") : "";
@@ -83,53 +82,38 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
 
   return (
     <article className={`entix-report-paper document-paper report-condensed flex flex-col overflow-hidden rounded-md border border-border bg-card shadow-sm print:rounded-none print:border-0 print:shadow-none ${isMonthlyReport(report) ? "report-monthly" : ""} ${report.id === "trial-balance" ? "report-trial-balance" : ""}`} dir={dir} style={style}>
-      {/* ── header ── */}
-      <header className="flex items-start justify-between gap-6 px-8 pt-7">
-        <div className="min-w-0 text-start">
-          <div className="text-[17px] font-extrabold leading-tight text-foreground" dir="auto">{nameAr}</div>
-          {nameEn ? <div className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground" dir="ltr">{nameEn}</div> : null}
-          {taxLine ? <div className="mt-1 text-[10px] text-muted-foreground"><NumericText>{taxLine}</NumericText></div> : null}
-          {companyLine ? <div className="text-[10px] text-muted-foreground" dir="auto">{companyLine}</div> : null}
+      {/* Branding belongs to the first sheet; the title stays centred on the paper. */}
+      <header className="report-compact-header">
+        <div className="report-company text-foreground" dir={dir}>
+          <div className="report-company-name" dir="auto">{nameAr}</div>
+          {nameEn ? <div dir="ltr">{nameEn}</div> : null}
+          {taxLine ? <div><NumericText>{taxLine}</NumericText></div> : null}
+          {companyLine ? <div dir="auto">{companyLine}</div> : null}
         </div>
-        {logo ? <img src={logo} alt="" className="max-h-12 max-w-[150px] shrink-0 object-contain" /> : null}
+        <div className="report-heading text-center" dir={dir}>
+          <h1 style={{ color: "var(--report-primary)" }}>{isEn ? report.englishTitle : report.title}</h1>
+          {bilingual ? <div className="report-heading-alternate" dir={isEn ? "rtl" : "ltr"}>{isEn ? report.title : report.englishTitle}</div> : null}
+          <div><NumericText>{periodLine}</NumericText></div>
+          <div data-testid={perRowCurrency ? undefined : "report-currency-badge"}>{currencyLine}</div>
+        </div>
+        <div className="report-logo">{logo ? <img src={logo} alt="" /> : null}</div>
       </header>
 
-      {/* ── title block ── */}
-      <div className="px-8 pb-2 pt-6 text-center">
-        {bilingual ? (
-          <>
-            <h1 className="text-[17px] font-extrabold leading-tight text-foreground" dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
-            <div className="mt-0.5 text-[12px] font-bold uppercase tracking-wide" style={{ color: "var(--report-primary)" }} dir={isEn ? "rtl" : "ltr"}>{isEn ? report.title : report.englishTitle}</div>
-          </>
-        ) : (
-          <h1 className="text-[17px] font-extrabold leading-tight" style={{ color: "var(--report-primary)" }} dir={isEn ? "ltr" : "rtl"}>{isEn ? report.englishTitle : report.title}</h1>
-        )}
-        <div className="mt-1 text-[10.5px] text-muted-foreground"><NumericText>{periodLine}</NumericText> · {currencyLine}</div>
-        {/* CURRENCY LAW (2026-09-16): a printed statement must never leave the
-            reader guessing riyals or dollars. The unit comes from the company's
-            base currency — never from the reading language — and it is stated
-            once loudly here and again on every money column header below. */}
-        {perRowCurrency ? null : (
-          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-subtle px-2.5 py-0.5 text-[10px] font-semibold text-foreground" dir="ltr" data-testid="report-currency-badge">
-            <span className="font-english tracking-wide">{report.currency}</span>
-            <span className="text-muted-foreground">{t("عملة التقرير", "report currency")}</span>
-          </div>
-        )}
-      </div>
-
       {/* ── body ── */}
-      <main className="flex-1 space-y-5 px-8 pb-6 pt-3" style={{ fontSize: "var(--report-font-size)" }}>
+      <main className="report-compact-body flex-1" style={{ fontSize: "var(--report-font-size)" }}>
         {report.notices?.length ? (
-          <div className="rounded border border-warning-border bg-warning-subtle px-3 py-2 text-[10.5px] leading-5 text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : (pair.ar || pair.en); }).join(" · ")}</div>
+          <div className="report-notice border border-warning-border bg-warning-subtle text-warning">{report.notices.map(value => { const pair = splitBi(value); return isEn ? (pair.en || pair.ar) : (pair.ar || pair.en); }).join(" · ")}</div>
         ) : null}
         {!report.sections.length && <p role="status">{t("لا تتوفر بيانات لهذا التقرير خلال الفترة المحددة.", "No report data is available for the selected period.")}</p>}
         {reportLayoutSections(report, resolved).map((section) => {
           const columns = resolved.showNotes ? section.columns : section.columns.filter((c) => c.key !== "note");
           const sectionHasCurrency = columns.some(c => c.key === "currency");
+          const title = splitBi(section.title);
+          const sameTitle = (isEn ? title.en || title.ar : title.ar || title.en) === (isEn ? report.englishTitle : report.title);
           return (
             <section key={section.id} className="document-keep-together break-inside-avoid">
-              <div className="mb-1.5 text-center">
-                <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />
+              <div className="report-section-heading text-center">
+                {!sameTitle && <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />}
                 {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
               <table className="document-table report-readable-table w-full border-collapse">
@@ -179,6 +163,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
             </section>
           );
         })}
+        {resolved.showFooter && resolved.footerNote ? <p className="report-footer-note text-muted-foreground" dir="auto">{resolved.footerNote}</p> : null}
         {resolved.preparedBy ? (
           <div className="pt-2 text-[10.5px] text-muted-foreground"><span className="font-semibold">{t("أُعدّ بواسطة", "Prepared by")}:</span> <span dir="auto">{resolved.preparedBy}</span></div>
         ) : null}
@@ -186,12 +171,9 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
 
       {/* ── footer · pinned to the page bottom (print: fixed on every page) ── */}
       {resolved.showFooter && (
-        <footer className="report-condensed-footer mt-auto border-t border-border px-8 py-3 text-[9.5px] leading-4 text-muted-foreground">
-          {resolved.footerNote ? <div className="mb-1 text-muted-foreground" dir="auto">{resolved.footerNote}</div> : null}
-          <div className="flex items-center justify-between gap-4">
-            <span className="min-w-0 truncate">© {year} <span dir="auto">{report.org.legalName || report.org.name}</span> — {t("جميع الحقوق محفوظة", "All rights reserved")}{report.org.website ? ` · ${report.org.website}` : ""}</span>
-            <span className="shrink-0"><NumericText>{report.id}</NumericText> · {t("أُنشئ", "Generated")} <NumericText>{generated}</NumericText></span>
-          </div>
+        <footer className="report-condensed-footer text-muted-foreground">
+          <span className="report-footer-company">© {year} <span dir="auto">{report.org.legalName || report.org.name}</span>{report.org.website ? ` · ${report.org.website}` : ""}</span>
+          <span className="report-footer-code"><NumericText>{report.id}</NumericText> · <NumericText>{generated}</NumericText></span>
         </footer>
       )}
     </article>
