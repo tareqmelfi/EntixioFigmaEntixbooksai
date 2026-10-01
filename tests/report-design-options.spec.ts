@@ -41,6 +41,23 @@ test('designer applies font, equation, monochrome and paper choices to actual PD
   expect((await readFile(file)).subarray(0, 5).toString()).toBe('%PDF-');
 });
 
+test('Arabic equation amounts remain intact across fonts and compact portrait exports', async ({ page }) => {
+  await setup(page, { bilingual: false, orientation: 'portrait', fontScale: 'compact' });
+  const equation = page.getByTestId('report-output-pages').locator('.report-equation');
+  for (const font of ['noto', 'plex', 'tajawal']) {
+    await page.getByLabel('خط التقرير', { exact: true }).selectOption(font);
+    await expect(equation.locator('.report-equation-term').first()).toHaveCSS('flex-wrap', 'nowrap');
+    const geometry = await equation.evaluate(element => {
+      const outer = element.getBoundingClientRect();
+      return [...element.querySelectorAll('.numeric-text')].map(amount => {
+        const box = amount.getBoundingClientRect();
+        return box.top >= outer.top && box.bottom <= outer.bottom && box.left >= outer.left && box.right <= outer.right;
+      });
+    });
+    expect(geometry).toEqual([true, true, true]);
+  }
+});
+
 test('individual covers can be removed without losing data or page numbering', async ({ page }) => {
   await setup(page, { bilingual: false });
   const output = page.getByTestId('report-output-pages');

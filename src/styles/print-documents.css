@@ -242,7 +242,8 @@
 .report-themed .report-negative { color: #a32d2d !important; font-weight: 600; }
 .report-themed .report-zero { color: #657080 !important; }
 .report-themed .report-equation { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 12px; padding: 5px 6px; margin: 4px 0; border: 1px solid var(--report-rule); background: var(--report-stripe); font-size: var(--report-font-size); }
-.report-equation-term { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 5px; }
+/* Keep each labelled amount intact when the PDF renderer rounds flex widths. */
+.report-equation-term { display: inline-flex; flex: 0 0 auto; flex-wrap: nowrap; white-space: nowrap; align-items: baseline; gap: 5px; }
 .report-equation-term .numeric-text { font-weight: 700; }
 .report-equation-operator { margin-inline-end: 5px; }
 .report-themed.report-theme-grayscale { filter: grayscale(1); }
@@ -253,3 +254,5 @@
 .report-themed.report-theme-plain img, .report-themed.report-theme-plain svg { filter: grayscale(1); }
 /* Explicit report typography must also reach directional and numeric children. */
 .report-themed.document-paper *, .report-themed.report-book-cover * { font-family: var(--report-font), sans-serif !important; }
+
+.report-book-cover.report-output-sheet .report-page-counter { color: inherit; }
