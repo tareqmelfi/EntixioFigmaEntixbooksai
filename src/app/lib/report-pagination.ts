@@ -163,7 +163,7 @@ export function normalizePdfColors(root: HTMLElement) {
   }
 }
 
-async function assetDataUrl(url: string) {
+export async function assetDataUrl(url: string) {
   if (url.startsWith('data:')) return url;
   const response = await fetch(url);
   if (!response.ok) throw new Error('report_asset_unavailable');
@@ -173,7 +173,7 @@ async function assetDataUrl(url: string) {
   });
 }
 
-async function embedReportFonts(root: HTMLElement) {
+export async function embedReportFonts(root: HTMLElement) {
   const families = new Set([root, ...root.querySelectorAll<HTMLElement>('*')].map(element => getComputedStyle(element).fontFamily));
   const rules: Array<{ css: string; base: string }> = [];
   const collect = (list: CSSRuleList, base: string) => {

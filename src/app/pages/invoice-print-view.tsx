@@ -1,3 +1,4 @@
+import { downloadDocumentPdf, loadReceiptPdfFrame } from "../lib/document-pdf";
 import { resolveDocumentLanguage } from "../lib/document-language";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
@@ -6,7 +7,7 @@ import { getOrgId } from "../lib/api";
  * Standalone route: /print/invoice/:id
  *
  * - No app chrome (sidebar/header hidden)
- * - Auto-trigger window.print()
+ * - Print only on an explicit user action
  * - ZATCA QR code (stored Phase-2 payload · else local TLV when a VAT number exists)
  * - Fixed A4 sheets from the org's brand template: cover → inner pages → terms page
  *   (shared engine src/app/lib/document-render.ts · same as the API render route)
@@ -16,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Invoice, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import { Loader2 } from "lucide-react";
-import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
+import { downscaleDataUrl } from "../lib/print-image";
 import { BrandDocument, useBrandTemplate } from "../components/brand-document";
 import { partyFromOrg, partyFromContact, docFromInvoice, type RenderInput } from "../lib/document-render";
 
@@ -30,6 +31,8 @@ export function InvoicePrintView() {
   const [searchParams] = useSearchParams();
   const langOverride = searchParams.get("lang"); // "ar" | "en" | null
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
@@ -43,11 +46,13 @@ export function InvoicePrintView() {
         // editor's preview iframe with a fresh JS context where orgId is null).
         // Adopt the stored org id first, otherwise every call 400s with
         // "missing X-Org-Id header" and the pane shows "Invoice unavailable".
-        bootstrapOrgIdFromStorage();
+        const requestedOrg = searchParams.get("orgId");
+        if (requestedOrg) setOrgId(requestedOrg, false); else bootstrapOrgIdFromStorage();
         let inv: Invoice | null = null;
         try {
           inv = await api.invoices.get(id);
-        } catch {
+        } catch (error) {
+          if (requestedOrg) throw error;
           // The stored org may not be the invoice's org (e.g. shared print
           // link opened while another org is active). The server enforces
           // membership on every attempt, so walking the user's own
@@ -93,7 +98,7 @@ export function InvoicePrintView() {
   }, [invoice, contact]);
 
   // Auto-trigger print dialog once data is ready · suppress with ?noprint=1 (QA / link sharing)
-  const noPrint = searchParams.get("noprint") === "1";
+
   // embed=1 → clean inline mirror (used by the app's preview pane)
   const embed = searchParams.get("embed") === "1";
 
@@ -119,13 +124,6 @@ export function InvoicePrintView() {
     return () => { cancelled = true; };
   }, [org]);
 
-  useEffect(() => {
-    if (!loading && invoice && org && printImages && tplReady && !noPrint && !embed) {
-      let cancelled = false;
-      waitForPrintReady().then(() => { if (!cancelled) window.print(); });
-      return () => { cancelled = true; };
-    }
-  }, [loading, invoice, org, printImages, tplReady]);
 
   if (loading) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-6 w-6 animate-spin" /></div>;
   if (error || !invoice || !org) {
@@ -228,6 +226,26 @@ export function InvoicePrintView() {
 
   return (
     <>
+      {!embed && <div className="no-print" style={{position:'fixed',bottom:12,left:12,zIndex:100,background:'white',padding:8}}>
+        <button type="button" disabled={downloading || !printImages || !tplReady} onClick={async () => {
+          const root = document.querySelector<HTMLElement>(".edoc"); if (!root) return;
+          setDownloading(true); setDownloadError(null);
+          try { await downloadDocumentPdf(root, ".sheet", invoice.invoiceNumber); }
+          catch { setDownloadError("تعذر تنزيل PDF؛ لم يُحفظ ملف مكتمل. / PDF download failed."); }
+          finally { setDownloading(false); }
+        }}>{downloading ? "…" : "تنزيل PDF · Download PDF"}</button>
+        {!!invoice.receipts?.length && <button type="button" disabled={downloading || !printImages || !tplReady} onClick={async () => {
+          const root = document.querySelector<HTMLElement>(".edoc"); if (!root) return;
+          setDownloading(true); setDownloadError(null);
+          const frames: Awaited<ReturnType<typeof loadReceiptPdfFrame>>[] = [];
+          try {
+            for (const receipt of invoice.receipts || []) frames.push(await loadReceiptPdfFrame(receipt.id, org.id, langOverride || "ar"));
+            await downloadDocumentPdf(root, ".sheet", `${invoice.invoiceNumber}-with-receipts`, frames);
+          } catch { setDownloadError("تعذر تنزيل الحزمة كاملة؛ أعد المحاولة. / Complete bundle download failed."); }
+          finally { frames.forEach(frame => frame.dispose()); setDownloading(false); }
+        }}>الفاتورة والسندات PDF · Invoice + receipts PDF</button>}
+        {downloadError && <p role="alert">{downloadError}</p>}
+      </div>}
       <style>{`
         /* Reset · standalone route · no app chrome */
         body { margin: 0; background: ${embed ? "#fff" : "#E9ECF1"}; }

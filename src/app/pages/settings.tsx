@@ -1331,7 +1331,7 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
                   }}
                 />
                 <p className="text-[11px] text-muted-foreground font-english" dir="ltr">
-                  Tip: use {tokenHintByKind[k]} instead of XXXX
+                  {k === "invoice" ? "Invoice: prefix + YYYYMMDD + 4 digits (daily sequence)" : `Tip: use ${tokenHintByKind[k]} instead of XXXX`}
                 </p>
               </div>
 
@@ -1340,7 +1340,8 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
                 <Input
                   className="font-english"
                   type="number" min="1" max="10" dir="ltr"
-                  value={config?.[k]?.padding ?? NUMBERING_DEFAULTS[k].padding}
+                  disabled={k === "invoice"}
+                  value={k === "invoice" ? 4 : config?.[k]?.padding ?? NUMBERING_DEFAULTS[k].padding}
                   onChange={(e) => setKind(k, { padding: Number(e.target.value) })}
                 />
               </div>
@@ -1379,13 +1380,15 @@ function NumberingTab({ orgId, push }: { orgId: string; push: (kind: any, msg: s
               >{t("أدرج رمز العميل", "Include client code")}</button>
               <button
                 type="button"
-                aria-pressed={config?.[k]?.includeYear === true}
+                disabled={k === "invoice"}
+                aria-pressed={k === "invoice" || config?.[k]?.includeYear === true}
                 onClick={() => setKind(k, { includeYear: !(config?.[k]?.includeYear === true) })}
                 className={toggleClass(config?.[k]?.includeYear === true)}
               >{t("أدرج السنة", "Include year")}</button>
               <button
                 type="button"
-                aria-pressed={config?.[k]?.includeMonth === true}
+                disabled={k === "invoice"}
+                aria-pressed={k === "invoice" || config?.[k]?.includeMonth === true}
                 onClick={() => setKind(k, { includeMonth: !(config?.[k]?.includeMonth === true) })}
                 className={toggleClass(config?.[k]?.includeMonth === true)}
               >{t("أدرج الشهر", "Include month")}</button>

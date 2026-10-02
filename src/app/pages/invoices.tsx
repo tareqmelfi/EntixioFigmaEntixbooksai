@@ -1,3 +1,4 @@
+import { invoiceStatusLabel } from "../lib/invoice-status-label";
 import { BidiText } from "../components/bidi-text";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { InvoiceZatcaLink, InvoiceZatcaSummary } from "../components/invoice-zatca-badge";
@@ -1356,15 +1357,7 @@ export function Invoices() {
   const compactList = wideViewport;
   const selected = selectedFull;
   const selectedLate = selected ? overdueDays(selected) : 0;
-  const selectedStatusLabel = selected
-    ? selected.status === "PAID"
-      ? t("سُدّدت بالكامل", "Paid in full")
-      : selectedLate > 0
-        ? t(`متأخرة ${selectedLate} أيام`, `${selectedLate} days overdue`)
-        : STATUS_LABELS[selected.status]
-          ? t(STATUS_LABELS[selected.status].ar, STATUS_LABELS[selected.status].en)
-          : selected.status
-    : undefined;
+  const selectedStatusLabel = selected ? invoiceStatusLabel(selected, selectedLate, language) : undefined;
   const selectedStatusMeta = selected
     ? [String(selected.issueDate || "").slice(0, 10), (selected as any).journalEntry?.entryNumber || (selected as any).journalEntryNumber]
         .filter(Boolean).join(" · ")
@@ -1456,9 +1449,7 @@ export function Invoices() {
                     <span className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${statusToneClass(i.status, late)}`}>
                       <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
-                      {late > 0 && i.status !== "PAID" && i.status !== "CANCELLED"
-                        ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
-                        : STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}
+                      {invoiceStatusLabel(i, late, language)}
                     </span>
                     {isSA && <InvoiceZatcaLink invoice={i} />}
                     </span>
@@ -1529,9 +1520,7 @@ export function Invoices() {
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1.5 text-[13px] font-semibold ${statusToneClass(i.status, late)}`}>
                       <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
-                      {late > 0 && i.status !== "PAID" && i.status !== "CANCELLED"
-                        ? t(`متأخرة ${late} أيام`, `${late} days overdue`)
-                        : STATUS_LABELS[i.status] ? t(STATUS_LABELS[i.status].ar, STATUS_LABELS[i.status].en) : i.status}
+                      {invoiceStatusLabel(i, late, language)}
                     </span>
                     {i.status === "DRAFT" && !compactList && (
                       pendingApprove === i.id ? (

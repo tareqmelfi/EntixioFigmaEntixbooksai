@@ -11,7 +11,7 @@ import type { NumberingKind, NumberingPerKind } from "./api";
 
 export const NUMBERING_DEFAULTS: Record<NumberingKind, { prefix: string; padding: number; start: number }> = {
   contact: { prefix: "EN-CON-", padding: 4, start: 1 },
-  invoice: { prefix: "EN-INV-{YYYY}{MM}-", padding: 4, start: 1 },
+  invoice: { prefix: "EN-INV-{YYYY}{MM}{DD}", padding: 4, start: 1 },
   quote: { prefix: "EN-QTE-{YYYY}{MM}-", padding: 4, start: 1 },
   bill: { prefix: "EN-BIL-{YYYY}{MM}-", padding: 4, start: 1 },
   receipt: { prefix: "EN-RCP-{YYYY}{MM}-", padding: 4, start: 1 },
@@ -95,8 +95,12 @@ export function buildNumberFromPattern(
 /** One-shot: config → the number the server would issue next. */
 export function previewNumber(kind: NumberingKind, cfg: NumberingPerKind = {}, ctx: NumberingPreviewContext = {}): string {
   const defaults = NUMBERING_DEFAULTS[kind];
-  const pattern = composeNumberingPattern({ ...cfg, prefix: cfg.prefix ?? defaults.prefix }, defaults.prefix);
-  const padding = cfg.padding ?? defaults.padding;
+  let pattern = composeNumberingPattern({ ...cfg, prefix: cfg.prefix ?? defaults.prefix }, defaults.prefix);
+  if (kind === "invoice") {
+    const stem = pattern.split(/\{(?:YYYY|YY|MM|DD|SEQ)\}/)[0].replace(/[\d-]+$/, "");
+    pattern = `${stem || "EN-INV"}-{YYYY}{MM}{DD}{SEQ}`;
+  }
+  const padding = kind === "invoice" ? 4 : cfg.padding ?? defaults.padding;
   const seq = cfg.start ?? defaults.start;
   return buildNumberFromPattern(pattern, padding, seq, ctx);
 }

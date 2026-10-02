@@ -3747,6 +3747,7 @@ export interface Voucher {
 }
 
 export interface VoucherInput {
+  idempotencyKey?: string
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
@@ -3766,6 +3767,8 @@ export interface VoucherInput {
 }
 
 export interface Invoice {
+  approvalConfirmed?: boolean;
+  receipts?: Array<{ id: string; number: string; date: string; amount: string | number; currency: string }>;
   updatedAt?: string
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null

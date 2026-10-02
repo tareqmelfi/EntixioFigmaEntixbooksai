@@ -21,7 +21,7 @@ for (const language of ['ar', 'en'] as const) for (const width of [390, 1280, 19
     await expect(status).toBeVisible();
     await expect(status).toHaveAttribute('href', '/app/invoices/compact-invoice');
     await expect(status).toHaveCSS('font-size', '10px');
-    await expect(area.getByText(language === 'ar' ? 'مدفوعة' : 'Paid', { exact: true })).toBeVisible();
+    await expect(area.getByText(language === 'ar' ? 'صادرة · مدفوعة' : 'Issued · Paid', { exact: true })).toBeVisible();
     if (width >= 768) {
       const row = area.locator('tbody tr').first();
       await expect(row.locator('td').first().locator('[data-zatca-state]')).toHaveCount(0);

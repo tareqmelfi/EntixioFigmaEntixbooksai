@@ -1,3 +1,4 @@
+import { downloadDocumentPdf } from "../lib/document-pdf";
 import { socialFooterHtml } from "../lib/document-social";
 import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
@@ -6,7 +7,7 @@ import { getOrgId } from "../lib/api";
  * Standalone route: /print/voucher/:id
  *
  * - No app chrome
- * - Auto print support
+ * - Explicit print and PDF download actions
  * - Branded header (logo + legal details)
  * - Stamp + signature area
  */
@@ -14,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Voucher, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import qrcode from "qrcode-generator";
-import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
+import { downscaleDataUrl } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
 import { BidiText, NumericText } from "../components/bidi-text";
 
@@ -47,6 +48,8 @@ export function VoucherPrintView() {
   const [searchParams] = useSearchParams();
   const langOverride = searchParams.get("lang"); // "ar" | "en" | null
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<Voucher | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
@@ -61,11 +64,13 @@ export function VoucherPrintView() {
         // Standalone route (outside AuthGuard — fresh JS context has orgId
         // null, so every call would 400 "missing X-Org-Id header"). Adopt the
         // stored org id first; retry across memberships if it wasn't the doc's.
-        bootstrapOrgIdFromStorage();
+        const requestedOrg = searchParams.get("orgId");
+        if (requestedOrg) setOrgId(requestedOrg, false); else bootstrapOrgIdFromStorage();
         let row: Voucher | null = null;
         try {
           row = await api.vouchers.get(id);
-        } catch {
+        } catch (error) {
+          if (requestedOrg) throw error;
           const meRes = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/me`, { credentials: "include" });
           const me = meRes.ok ? await meRes.json() : null;
           for (const m of me?.memberships || []) {
@@ -115,7 +120,7 @@ export function VoucherPrintView() {
     }
   }, [voucher, contact]);
 
-  const noPrint = searchParams.get("noprint") === "1";
+
   const embed = searchParams.get("embed") === "1";
 
   // Downscale branding images for print — Chrome's preview rasterizes full-source
@@ -138,13 +143,6 @@ export function VoucherPrintView() {
     return () => { cancelled = true; };
   }, [org]);
 
-  useEffect(() => {
-    if (!loading && voucher && org && printImages && !noPrint) {
-      let cancelled = false;
-      waitForPrintReady().then(() => { if (!cancelled) window.print(); });
-      return () => { cancelled = true; };
-    }
-  }, [loading, voucher, org, printImages, noPrint]);
 
   if (loading) {
     return (
@@ -239,6 +237,16 @@ export function VoucherPrintView() {
 
   return (
     <>
+      {!embed && <div className="no-print" style={{position:'fixed',bottom:12,left:12,zIndex:100,background:'white',padding:8}}>
+        <button type="button" disabled={downloading || !printImages} onClick={async () => {
+          const root = document.querySelector<HTMLElement>(".voucher-document"); if (!root) return;
+          setDownloading(true); setDownloadError(null);
+          try { await downloadDocumentPdf(root, ".voucher-page", voucher.number); }
+          catch { setDownloadError("تعذر تنزيل PDF؛ لم يُحفظ ملف مكتمل. / PDF download failed."); }
+          finally { setDownloading(false); }
+        }}>{downloading ? "…" : "تنزيل PDF · Download PDF"}</button>
+        {downloadError && <p role="alert">{downloadError}</p>}
+      </div>}
       <style>{`
         body {
           margin: 0;
@@ -263,7 +271,7 @@ export function VoucherPrintView() {
         ${embed ? ".voucher-page{ margin:8px auto !important; zoom:0.78; box-shadow:none !important; } body{ background:white; }" : ""}
       `}</style>
 
-      <div dir={isRtl ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontSize: 13, lineHeight: 1.5 }}>
+      <div className="voucher-document" data-document-ready={!!printImages} dir={isRtl ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontSize: 13, lineHeight: 1.5 }}>
         <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: embed ? "none" : "flex", gap: 8 }}>
           <button
             onClick={() => window.print()}
@@ -345,6 +353,7 @@ export function VoucherPrintView() {
             <div style={{ textAlign: "center" }}>
               {qrSvg ? (
                 <>
+
                   <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
                   <div style={{ fontSize: 8, color: "#9CA3AF", marginTop: 4, maxWidth: 150, marginInline: "auto", lineHeight: 1.4 }}>
                     {isRtl
