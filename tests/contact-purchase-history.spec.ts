@@ -43,3 +43,15 @@ test('expense-only supplier is visible and has no invented payable',async({page}
   await expect(page.getByTestId('contact-purchases')).toContainText('25.00 USD');
   await page.screenshot({path:'/tmp/entix-contact-purchases-ar.png',fullPage:true});
 });
+test('switching contact resets the previous currency instead of hiding its purchases',async({page})=>{
+  await setup(page,'en');
+  await page.route('**/api/contacts/second-supplier/summary**',r=>r.fulfill({json:{...summary(new URL(r.request().url()).searchParams.get('currency')||'SAR'),contact:{...contact,id:'second-supplier',displayName:'Second supplier'}}}));
+  await page.goto('/app/contacts/crover-test');
+  await page.getByRole('combobox',{name:'Currency',exact:true}).selectOption('USD');
+  await expect(page.getByText('EXP-USD',{exact:true})).toBeVisible();
+  // Same mounted router view, as with browser history navigation between contacts.
+  await page.evaluate(()=>{history.pushState({},'', '/app/contacts/second-supplier');window.dispatchEvent(new PopStateEvent('popstate'));});
+  await expect(page.getByRole('heading',{name:'Second supplier',exact:true})).toBeVisible();
+  await expect(page.getByRole('combobox',{name:'Currency',exact:true})).toHaveValue('SAR');
+  await expect(page.getByText('EXP-CROVER-01',{exact:true})).toBeVisible();
+});

@@ -129,6 +129,7 @@ export function ContactDetail() {
 
   const requestVersion = useRef(0);
   const [currency, setCurrency] = useState<string>();
+  useEffect(() => { setCurrency(undefined); }, [id]);
   const refresh = useCallback(async () => {
     const version = ++requestVersion.current;
     if (!id) return;
@@ -649,7 +650,7 @@ function PurchaseRows({ rows }: { rows: PurchaseDocument[] }) {
   return <div className="divide-y divide-border" data-testid="contact-purchases">{rows.map(row => <Link key={`${row.kind}:${row.id}`} to={row.kind === "EXPENSE" ? `/app/expenses/${row.id}` : `/app/purchases/bills/${row.id}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 hover:bg-primary/5">
     <div className="min-w-0 text-sm"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-english">{row.number || row.documentNumber || row.id}</span><StatusBadge>{row.kind === "EXPENSE" ? t("مصروف", "Expense") : t("فاتورة شراء", "Purchase bill")}</StatusBadge><DocumentStatus status={row.status} /></div>
     <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground"><span dir="ltr">{row.date.slice(0, 10)}</span>{row.documentNumber && <span>{t("رقم المورد:", "Supplier reference:")} <bdi>{row.documentNumber}</bdi></span>}{row.category && <span>{row.category}</span>}{row.matchedBy === "legacyName" && <span>{t("مطابقة الاسم لسجل قديم", "Legacy name match")}</span>}</div></div>
-    <span dir="ltr" className="font-english text-sm tabular-nums font-semibold">{Number(row.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</span>
+    <span dir="ltr" className="max-w-full break-all font-english text-sm tabular-nums font-semibold">{Number(row.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</span>
   </Link>)}</div>;
 }
 function PurchaseHistory({ data, expensesOnly = false }: { data: ContactSummary; expensesOnly?: boolean }) {
