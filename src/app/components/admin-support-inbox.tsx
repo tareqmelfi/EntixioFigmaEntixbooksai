@@ -99,6 +99,21 @@ export function AdminSupportInbox({ guard, push, children }: { children?: React.
     } catch (e) { if (version === threadRequest.current) guard(e); }
   }, [guard]);
 
+  useEffect(() => {
+    if (busy) return;
+    const timer = setInterval(async () => {
+      if (document.hidden) return;
+      void load();
+      const id = selectedId.current, version = threadRequest.current;
+      if (!id) return;
+      try {
+        const result = await api.admin.ticket(id);
+        if (selectedId.current === id && threadRequest.current === version) setThread(result.ticket);
+      } catch { /* keep the current conversation; the next refresh retries */ }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [busy, load]);
+
   useEffect(() => { const id = params.get("ticket"); if (id) void openThread(id); else { ++threadRequest.current; selectedId.current = null; setOpenId(null); setThread(null); } }, [params, openThread]);
   const selectThread = (id: string) => { if (busy) return; setCreating(false); setParams(p => { p.set("ticket", id); return p; }); };
   const update = async (fields: Parameters<typeof supportDesk.update>[1]) => {

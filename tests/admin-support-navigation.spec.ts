@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import {prepareVisualApp} from './fixtures/visual-app';
 test('support default exposes agent conversations and URL status filters survive reload',async({page})=>{
  await prepareVisualApp(page,'en');await page.route('https://api.entix.io/me',r=>r.fulfill({json:{isPlatformAdmin:true,memberships:[]}}));
+ await page.route('**/api/support/config',r=>r.fulfill({json:{whatsapp:'966593305959',email:'support@entix.io'}}));
  const queries:string[]=[];
  await page.route('**/api/admin/**',r=>{const url=new URL(r.request().url());if(url.pathname.endsWith('/me'))return r.fulfill({json:{isSuper:true,permissions:['*']}});if(url.pathname.endsWith('/tickets')){queries.push(url.search);return r.fulfill({json:{tickets:[{id:'t1',subject:'Synthetic pricing question',channel:'whatsapp',status:'OPEN',priority:'NORMAL',needsHuman:false,updatedAt:new Date().toISOString()}]}})}return r.fulfill({json:{items:[]}})});
  await page.goto('/admin/support');await expect(page.getByText('Synthetic pricing question',{exact:true})).toBeVisible();expect(queries.at(-1)).not.toContain('needsHuman');
