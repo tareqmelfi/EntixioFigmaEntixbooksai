@@ -1279,8 +1279,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const regIdLabel = (p: PartySpec | null | undefined): string =>
     (p?.country || "SA").toUpperCase() === "US" ? t("معرّف المنشأة", "Entity ID") : t("س.ت", "CR");
   const orgTaxRegistered = isVatRegistered(org);
-  const docType = isQuote ? t("عرض سعر", "Quotation") : (orgTaxRegistered ? t("فاتورة ضريبية", "Tax invoice") : t("فاتورة", "Invoice"));
-  const docEyebrow = isQuote ? "QUOTATION" : (orgTaxRegistered ? "TAX INVOICE" : "INVOICE");
+  const isDraftInvoice = !isQuote && doc.status === "DRAFT";
+  const docType = isDraftInvoice ? t("مسودة فاتورة", "Draft invoice") : isQuote ? t("عرض سعر", "Quotation") : (orgTaxRegistered ? t("فاتورة ضريبية", "Tax invoice") : t("فاتورة", "Invoice"));
+  const docEyebrow = isDraftInvoice ? "DRAFT · NOT ISSUED" : isQuote ? "QUOTATION" : (orgTaxRegistered ? "TAX INVOICE" : "INVOICE");
   const hasArabic = (v: unknown) => /[\u0600-\u06FF]/.test(String(v || ""));
   const classification = (ar ? tpl.classification : (tpl.classificationEn || (hasArabic(tpl.classification) ? "" : tpl.classification))) || t("خاص بالعميل", "Client confidential");
   const fileId = doc.number || "";
@@ -2168,7 +2169,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // sheet.querySelector(".pgflow").scrollHeight <= .clientHeight (the sheet itself carries the
   // bottom-anchored watermark, so the flow element is the thing to measure). Cover/closing: "fixed".
   const coverCount = sheets.filter((s) => s.cover).length;
-  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? ` data-social-band="true"` : ""}${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? `<div class="social-band">${socialHtml}</div>` : ""}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
+  const bodyHtml = sheets.map((s, i) => `<section class="sheet ${s.cls}" data-page="${i + 1}"${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? ` data-social-band="true"` : ""}${identity ? ` data-doc-page-check="${s.cover || s.closing ? "fixed" : `flow:${Math.round(s.used || 0)}/${CAP}`}"` : ""}${s.style ? ` style="${s.style}"` : ""}>${isDraftInvoice ? `<div class="draft-mark">${t("مسودة · غير معتمدة", "DRAFT · NOT APPROVED")}</div>` : ""}${s.cover || s.closing ? "" : wmHtml}${header(s.cls.startsWith("dark"))}${s.body}${socialHtml && socialFooterOnPage(socialSettings, i + 1, total) ? `<div class="social-band">${socialHtml}</div>` : ""}${footer(hs ? i + 1 - coverCount : i + 1, total, !!s.cover || !!s.closing)}</section>`).join("\n");
   const actions = input.actions ? `<div class="actions no-print"><button class="primary" type="button" onclick="window.print()">${t("طباعة / حفظ PDF", "Print / save PDF")}</button><button type="button" onclick="window.close()">${t("إغلاق", "Close")}</button></div>` : "";
   const ensidexDocument = String(org.country || '').toUpperCase() === 'US' && [org.name, org.nameEn, org.legalName].some(name => /^ENSIDEX(?:\s+LLC)?$/i.test(String(name || '').trim()));
   const ensidexDocumentCss = ensidexDocument ? `
@@ -2177,7 +2178,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
 .edoc.idn .totals .r.grand,.edoc.idn .tot2 .totals .r.grand{border:0;border-radius:0;margin-top:0;padding:3mm;background:var(--fill)}
 .edoc.idn .st .e,.edoc.idn .sh .e:empty{display:none}
 ` : '';
-  const rawCss = (socialHtml ? `.edoc .sheet[data-social-band="true"]{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
+  const rawCss = `.edoc .draft-mark{position:absolute;top:43%;left:5%;right:5%;text-align:center;transform:rotate(-28deg);font-size:36pt;font-weight:800;opacity:.18;pointer-events:none;z-index:20;color:#a22}.edoc .sheet.dark .draft-mark{color:white}` + (socialHtml ? `.edoc .sheet[data-social-band="true"]{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
   // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
   const css = hideBrand ? rawCss.replace(/\/\*[\s\S]*?\*\//g, "") : rawCss;
   const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}${isQuote ? "" : " invoice"}`;
@@ -2202,7 +2203,7 @@ const n = (v: unknown): number => { const x = Number(v); return Number.isFinite(
 
 export function partyFromOrg(org: any): PartySpec {
   if (!org) return { name: "" };
-  const address = [org.buildingNumber, org.streetName, org.district, org.city, org.region, org.postalCode].filter(Boolean).join(" · ");
+  const address = [org.addressLine, org.buildingNumber, org.streetName, org.district, org.city, org.region, org.postalCode].filter(Boolean).join(" · ");
   return {
     name: org.name || org.legalName || "",
     nameEn: org.nameEn || org.legalName || null,

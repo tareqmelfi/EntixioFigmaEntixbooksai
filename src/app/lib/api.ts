@@ -1820,6 +1820,9 @@ export const api = {
 
   // Vouchers (سند قبض / سند صرف)
   vouchers: {
+    allocationPreview: (id: string, invoiceId?: string) => request<any>(`/api/vouchers/${id}/allocation-preview`, { query: { invoiceId } }),
+    allocate: (id: string, data: { invoiceId: string; amount: number; appliedAt: string; requestKey: string }) => request<any>(`/api/vouchers/${id}/allocations`, { method: 'POST', body: data }),
+    cancelAllocation: (id: string, allocationId: string, reason: string) => request<any>(`/api/vouchers/${id}/allocations/${allocationId}/cancel`, { method: 'POST', body: { reason } }),
     list: (params?: { type?: 'RECEIPT' | 'PAYMENT'; bankAccountId?: string; contactId?: string; invoiceId?: string; billId?: string }) =>
       request<{ items: Voucher[]; total: number; summary: { sumAmount: string; avgAmount: string } }>(
         '/api/vouchers',
@@ -1850,7 +1853,7 @@ export const api = {
     updateNotes: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null }) => request<{ notes: string | null; termsConditions: string | null; updatedAt: string }>(`/api/invoices/${id}/notes`, { method: 'PATCH', body }),
     voidInvoiceAdmin: (id: string, body: { reason: string; expectedUpdatedAt: string }) => request<Invoice>(`/api/invoices/${id}/void-admin`, { method: 'POST', body }),
     amendmentPolicy: (id: string) => request<{ canAmend: boolean; canVoidAdmin?: boolean; reason: string | null; country: string }>(`/api/invoices/${id}/amendment-policy`),
-    amend: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null; dueDate: string; lines: Array<{ id: string; description: string; quantity: number; unitPrice: number }> }) => request<Invoice>(`/api/invoices/${id}/amend`, { method: 'POST', body }),
+    amend: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null; issueDate?: string; supplyDate?: string | null; dueDate: string; lines: Array<{ id: string; description: string; quantity: number; unitPrice: number }> }) => request<Invoice>(`/api/invoices/${id}/amend`, { method: 'POST', body }),
     attachments: {
       list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/invoices/${id}/attachments`),
       add: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) => request<ExpenseAttachment>(`/api/invoices/${id}/attachments`, { method: 'POST', body }),
@@ -3730,6 +3733,8 @@ export interface QuoteInput {
 }
 
 export interface Voucher {
+  receiptAllocations?: Array<{ id: string; invoiceId: string; amount: string | number; appliedAt: string; cancelledAt?: string | null; invoice?: { invoiceNumber: string } }>;
+
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */

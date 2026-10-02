@@ -23,7 +23,7 @@ for (const reason of ['saudi_issued_invoice','external_source']) test(`protected
   await page.route('**/api/invoices/protected',r=>r.fulfill({json:{id:'protected',invoiceNumber:'SAFE-1',status:'APPROVED',issueDate:'2026-09-01',dueDate:'2026-09-30',currency:'SAR',total:'100',amountPaid:'0',lines:[]}}));
   await page.route('**/api/invoices/protected/amendment-policy',r=>r.fulfill({json:{canAmend:false,reason,country:reason==='external_source'?'US':'SA'}}));
   await page.goto('/app/invoices/protected');
-  await expect(page.getByText(reason==='external_source'?'Synchronized from an external source; correct the source and synchronize.':'Issued Saudi e-invoice: use a linked correction note, including before Phase 2 connection.',{exact:true})).toBeVisible();
+  await expect(page.getByText(reason==='external_source'?'Synchronized from an external source; correct the source and synchronize.':'This invoice has an e-invoicing record or the company has a verified Phase 2 connection; use the linked correction flow.',{exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Edit invoice',exact:true})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Void invoice',exact:true})).toHaveCount(0);
 });
@@ -95,4 +95,28 @@ test('linked credit note explains the restriction and opens the original correct
   await expect(page.getByRole('link', { name: 'Open credit note · CN-TEST' })).toHaveAttribute('href', '/app/credit-notes/cn-test');
   await expect(page.getByRole('button', { name: 'Edit invoice', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Void invoice', exact: true })).toHaveCount(0);
+});
+
+for (const lang of ['ar','en'] as const) test(`unconnected Saudi invoice corrects dates without losing notes or failed input (${lang})`, async ({page}) => {
+  await prepareVisualApp(page,lang);
+  const inv:any={id:'sa-date',orgId:'org-visual-system',contactId:'buyer',invoiceNumber:'EN-INV-202610020001',status:'APPROVED',issueDate:'2026-10-02',supplyDate:'2026-08-02',dueDate:'2026-10-02',updatedAt:'2026-10-02T01:00:00.000Z',currency:'SAR',total:'143750',subtotal:'125000',taxTotal:'18750',amountPaid:'0',notes:'Keep original service notes',termsConditions:'Keep original cash terms',lines:[{id:'line',description:'Synthetic service',quantity:1,unitPrice:125000,subtotal:143750}]};
+  let attempts=0;
+  await page.route('**/api/invoices/sa-date',r=>r.fulfill({json:inv}));
+  await page.route('**/api/invoices/sa-date/amendment-policy',r=>r.fulfill({json:{canAmend:true,canVoidAdmin:false,country:'SA',reason:null}}));
+  await page.route('**/api/invoices/sa-date/amend',r=>{
+    const body=r.request().postDataJSON();attempts++;
+    expect(body.issueDate).toBe('2026-08-02');expect(body.supplyDate).toBe('2026-08-02');expect(body.dueDate).toBe('2026-08-02');expect(body.notes).toBe(inv.notes);expect(body.termsConditions).toBe(inv.termsConditions);
+    expect(body).not.toHaveProperty('invoiceNumber');expect(body).not.toHaveProperty('status');
+    if(attempts===1)return r.fulfill({status:503,json:{error:'temporary_failure'}});
+    Object.assign(inv,{issueDate:body.issueDate,supplyDate:body.supplyDate,dueDate:body.dueDate,updatedAt:'2026-10-02T02:00:00.000Z'});return r.fulfill({json:inv});
+  });
+  await page.goto('/app/invoices/sa-date');
+  await page.getByRole('button',{name:lang==='ar'?'تعديل الفاتورة':'Edit invoice',exact:true}).click();
+  const issue=page.getByLabel(lang==='ar'?'تاريخ الإصدار':'Issue date',{exact:true});
+  await issue.fill('2026-08-02');
+  await page.getByLabel(lang==='ar'?'تاريخ الاستحقاق':'Due date',{exact:true}).fill('2026-08-02');
+  await page.getByLabel(lang==='ar'?'سبب التعديل — مطلوب':'Reason for amendment — required',{exact:true}).fill('Owner confirms original invoice date');
+  const save=page.getByRole('button',{name:lang==='ar'?'حفظ التعديل':'Save amendment',exact:true});
+  await save.click();await expect(page.getByRole('alert').filter({hasText:lang==='ar'?'تعذر حفظ التعديل':'Could not save amendment'})).toBeVisible();await expect(issue).toHaveValue('2026-08-02');
+  await save.click();await expect(issue).toHaveCount(0);expect(attempts).toBe(2);expect(inv.invoiceNumber).toBe('EN-INV-202610020001');expect(inv.total).toBe('143750');
 });

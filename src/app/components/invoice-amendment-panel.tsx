@@ -67,26 +67,28 @@ export function InvoiceAmendmentPanel({ invoice, onDone, initialAction }: { invo
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState(invoice.notes || '');
   const [terms, setTerms] = useState(invoice.termsConditions || '');
+  const [issueDate, setIssueDate] = useState(invoice.issueDate?.slice(0, 10) || '');
+  const [supplyDate, setSupplyDate] = useState(invoice.supplyDate?.slice(0, 10) || '');
   const [dueDate, setDueDate] = useState(invoice.dueDate?.slice(0, 10) || '');
   const [lines, setLines] = useState((invoice.lines || []).map(l => ({ id: l.id!, description: l.description, quantity: String(l.quantity), unitPrice: String(l.unitPrice) })));
 
   const reasonText = policy?.reason === 'external_source'
     ? t('متزامنة من مصدر خارجي؛ التصحيح يبدأ من الأصل ثم المزامنة.', 'Synchronized from an external source; correct the source and synchronize.')
     : ['saudi_issued_invoice', 'zatca_record'].includes(policy?.reason || '')
-      ? t('فاتورة فوترة سعودية صادرة: التصحيح بإشعار مرتبط بالأصل، حتى قبل ربط المرحلة الثانية.', 'Issued Saudi e-invoice: use a linked correction note, including before Phase 2 connection.')
+      ? t('للفاتورة سجل فوترة إلكترونية أو للشركة ربط مرحلة ثانية متحقق؛ استخدم مسار التصحيح المرتبط بالأصل.', 'This invoice has an e-invoicing record or the company has a verified Phase 2 connection; use the linked correction flow.')
       : t('يمكن تسجيل التحصيل أو استخدام إشعار تصحيح حسب صلاحياتك وحالة الفاتورة.', 'Record receipts or use a correction note according to your permissions and the invoice state.');
   const save = async () => {
     setBusy(true); setError('');
     try {
-      await api.invoices.amend(invoice.id, { expectedUpdatedAt: invoice.updatedAt!, reason, notes: notes || null, termsConditions: terms || null, dueDate, lines: lines.map(l => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })) });
-      setOpen(false); await onDone();
+      await api.invoices.amend(invoice.id, { expectedUpdatedAt: invoice.updatedAt!, reason, notes: notes || null, termsConditions: terms || null, issueDate, supplyDate: supplyDate || null, dueDate, lines: lines.map(l => ({ ...l, quantity: Number(l.quantity), unitPrice: Number(l.unitPrice) })) });
+      await onDone(); setOpen(false);
     } catch (e) { setError(humanizeError(e, language, { ar: 'تعذر حفظ التعديل', en: 'Could not save amendment' })); }
     finally { setBusy(false); }
   };
   return <section className="rounded-lg border border-border bg-card p-4 space-y-3">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h2 className="font-semibold">{policy?.canAmend ? t('فاتورة أمريكية · تعديل موثّق', 'US invoice · audited amendment') : t('ضوابط الفاتورة', 'Invoice controls')}</h2>
-        <p className="text-sm text-muted-foreground mt-1">{policy?.canAmend ? t('يمكن تعديل الوصف والملاحظات والاستحقاق والكميات والأسعار. تُحفظ النسخة السابقة والسبب، وتُسوّى الفروقات محاسبيًا مع بقاء التحصيل.', 'Edit descriptions, notes, due date, quantities and prices. The previous version and reason are retained; accounting differences are posted while receipts remain intact.') : reasonText}</p></div>
+      <div><h2 className="font-semibold">{policy?.canAmend ? t('تعديل الفاتورة · سجل موثّق', 'Invoice · audited amendment') : t('ضوابط الفاتورة', 'Invoice controls')}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{policy?.canAmend ? t('يمكن تعديل التواريخ والوصف والملاحظات والكميات والأسعار. تُحفظ النسخة السابقة والسبب، وتُسوّى الفروقات محاسبيًا مع بقاء التحصيل.', 'Edit dates, descriptions, notes, quantities and prices. The previous version and reason are retained; accounting differences are posted while receipts remain intact.') : reasonText}</p></div>
       {policy?.canAmend && !open && <Button variant="outline" onClick={() => { setVoidOpen(false); setReason(''); setOpen(true); }}>{t('تعديل الفاتورة', 'Edit invoice')}</Button>}
     </div>
     <InvoiceRestriction policy={policy} />
@@ -96,6 +98,9 @@ export function InvoiceAmendmentPanel({ invoice, onDone, initialAction }: { invo
         <td className="p-2 min-w-64"><Input aria-label={`${t('الوصف', 'Description')} ${index + 1}`} value={l.description} onChange={e => setLines(v => v.map((x, i) => i === index ? { ...x, description: e.target.value } : x))} /></td>
         {(['quantity', 'unitPrice'] as const).map(field => <td key={field} className="p-2 w-32"><Input type="number" min={field === 'quantity' ? 0.001 : 0} step="any" aria-label={`${field === 'quantity' ? t('الكمية', 'Quantity') : t('سعر الوحدة', 'Unit price')} ${index + 1}`} value={l[field]} onChange={e => setLines(v => v.map((x, i) => i === index ? { ...x, [field]: e.target.value } : x))} /></td>)}
       </tr>)}</tbody></table></div>
+      <label className="block text-sm">{t('تاريخ الإصدار', 'Issue date')}<Input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label>
+      <label className="block text-sm">{t('تاريخ التوريد', 'Supply date')}<Input type="date" value={supplyDate} onChange={e => setSupplyDate(e.target.value)} /></label>
+      <p className="text-xs text-muted-foreground">{t('تصحيح تاريخ الإصدار يصحح تاريخ قيد الفاتورة نفسه مع حفظ التاريخ السابق في السجل.', 'Correcting the issue date updates the original invoice journal date and retains the previous date in the audit log.')}</p>
       <label className="block text-sm">{t('تاريخ الاستحقاق', 'Due date')}<Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></label>
       <label className="block text-sm">{t('ملاحظات', 'Notes')}<Textarea value={notes} onChange={e => setNotes(e.target.value)} /></label>
       <label className="block text-sm">{t('الشروط', 'Terms')}<Textarea value={terms} onChange={e => setTerms(e.target.value)} /></label>

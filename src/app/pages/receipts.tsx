@@ -1,3 +1,4 @@
+import { ReceiptAllocationPanel } from '../components/receipt-allocation-panel';
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { displayLocale, displayDigits } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
@@ -43,6 +44,7 @@ export function Receipts() {
   const createParams = new URLSearchParams(location.search);
   const sourceInvoiceId = (location.pathname.endsWith('/new') || createParams.get('new') === '1') ? createParams.get('invoiceId') || '' : '';
   const [sourceInvoice, setSourceInvoice] = useState<any>(null);
+  const [saveError, setSaveError] = useState('');
   const [invoiceError, setInvoiceError] = useState('');
   const [invoiceRetry, setInvoiceRetry] = useState(0);
 
@@ -279,6 +281,7 @@ export function Receipts() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    setSaveError('');
     if (submitLock.current) return;
     if (sourceInvoiceId && (!sourceInvoice || invoiceError || form.invoiceId !== sourceInvoice.id || form.contactId !== sourceInvoice.contactId)) return;
     const parsedDate = new Date(form.date + 'T00:00:00Z');
@@ -386,7 +389,8 @@ export function Receipts() {
       closeCreate();
       refresh();
     } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
+      const message = humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" });
+      setSaveError(message); push("error", message);
     } finally { setBusy(false); submitLock.current = false; }
   };
 
@@ -537,6 +541,7 @@ export function Receipts() {
               {selected.notes && <dd className="col-span-2 border-t border-border pt-2 text-xs text-foreground"><bdi dir="auto">{selected.notes}</bdi></dd>}
             </dl>
 
+            {!selected.invoiceId && <ReceiptAllocationPanel key={selected.id} voucher={selected} onDone={async () => { await refresh(); setSelected(await api.vouchers.get(selected.id)); }} />}
             {/* Attachments */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
@@ -778,6 +783,8 @@ export function Receipts() {
         >
           <div className={editingReceipt && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <form onSubmit={handleSubmit} className="w-full space-y-4">
+            {saveError && <p role="alert" className="rounded border border-danger-border p-3 text-sm text-danger">{saveError}</p>}
+            {editingReceipt && !editingReceipt.invoiceId && <ReceiptAllocationPanel voucher={editingReceipt} onDone={async () => { await refresh(); }} />}
             {sourceInvoiceId && !sourceInvoice && <div role={invoiceError ? 'alert' : 'status'} className="rounded-lg border border-border p-4">
               {invoiceError || t('جارٍ تحميل تفاصيل الفاتورة…', 'Loading invoice details…')}
               {invoiceError && <Button type="button" variant="outline" onClick={() => setInvoiceRetry(n => n + 1)}>{t('إعادة المحاولة', 'Retry')}</Button>}
@@ -841,7 +848,7 @@ export function Receipts() {
 
             {form.contactId && (
               <>
-                {!sourceInvoiceId && <div>
+                {!sourceInvoiceId && !editingReceipt && <div>
                   <Label className="text-xs">{t("الفاتورة المرتبطة (اختياري)", "Linked invoice (optional)")}</Label>
                   <select value={form.invoiceId} onChange={(e) => {
                     const inv = invoices.find((i) => i.id === e.target.value);
@@ -850,8 +857,8 @@ export function Receipts() {
                       ...form,
                       invoiceId: e.target.value,
                       amount: inv ? String(remaining.toFixed(2)) : form.amount,
-                      date: inv?.issueDate ? String(inv.issueDate).slice(0, 10) : form.date,
-                      reference: inv?.invoiceNumber || form.reference,
+                      date: editingReceipt ? form.date : inv?.issueDate ? String(inv.issueDate).slice(0, 10) : form.date,
+                      reference: editingReceipt ? form.reference : inv?.invoiceNumber || form.reference,
                       allocations: [], distributeInvoices: false,
                     });
                   }} className="w-full text-sm rounded border border-border px-3 py-2 bg-card">

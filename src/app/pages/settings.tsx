@@ -1,3 +1,4 @@
+import { BillingAddressPanel } from '../components/billing-address-panel';
 import { displayDigits, displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
@@ -327,6 +328,7 @@ export function Settings() {
         <Card className="border-border">
           <CardHeader><CardTitle className="flex items-center gap-2 text-foreground"><Building2 className="h-5 w-5" /> {t("بيانات الشركة", "Company data")}</CardTitle><CardDescription>{t("الاسم · الرقم الضريبي · العملة · الشعار · الختم · بيانات التواصل", "Name · Tax number · Currency · Logo · Stamp · Contact info")}</CardDescription></CardHeader>
           <CardContent className="space-y-4">
+            {org && <BillingAddressPanel orgId={org.id} />}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>{t("اسم الشركة *", "Company name *")}</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border-border" /></div>
