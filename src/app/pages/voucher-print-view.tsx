@@ -1,4 +1,4 @@
-import { downloadDocumentPdf } from "../lib/document-pdf";
+import { downloadDocumentPdf, type PreparedDocumentPdf } from "../lib/document-pdf";
 import { socialFooterHtml } from "../lib/document-social";
 import { displayLocale } from "../lib/number-display";
 import { getOrgId } from "../lib/api";
@@ -50,6 +50,9 @@ export function VoucherPrintView() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [preparedPdf, setPreparedPdf] = useState<PreparedDocumentPdf | null>(null);
+  useEffect(() => () => { if (preparedPdf) URL.revokeObjectURL(preparedPdf.url); }, [preparedPdf]);
+  useEffect(() => { setPreparedPdf(null); }, [id, searchParams.toString()]);
   const [error, setError] = useState<string | null>(null);
   const [voucher, setVoucher] = useState<Voucher | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
@@ -241,12 +244,13 @@ export function VoucherPrintView() {
       {!embed && <div className="no-print" style={{position:'fixed',bottom:12,left:12,zIndex:100,background:'white',padding:8}}>
         <button type="button" disabled={downloading || !printImages} onClick={async () => {
           const root = document.querySelector<HTMLElement>(".voucher-document"); if (!root) return;
-          setDownloading(true); setDownloadError(null);
-          try { await downloadDocumentPdf(root, ".voucher-page", voucher.number); }
+          setDownloading(true); setDownloadError(null); setPreparedPdf(null);
+          try { await downloadDocumentPdf(root, ".voucher-page", voucher.number, [], setPreparedPdf); }
           catch { setDownloadError("تعذر تنزيل PDF؛ لم يُحفظ ملف مكتمل. / PDF download failed."); }
           finally { setDownloading(false); }
         }}>{downloading ? "…" : "تنزيل PDF · Download PDF"}</button>
         {downloadError && <p role="alert">{downloadError}</p>}
+        {preparedPdf && <p>إذا لم يبدأ التنزيل: <a href={preparedPdf.url} download={preparedPdf.filename}>حفظ ملف PDF · Save PDF file</a></p>}
       </div>}
       <style>{`
         body {

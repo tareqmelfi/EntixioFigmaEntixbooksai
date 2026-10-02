@@ -20,16 +20,21 @@ export function ReceiptAllocationPanel({ voucher, onDone }: { voucher: Voucher; 
   const [ready, setReady] = useState(false);
   const [cancelId, setCancelId] = useState('');
   const [reason, setReason] = useState('');
+  const [snapshotText, setSnapshotText] = useState('');
+  const [snapshotUrl, setSnapshotUrl] = useState('');
   const lock = useRef(false);
   const keys = useRef(new Map<string, string>());
   const reload = async () => {
     setReady(false);
+    setSnapshotText(''); setSnapshotUrl('');
     const [v, list] = await Promise.all([api.vouchers.get(voucher.id), api.invoices.list({ contactId: voucher.contactId!, limit: 200 })]);
     setSaved(v.receiptAllocations || []);
     setInvoices(list.items.filter(i => i.contactId === voucher.contactId && i.currency === voucher.currency && !['DRAFT', 'CANCELLED'].includes(i.status) && Number(i.total) > Number(i.amountPaid)));
     setReady(true);
   };
   useEffect(() => { void reload().catch(e => setError(humanizeError(e, language))); }, [voucher.id]);
+  useEffect(() => { setSnapshotText(''); setSnapshotUrl(''); }, [invoiceId]);
+  useEffect(() => () => { if (snapshotUrl) URL.revokeObjectURL(snapshotUrl); }, [snapshotUrl]);
   if (voucher.invoiceId || !voucher.contactId) return null;
   const available = Number(voucher.amount) - saved.filter(a => !a.cancelledAt).reduce((n, a) => n + Number(a.amount), 0);
   const selected = invoices.find(i => i.id === invoiceId);
@@ -51,10 +56,11 @@ export function ReceiptAllocationPanel({ voucher, onDone }: { voucher: Voucher; 
     setSuccess(t('تم حفظ المطابقة والتحقق منها. لم يُنشأ قبض أو قيد إضافي.', 'Allocation saved and verified. No additional receipt or journal was created.'));
   });
   const snapshot = () => run(async () => {
+    setSnapshotText(''); setSnapshotUrl('');
     const data = await api.vouchers.allocationPreview(voucher.id, invoiceId || saved.find(a => !a.cancelledAt)?.invoiceId || undefined);
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-    const link = document.createElement('a'); link.href = url; link.download = `${voucher.number}-allocation-snapshot.json`; link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const text = JSON.stringify(data, null, 2);
+    setSnapshotText(text);
+    setSnapshotUrl(URL.createObjectURL(new Blob([text], { type: 'application/json' })));
   });
   return <section aria-label={t('مطابقة قبض موجود', 'Apply existing receipt')} className="space-y-3 border-t border-border pt-4">
     <h3 className="font-semibold">{t('مطابقة قبض موجود', 'Apply existing receipt')}</h3>
@@ -74,6 +80,13 @@ export function ReceiptAllocationPanel({ voucher, onDone }: { voucher: Voucher; 
       <Button size="sm" disabled={busy || !ready || !selected || Number(amount) <= 0} onClick={apply}>{t('تطبيق الرصيد الموجود', 'Apply existing balance')}</Button>
     </div>}
     <Button size="sm" variant="outline" disabled={busy} onClick={snapshot}>{t('تنزيل سجل المطابقة', 'Download allocation snapshot')}</Button>
+    {snapshotText && <div className="space-y-2 text-xs">
+      <p>{t('نسخة للقراءة فقط من السند والفاتورة والقيود في وقت جلب السجل.', 'Read-only snapshot of the receipt, invoice and journals at the time it was retrieved.')}</p>
+      <a className="text-primary underline" href={snapshotUrl} download={`${voucher.number}-allocation-snapshot.json`}>{t('حفظ ملف سجل المطابقة', 'Save allocation snapshot file')}</a>
+      <details><summary className="cursor-pointer">{t('عرض بيانات سجل المطابقة', 'View allocation snapshot data')}</summary>
+        <textarea aria-label={t('بيانات سجل المطابقة', 'Allocation snapshot data')} readOnly value={snapshotText} dir="ltr" rows={8} className="w-full rounded border border-border bg-card p-2 font-mono text-xs" />
+      </details>
+    </div>}
     {saved.map(a => <div key={a.id} className="border-t border-border pt-2 text-xs space-y-2">
       <Link className="text-primary underline" to={`/app/invoices/${a.invoiceId}`}>{a.invoice?.invoiceNumber || a.invoiceId}</Link> · <bdi>{Number(a.amount).toFixed(2)} {voucher.currency}</bdi> · <bdi>{a.appliedAt.slice(0, 10)}</bdi>
       {a.cancelledAt ? <span>{t('أُلغيت المطابقة', 'Allocation cancelled')}</span> : cancelId !== a.id ? <Button variant="outline" size="sm" disabled={busy} onClick={() => { setCancelId(a.id); setReason(''); }}>{t('إلغاء المطابقة', 'Cancel allocation')}</Button> : <div className="space-y-2">
