@@ -364,8 +364,8 @@ export function VoucherPrintView() {
                   <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
                   <div style={{ fontSize: 8, color: "#9CA3AF", marginTop: 4, maxWidth: 150, marginInline: "auto", lineHeight: 1.4 }}>
                     {isRtl
-                      ? "رمز بيانات سند القبض؛ لا يثبت إرسالًا أو قبولًا من هيئة الزكاة والضريبة والجمارك."
-                      : "Voucher data QR; it does not prove submission to or acceptance by ZATCA."}
+                      ? "رمز بيانات سند القبض؛ المستند غير مختوم من ZATCA، ولا يثبت إرسالًا أو قبولًا من هيئة الزكاة والضريبة والجمارك."
+                      : "Voucher data QR. This document is not ZATCA-stamped; it does not prove submission to or acceptance by ZATCA."}
                   </div>
                 </>
               ) : (
