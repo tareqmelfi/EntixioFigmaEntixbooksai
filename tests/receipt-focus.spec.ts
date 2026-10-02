@@ -1,9 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 import { prepareVisualApp } from './fixtures/visual-app';
 
-async function setup(page: Page, language: 'ar' | 'en' = 'en') {
+async function setup(page: Page, language: 'ar' | 'en' = 'en', issueDate = '2025-02-05') {
   await prepareVisualApp(page, language);
-  const invoice = { id: 'selected', contactId: 'buyer', contact: { id: 'buyer', displayName: 'Selected buyer' }, invoiceNumber: 'INV-SELECTED', issueDate: '2025-02-05', currency: 'USD', total: 100, amountPaid: 20, status: 'APPROVED', lines: [{ description: 'Selected service', quantity: 2 }] };
+  const invoice = { id: 'selected', contactId: 'buyer', contact: { id: 'buyer', displayName: 'Selected buyer' }, invoiceNumber: 'INV-SELECTED', issueDate, currency: 'USD', total: 100, amountPaid: 20, status: 'APPROVED', lines: [{ description: 'Selected service', quantity: 2 }] };
   const writes: any[] = []; let lists = 0;
   await page.route('**/api/contacts?*', r => r.fulfill({ json: { items: [{ id: 'buyer', displayName: 'Selected buyer' }] } }));
   await page.route('**/api/invoices/selected', r => r.fulfill({ json: invoice }));
@@ -62,4 +62,20 @@ test('missing invoice cannot fall back to an unrelated customer receipt', async 
   await page.goto('/app/receipts?new=1&invoiceId=selected&contactId=wrong&amount=999');
   await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled(); expect(f.writes).toHaveLength(0);
+});
+
+for (const lang of ['ar', 'en'] as const) test(`ten-year-old receipt accepts typed dates and rejects impossible dates (${lang})`, async ({ page }) => {
+  const f = await setup(page, lang, '2016-02-01');
+  await page.goto('/app/receipts?new=1&invoiceId=selected');
+  const date = page.getByLabel(lang === 'ar' ? 'تاريخ الدفعة' : 'Payment date', { exact: false });
+  await expect(date).toHaveValue('01/02/2016');
+  await date.fill('30/02/2016'); await date.press('Tab');
+  await expect(page.getByTestId('date-invalid')).toBeVisible();
+  expect(f.writes).toHaveLength(0);
+  await date.fill(lang === 'ar' ? '٢٩/٠٢/٢٠١٦' : '29/02/2016'); await date.press('Tab');
+  await expect(date).toHaveValue('29/02/2016');
+  await expect(page.getByTestId('date-invalid')).toHaveCount(0);
+  await page.getByRole('button', { name: lang === 'ar' ? 'حفظ' : 'Save', exact: true }).click();
+  await expect.poll(() => f.writes.length).toBe(1);
+  expect(f.writes[0]).toMatchObject({ invoiceId: 'selected', date: '2016-02-29', amount: 80 });
 });

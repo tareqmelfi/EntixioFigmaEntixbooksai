@@ -117,6 +117,6 @@ for (const lang of ['ar','en'] as const) test(`unconnected Saudi invoice correct
   await page.getByLabel(lang==='ar'?'تاريخ الاستحقاق':'Due date',{exact:true}).fill('2026-08-02');
   await page.getByLabel(lang==='ar'?'سبب التعديل — مطلوب':'Reason for amendment — required',{exact:true}).fill('Owner confirms original invoice date');
   const save=page.getByRole('button',{name:lang==='ar'?'حفظ التعديل':'Save amendment',exact:true});
-  await save.click();await expect(page.getByRole('alert').filter({hasText:lang==='ar'?'تعذر حفظ التعديل':'Could not save amendment'})).toBeVisible();await expect(issue).toHaveValue('2026-08-02');
+  await save.click();await expect(page.getByRole('alert').filter({hasText:lang==='ar'?'تعذر حفظ التعديل':'Could not save amendment'})).toBeVisible();await expect(issue).toHaveValue('02/08/2026');
   await save.click();await expect(issue).toHaveCount(0);expect(attempts).toBe(2);expect(inv.invoiceNumber).toBe('EN-INV-202610020001');expect(inv.total).toBe('143750');
 });
