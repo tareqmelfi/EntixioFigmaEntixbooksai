@@ -10,7 +10,7 @@ async function setup(page: any, settings: any = {}) {
   await prepareVisualApp(page, 'ar');
   await page.route('https://api.entix.io/api/reports/income-statement*', (route: any) => route.fulfill({ json: report }));
   await page.route(`https://api.entix.io/orgs/${visualOrgId}`, (route: any) => route.fulfill({ json: { ...report.org, paymentSettings: { reports: settings } } }));
-  await page.goto(`/app/reports/income-statement/print?orgId=${visualOrgId}`);
+  await page.goto(`/app/reports/income-statement/print?orgId=${visualOrgId}&comparison=none`);
   await expect(page.getByTestId('report-output-pages')).toHaveAttribute('data-ready', 'true');
 }
 

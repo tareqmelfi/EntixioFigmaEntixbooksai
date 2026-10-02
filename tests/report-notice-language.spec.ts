@@ -14,7 +14,7 @@ for (const language of ['ar', 'en'] as const) for (const template of ['classic',
       sections: [{ id: 'detail', title: 'بيانات اصطناعية␟Synthetic data', columns: [{ key: 'label', label: 'الحساب␟Account' }, { key: 'amount', label: 'المبلغ␟Amount', kind: 'money' }],
         rows: [{ id: 'one', values: { label: 'خدمات␟Services', amount: 1234.56 } }] }],
     } }));
-    await page.goto(`/print/report/income-statement?orgId=${visualOrgId}`);
+    await page.goto(`/print/report/income-statement?orgId=${visualOrgId}&comparison=none`);
     const output = page.getByTestId('report-output-pages');
     await expect(output).toHaveAttribute('data-ready', 'true');
     await expect(output).toContainText(language === 'ar' ? 'مصدر البيانات: قيود مرحلة' : 'Data source: posted journal entries');

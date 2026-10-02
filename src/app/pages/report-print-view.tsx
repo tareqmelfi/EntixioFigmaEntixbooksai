@@ -1,3 +1,4 @@
+import { compareReport, comparisonMode } from '../lib/report-comparison';
 import { presentReport } from '../lib/report-presentation';
 import { monthlyReport } from '../lib/report-months';
 import { summarizeReport } from "../lib/report-layout";
@@ -27,6 +28,7 @@ export function ReportPrintView() {
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
   const allTime = searchParams.get("allTime") === "1" ? 1 : undefined;
+  const comparison = comparisonMode(searchParams.get("comparison") || (searchParams.has("compareTo") ? "previous_period" : null), id, from, to);
   const compareTo = searchParams.get("compareTo") || undefined;
   const contactId = searchParams.get("contactId") || undefined;
   const branchId = searchParams.get("branchId") || undefined;
@@ -41,9 +43,10 @@ export function ReportPrintView() {
       setLoading(true); setError(null);
       try {
         if (!printOrgId) throw new ApiError(400, t("افتح التقرير من داخل الشركة ثم اختر الطباعة.", "Open the report from your company, then choose Print."));
-        let payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
+        let payload = await api.reports.get(id, { from, to, allTime, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
         if (payload.org.id !== printOrgId) throw new ApiError(409, t("تغيّرت الشركة. أعد فتح التقرير من الشركة المطلوبة.", "Company mismatch. Reopen the report from the intended company."));
         if (monthly) payload = await monthlyReport(payload, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId,projectId,contactId},printOrgId));
+        if (!monthly && !allTime) payload = await compareReport(payload, comparison, period => api.reports.get(id, { ...period, bilingual: 1, branchId, projectId, contactId }, printOrgId));
         const fullOrg = await api.orgs.get(payload.org.id);
         if (!alive) return;
         setReport(payload);
@@ -53,7 +56,7 @@ export function ReportPrintView() {
       } finally { if (alive) setLoading(false); }
     })();
     return () => { alive = false; };
-  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId, monthly]);
+  }, [id, printOrgId, from, to, allTime, compareTo, comparison, branchId, projectId, contactId, monthly]);
 
   const visibleReport = useMemo(() => report ? presentReport(summary ? summarizeReport(report) : report) : report, [report, summary]);
   if (loading) return <div className="flex min-h-dvh items-center justify-center bg-white"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;

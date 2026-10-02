@@ -1,3 +1,5 @@
+import { isComparisonValue } from '../lib/report-comparison';
+import { ReportComparisonValue } from './report-comparison-value';
 import { reportAppearance, reportTheme, reportSign } from '../lib/report-appearance';
 import { reportPaperSize } from '../lib/report-pagination';
 import { ReportEquation } from './report-equation';
@@ -200,7 +202,7 @@ export function ReportDocument({
                           }}
                           title={column.key === "label" ? String(row.values[column.key] ?? row.label) : undefined}
                         >
-                          <CellValue value={typeof row.values[column.key] === "string" ? one(String(row.values[column.key])) : row.values[column.key]} keyName={column.key} kind={column.kind} currency={String(row.values.currency || report.currency)} strong={totalRow} />
+                          {isComparisonValue(row, column.key) ? <ReportComparisonValue row={row} column={column.key} /> : <CellValue value={typeof row.values[column.key] === "string" ? one(String(row.values[column.key])) : row.values[column.key]} keyName={column.key} kind={column.kind} currency={String(row.values.currency || report.currency)} strong={totalRow} />}
                         </td>
                         );
                       })}

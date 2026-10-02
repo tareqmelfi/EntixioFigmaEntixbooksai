@@ -1,3 +1,5 @@
+import { compareReport, type ComparisonMode } from '../lib/report-comparison';
+import { ReportComparisonSelect } from '../components/report-comparison-select';
 import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import { api, type ReportPayload } from '../lib/api';
@@ -24,6 +26,7 @@ export function ManagementReportBook() {
   const [title, setTitle] = useState('');
   const [preparedBy, setPreparedBy] = useState('');
   const [notes, setNotes] = useState('');
+  const [comparison, setComparison] = useState<ComparisonMode>('previous_year');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [edition, setEdition] = useState<{ reports: ReportPayload[]; title: string; preparedBy: string; notes: string } | null>(null);
@@ -43,7 +46,7 @@ export function ManagementReportBook() {
       const reports = await Promise.all(chapters.filter(c => selected.includes(c[0])).map(async ([id]) => {
         const report = await api.reports.get(id, { from, to, bilingual: 1 }, scope);
         if (report.org.id !== scope || report.id !== id) throw new Error('scope_mismatch');
-        return report;
+        return compareReport(report, comparison, period => api.reports.get(id, { ...period, bilingual: 1 }, scope));
       }));
       if (revision !== request.current) return;
       if (readTabOrgId() !== scope) throw new Error('scope_changed');
@@ -63,6 +66,7 @@ export function ManagementReportBook() {
         <label className="space-y-1 text-sm">{t('من تاريخ', 'From date')}<DateInput value={from} onChange={value => { invalidate(); setFrom(value); }} /></label>
         <label className="space-y-1 text-sm">{t('إلى تاريخ', 'To date')}<DateInput value={to} onChange={value => { invalidate(); setTo(value); }} /></label>
       </div>
+      <ReportComparisonSelect value={comparison} onChange={value => { invalidate(); setComparison(value); }} />
       <fieldset><legend className="mb-2 text-sm font-semibold">{t('فصول الملف', 'Report chapters')}</legend><div className="flex flex-wrap gap-x-6 gap-y-3">{chapters.map(([id, ar, en]) => <label key={id} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={selected.includes(id)} onChange={e => { invalidate(); setSelected(old => e.target.checked ? [...old, id] : old.filter(x => x !== id)); }} />{t(ar, en)}</label>)}</div></fieldset>
       <label className="block space-y-1 text-sm">{t('ملاحظات معدّ التقرير والتحليل (اختياري)', 'Author commentary and analysis (optional)')}
         <textarea rows={3} maxLength={6000} className="block w-full rounded-lg border border-border bg-background p-3" value={notes} onChange={e => { invalidate(); setNotes(e.target.value); }} placeholder={t('اكتب تفسير النتائج والتوصيات. ستظهر باسم ملاحظات معدّ التقرير.', 'Add your interpretation and recommendations. These are identified as author commentary.')} />

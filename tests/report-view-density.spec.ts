@@ -50,7 +50,7 @@ const reportPayload = {
 
 test('income statement opens FULLY EXPANDED with readable totals; ملخص فقط collapses the account tree', async ({ page }) => {
   await prepareVisualApp(page, 'ar')
-  await page.route('https://api.entix.io/api/reports/income-statement*', (route) => route.fulfill({ json: reportPayload }))
+  await page.route('https://api.entix.io/api/reports/income-statement*', (route) => { const q = new URL(route.request().url()).searchParams; return route.fulfill({ json: { ...reportPayload, period: { from: q.get('from') || reportPayload.period.from, to: q.get('to') || reportPayload.period.to } } }); })
 
   await page.goto('/app/reports/income-statement')
 

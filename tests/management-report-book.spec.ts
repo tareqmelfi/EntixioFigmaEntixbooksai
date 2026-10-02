@@ -22,6 +22,8 @@ async function setup(page: import('@playwright/test').Page, language: 'ar' | 'en
     } });
   });
   await page.goto('/app/reports/management-pdf');
+  // These chapter/cover tests retain the un-compared book; comparison has its own end-to-end tests.
+  await page.getByLabel(language === 'ar' ? 'فترة المقارنة' : 'Comparison period', { exact: true }).selectOption('none');
 }
 
 for (const language of ['ar', 'en'] as const) {
