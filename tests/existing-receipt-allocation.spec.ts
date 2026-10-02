@@ -1,5 +1,33 @@
 import { test, expect } from '@playwright/test';
 import { prepareVisualApp, visualOrgId } from './fixtures/visual-app';
+import { readFile } from 'node:fs/promises';
+
+for (const language of ['ar','en'] as const) test(`receipt snapshot can be reviewed and explicitly downloaded; a failed refresh removes stale data (${language})`, async ({page},info) => {
+  await prepareVisualApp(page,language);
+  const invoice={id:'snapshot-invoice',orgId:visualOrgId,contactId:'buyer',invoiceNumber:'INV-SNAPSHOT',status:'APPROVED',issueDate:'2026-10-02',currency:'USD',total:100,amountPaid:0};
+  const voucher={id:'snapshot-receipt',orgId:visualOrgId,contactId:'buyer',type:'RECEIPT',number:'R-SNAPSHOT',date:'2026-08-02',amount:100,currency:'USD',receiptAllocations:[]};
+  const snapshot={organization:{id:visualOrgId},voucher,invoice,journals:[{id:'original-journal'}],capturedAt:'2026-10-02T10:00:00Z'};
+  let fail=false;
+  await page.route('**/api/invoices?*',r=>r.fulfill({json:{items:[invoice]}}));
+  await page.route('**/api/vouchers?*',r=>r.fulfill({json:{items:[voucher],summary:{sumAmount:100,avgAmount:100}}}));
+  await page.route('**/api/vouchers/snapshot-receipt',r=>r.fulfill({json:voucher}));
+  await page.route('**/api/vouchers/snapshot-receipt/attachments',r=>r.fulfill({json:{items:[]}}));
+  await page.route('**/api/vouchers/snapshot-receipt/allocation-preview?*',r=>fail ? r.fulfill({status:503,json:{error:'temporary_failure'}}) : r.fulfill({json:snapshot}));
+  await page.goto('/app/receipts/snapshot-receipt');
+  const panel=page.getByRole('region',{name:language==='ar'?'مطابقة قبض موجود':'Apply existing receipt'});
+  await panel.getByRole('combobox').selectOption('snapshot-invoice');
+  const fetch=panel.getByRole('button',{name:language==='ar'?'تنزيل سجل المطابقة':'Download allocation snapshot'});
+  await fetch.click();
+  const link=panel.getByRole('link',{name:language==='ar'?'حفظ ملف سجل المطابقة':'Save allocation snapshot file'});
+  await expect(link).toBeVisible();
+  await panel.locator('summary').click();
+  await expect(panel.getByRole('textbox',{name:language==='ar'?'بيانات سجل المطابقة':'Allocation snapshot data'})).toHaveValue(JSON.stringify(snapshot,null,2));
+  const download=page.waitForEvent('download');await link.click();
+  const file=await download;const path=info.outputPath('receipt-snapshot.json');await file.saveAs(path);
+  expect(JSON.parse(await readFile(path,'utf8'))).toEqual(snapshot);
+  fail=true;await fetch.click();await expect(panel.getByRole('alert')).toBeVisible();await expect(link).toHaveCount(0);
+  await expect(panel.getByRole('textbox',{name:language==='ar'?'بيانات سجل المطابقة':'Allocation snapshot data'})).toHaveCount(0);
+});
 
 test('existing receipt keeps its date, retains failed input, retries once and prints its allocation', async ({page},info) => {
   await prepareVisualApp(page,'en');
