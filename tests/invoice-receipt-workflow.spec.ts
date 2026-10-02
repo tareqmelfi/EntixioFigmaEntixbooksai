@@ -27,10 +27,11 @@ test('draft receipt asks for explicit approval, then safely retries payment with
 test('paid invoice preview opens without print dialog and downloads a real PDF with settlement',async({page},info)=>{
   await prepareVisualApp(page,'ar');
   await page.addInitScript(()=>{(window as any).printCalls=0;window.print=()=>{(window as any).printCalls++}});
-  const inv={id:'paid-print',orgId:visualOrgId,invoiceNumber:'EN-INV-202610020002',status:'PAID',issueDate:'2026-10-01',dueDate:'2026-10-30',currency:'USD',total:100,subtotal:100,taxTotal:0,amountPaid:100,receipts:[{number:'R-0001',date:'2026-10-02',amount:100,currency:'USD'}],lines:[{description:'خدمات الاختبار',quantity:1,unitPrice:100,subtotal:100}]};
+  const inv={id:'paid-print',orgId:visualOrgId,invoiceNumber:'EN-INV-202610020002',status:'PAID',issueDate:'2026-10-01',dueDate:'2026-10-30',currency:'USD',total:100,subtotal:100,taxTotal:0,amountPaid:100,receipts:[{id:'bundle-receipt',number:'R-0001',date:'2026-10-02',amount:100,currency:'USD'}],lines:[{description:'خدمات الاختبار',quantity:1,unitPrice:100,subtotal:100}]};
   await page.route('**/api/invoices/paid-print',r=>r.fulfill({json:inv}));
   await page.route(`**/orgs/${visualOrgId}`,r=>r.fulfill({json:{id:visualOrgId,name:'شركة اختبار',country:'US',baseCurrency:'USD'}}));
   await page.route('**/api/document-templates/defaults',r=>r.fulfill({json:{}}));
+  await page.route('**/api/vouchers/bundle-receipt',r=>{ expect(r.request().headers()['x-org-id']).toBe(visualOrgId); return r.fulfill({json:{id:'bundle-receipt',orgId:visualOrgId,number:'R-0001',type:'RECEIPT',date:'2026-10-02',currency:'USD',amount:100,paymentMethod:'CASH'}}); });
   await page.goto('/print/invoice/paid-print?lang=ar');
   await expect(page.locator('.totals')).toContainText('مدفوعة بالكامل');await expect(page.locator('.totals')).toContainText('R-0001');
   expect(await page.evaluate(()=>(window as any).printCalls)).toBe(0);
@@ -38,6 +39,8 @@ test('paid invoice preview opens without print dialog and downloads a real PDF w
   const file=await download;await file.saveAs(info.outputPath('paid-invoice.pdf'));
   const fs=await import('node:fs/promises');const bytes=await fs.readFile(info.outputPath('paid-invoice.pdf'));expect(bytes.subarray(0,5).toString()).toBe('%PDF-');expect(bytes.length).toBeGreaterThan(10000);
   await page.screenshot({path:info.outputPath('paid-invoice.png'),fullPage:true});
+  const bundleDownload=page.waitForEvent('download'); await page.getByRole('button',{name:'الفاتورة والسندات PDF · Invoice + receipts PDF',exact:true}).click();const bundle=await bundleDownload;await bundle.saveAs(info.outputPath('invoice-with-receipt.pdf'));
+  expect(await page.evaluate(()=>(window as any).printCalls)).toBe(0);
 });
 
 test('receipt PDF is available without VAT or QR and never auto-prints', async ({page},info)=>{

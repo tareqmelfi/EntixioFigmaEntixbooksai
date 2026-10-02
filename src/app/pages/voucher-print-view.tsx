@@ -64,11 +64,13 @@ export function VoucherPrintView() {
         // Standalone route (outside AuthGuard — fresh JS context has orgId
         // null, so every call would 400 "missing X-Org-Id header"). Adopt the
         // stored org id first; retry across memberships if it wasn't the doc's.
-        bootstrapOrgIdFromStorage();
+        const requestedOrg = searchParams.get("orgId");
+        if (requestedOrg) setOrgId(requestedOrg, false); else bootstrapOrgIdFromStorage();
         let row: Voucher | null = null;
         try {
           row = await api.vouchers.get(id);
-        } catch {
+        } catch (error) {
+          if (requestedOrg) throw error;
           const meRes = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/me`, { credentials: "include" });
           const me = meRes.ok ? await meRes.json() : null;
           for (const m of me?.memberships || []) {
@@ -269,7 +271,7 @@ export function VoucherPrintView() {
         ${embed ? ".voucher-page{ margin:8px auto !important; zoom:0.78; box-shadow:none !important; } body{ background:white; }" : ""}
       `}</style>
 
-      <div className="voucher-document" dir={isRtl ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontSize: 13, lineHeight: 1.5 }}>
+      <div className="voucher-document" data-document-ready={!!printImages} dir={isRtl ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontSize: 13, lineHeight: 1.5 }}>
         <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: embed ? "none" : "flex", gap: 8 }}>
           <button
             onClick={() => window.print()}

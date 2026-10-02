@@ -1,4 +1,4 @@
-import { downloadDocumentPdf } from "../lib/document-pdf";
+import { downloadDocumentPdf, loadReceiptPdfFrame } from "../lib/document-pdf";
 import { resolveDocumentLanguage } from "../lib/document-language";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
@@ -46,11 +46,13 @@ export function InvoicePrintView() {
         // editor's preview iframe with a fresh JS context where orgId is null).
         // Adopt the stored org id first, otherwise every call 400s with
         // "missing X-Org-Id header" and the pane shows "Invoice unavailable".
-        bootstrapOrgIdFromStorage();
+        const requestedOrg = searchParams.get("orgId");
+        if (requestedOrg) setOrgId(requestedOrg, false); else bootstrapOrgIdFromStorage();
         let inv: Invoice | null = null;
         try {
           inv = await api.invoices.get(id);
-        } catch {
+        } catch (error) {
+          if (requestedOrg) throw error;
           // The stored org may not be the invoice's org (e.g. shared print
           // link opened while another org is active). The server enforces
           // membership on every attempt, so walking the user's own
@@ -232,6 +234,16 @@ export function InvoicePrintView() {
           catch { setDownloadError("تعذر تنزيل PDF؛ لم يُحفظ ملف مكتمل. / PDF download failed."); }
           finally { setDownloading(false); }
         }}>{downloading ? "…" : "تنزيل PDF · Download PDF"}</button>
+        {!!invoice.receipts?.length && <button type="button" disabled={downloading || !printImages || !tplReady} onClick={async () => {
+          const root = document.querySelector<HTMLElement>(".edoc"); if (!root) return;
+          setDownloading(true); setDownloadError(null);
+          const frames: Awaited<ReturnType<typeof loadReceiptPdfFrame>>[] = [];
+          try {
+            for (const receipt of invoice.receipts || []) frames.push(await loadReceiptPdfFrame(receipt.id, org.id, langOverride || "ar"));
+            await downloadDocumentPdf(root, ".sheet", `${invoice.invoiceNumber}-with-receipts`, frames);
+          } catch { setDownloadError("تعذر تنزيل الحزمة كاملة؛ أعد المحاولة. / Complete bundle download failed."); }
+          finally { frames.forEach(frame => frame.dispose()); setDownloading(false); }
+        }}>الفاتورة والسندات PDF · Invoice + receipts PDF</button>}
         {downloadError && <p role="alert">{downloadError}</p>}
       </div>}
       <style>{`
