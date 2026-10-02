@@ -16,7 +16,6 @@ import {
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { enhanceReceiptImage } from "../lib/receipt-enhance";
 import { api } from "../lib/api";
 import {
   buildDuplicateDecision,
@@ -30,7 +29,6 @@ import { useLanguage } from "../components/LanguageContext";
 
 const INBOUND_DOMAINS = ["in.entix.io", "bill.entix.io"] as const; // receive-only subdomains · apex mail stays on Google Workspace
 const DEFAULT_INBOUND_DOMAIN = "in.entix.io";
-const MAX_FILE_BYTES = 10 * 1024 * 1024; // vision models struggle beyond this
 const MAX_BATCH_FILES = 50; // matches the API batch ceiling
 const EXTRACT_CONCURRENCY = 2;
 
@@ -49,9 +47,8 @@ type ReceiptJob = {
   fileName: string;
   mimeType: string;
   fileBase64: string;
-  /** untouched original capture (kept when fileBase64 holds the AI-enhanced copy) */
-  originalBase64?: string;
-  originalMimeType?: string;
+  sourceFile: File;
+  orgId: string | null;
   sizeBytes: number;
   status: JobStatus;
   error?: string | null;
@@ -239,8 +236,15 @@ export function ScanReceipts() {
     const job = jobsRef.current.get(id);
     if (!job) return;
     try {
+      if (job.orgId !== getOrgId()) throw new Error(t("ارجع للشركة التي رفعت الملف فيها ثم أعد المحاولة", "Return to the company where this file was uploaded, then retry"));
+      // Prepare inside the bounded queue, not 50 FileReaders at once. The server
+      // normalizes images; send the original so dedupe and the saved attachment agree.
+      const fileBase64 = job.fileBase64 || await fileToBase64(job.sourceFile);
+      if (!jobsRef.current.has(id)) return;
+      if (job.orgId !== getOrgId()) throw new Error(t("ارجع للشركة التي رفعت الملف فيها ثم أعد المحاولة", "Return to the company where this file was uploaded, then retry"));
+      patchJob(id, { fileBase64 });
       const result = await api.agent.extractDocument({
-        fileBase64: job.fileBase64,
+        fileBase64,
         fileName: job.fileName,
         mimeType: job.mimeType,
         target: "expense",
@@ -276,7 +280,7 @@ export function ScanReceipts() {
     } catch (e: any) {
       patchJob(id, {
         status: "error",
-        error: e?.message || t("فشل التحليل", "Analysis failed"),
+        error: t(e?.messageAr || e?.body?.message || e?.detail || e?.message || "فشل التحليل", e?.body?.message || e?.detail || e?.message || "Analysis failed"),
       });
     }
   };
@@ -307,42 +311,18 @@ export function ScanReceipts() {
     for (const file of capped) {
       const id = nextJobId();
       const mime = file.type || "application/octet-stream";
-      if (file.size > MAX_FILE_BYTES) {
-        const job: ReceiptJob = {
-          id, fileName: file.name, mimeType: mime, fileBase64: "", sizeBytes: file.size,
-          status: "error", error: t("الملف أكبر من 10MB", "File is larger than 10MB"),
-          currency: "SAR", lineCount: 0, subtotal: null, tax: null, total: null,
-          confidence: null, warnings: [], excluded: false, expanded: false,
-        };
-        jobsRef.current.set(id, job);
-        continue;
-      }
       const job: ReceiptJob = {
-        id, fileName: file.name, mimeType: mime, fileBase64: "", sizeBytes: file.size,
+        id, fileName: file.name, mimeType: mime, fileBase64: "", sizeBytes: file.size, sourceFile: file, orgId: getOrgId(),
         status: "analyzing", currency: "SAR", lineCount: 0,
         subtotal: null, tax: null, total: null, confidence: null,
         warnings: [], excluded: false, expanded: false,
       };
       jobsRef.current.set(id, job);
       newIds.push(id);
-      // Enhance phone-captured photos (contrast stretch + downscale) before AI extraction;
-      // the untouched original is kept alongside for the attachments bundle.
-      (async () => {
-        const original = await fileToBase64(file);
-        const enhanced = await enhanceReceiptImage(file);
-        if (enhanced) {
-          patchJob(id, { fileBase64: enhanced.base64, mimeType: enhanced.mimeType, originalBase64: original, originalMimeType: mime });
-        } else {
-          patchJob(id, { fileBase64: original });
-        }
-      })()
-        .then(() => {
-          queueRef.current.push(id);
-          pumpQueue();
-        })
-        .catch(() => patchJob(id, { status: "error", error: t("تعذّرت قراءة الملف", "Could not read the file") }));
+      queueRef.current.push(id);
     }
     setJobs(Array.from(jobsRef.current.values()));
+    pumpQueue();
     if (newIds.length) {
       push("success", t(
         `أُضيف ${newIds.length} ملف — التحليل جارٍ…`,
@@ -378,6 +358,10 @@ export function ScanReceipts() {
   const recordJob = async (job: ReceiptJob, allowDuplicate = false, duplicateDecision?: DuplicateDecision): Promise<boolean> => {
     const result = job.result;
     if (!result) return false;
+    if (job.orgId !== getOrgId()) {
+      push("error", t("ارجع للشركة التي رفعت الملف فيها قبل التسجيل", "Return to the company where this file was uploaded before recording"));
+      return false;
+    }
     if (job.total == null || job.total <= 0) {
       patchJob(job.id, { status: "failed", error: t("المبلغ غير مقروء — افتحه في النموذج اليدوي", "Amount not readable — open it in the manual form") });
       return false;
@@ -434,9 +418,6 @@ export function ScanReceipts() {
         paymentSplits: payments.length ? (payments as any) : null,
         attachments: [
           { name: job.fileName, contentType: job.mimeType, base64: job.fileBase64, sizeBytes: job.sizeBytes },
-          ...(job.originalBase64
-            ? [{ name: `original-${job.fileName}`, contentType: job.originalMimeType || job.mimeType, base64: job.originalBase64, sizeBytes: job.sizeBytes }]
-            : []),
         ],
         sourceFileHash: result?.sourceFileHash || null,
         extractedJson: result,
@@ -629,7 +610,6 @@ export function ScanReceipts() {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf,text/csv"
           multiple
           className="hidden"
           onChange={(e) => handleFilePick(e.target.files)}
@@ -652,7 +632,7 @@ export function ScanReceipts() {
               </div>
               <h3 className="text-foreground" style={{ fontWeight: 700 }}>{t("رفع من الكمبيوتر", "Upload from computer")}</h3>
               <p className="text-xs text-muted-foreground mt-2 leading-5">
-                {t("اختر عدة ملفات أو اسحبها هنا · PNG/JPG/WEBP · PDF · CSV", "Choose several files or drag them here · PNG/JPG/WEBP · PDF · CSV")}
+                {t("اختر عدة ملفات أو اسحبها هنا · PDF · الصور · Excel · Word · النصوص", "Choose files or drag them here · PDF · images · Excel · Word · text")}
               </p>
               <span className="inline-block mt-3 text-[10px] px-2 py-0.5 rounded bg-success-subtle text-success font-semibold">{t("موصى به · دفعات", "Recommended · batch")}</span>
             </CardContent>
@@ -872,6 +852,15 @@ export function ScanReceipts() {
                               {job.expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                             </button>
                           </>
+                        )}
+                        {job.status === "error" && (
+                          <button onClick={() => {
+                            patchJob(job.id, { status: "analyzing", error: null });
+                            queueRef.current.push(job.id);
+                            pumpQueue();
+                          }} className="px-2.5 py-1.5 rounded-md border border-border text-xs hover:bg-muted/50">
+                            {t("إعادة المحاولة", "Retry extraction")}
+                          </button>
                         )}
                         {job.status === "duplicate" && (
                           <button
@@ -1095,8 +1084,8 @@ export function ScanReceipts() {
                 { q: t("ماذا لو الإيصال باسم شركة أخرى؟", "What if a receipt is billed to another company?"), a: t("ينبّهك النظام بشريط أصفر قبل التسجيل · راجع الصف وأكّده فقط إن كان فعلاً مصروف شركتك.", "The system warns you with an amber banner before recording · review the row and confirm only if it really is your company's expense.") },
                 { q: t("أيش نوع الإيصالات؟", "What kind of receipts?"), a: t("فواتير الموردين · إيصالات المتاجر · فواتير AWS واشتراكات البرامج · بالدولار أو الريال أو أي عملة.", "Supplier invoices · store receipts · AWS and software subscription bills · in USD, SAR, or any currency.") },
                 { q: t("كم تستغرق المعالجة؟", "How long does processing take?"), a: t("ثوانٍ لكل ملف داخل الصفحة · وبالإيميل 5-15 دقيقة ليظهر في صندوق الوارد.", "Seconds per file on this page · by email 5-15 minutes to appear in the Inbox.") },
-                { q: t("صيغ الملفات المدعومة؟", "Supported file formats?"), a: t("PDF · JPG · PNG · WEBP · CSV · حد أقصى 10 ميجا لكل ملف.", "PDF · JPG · PNG · WEBP · CSV · 10MB maximum per file.") },
-                { q: t("إيصالي ما اتقرى · إيش السبب؟", "My receipt was not read · why?"), a: t("تأكد إنه واضح وغير ملطّخ · والحجم تحت 10MB · أو افتحه في نموذج المصروف وسجّله يدوياً.", "Make sure it is clear and not smudged · and under 10MB · or open it in the expense form and record it manually.") },
+                { q: t("صيغ الملفات المدعومة؟", "Supported file formats?"), a: t("PDF والصور بما فيها HEIC وTIFF، وExcel وWord النصي وCSV والملفات النصية. الملفات الكبيرة تُجهّز للقراءة مع الاحتفاظ بالأصل.", "PDF, images including HEIC and TIFF, Excel, text-based Word, CSV and text files. Large files are prepared for extraction while preserving the original.") },
+                { q: t("إيصالي ما اتقرى · إيش السبب؟", "My receipt was not read · why?"), a: t("أعد المحاولة من نفس الصف. الملف التالف أو المشفر أو الصيغة غير القابلة للقراءة تحتاج نسخة قابلة للفتح؛ يظهر السبب دون تسجيل مصروف ناقص.", "Retry from the same row. Damaged, encrypted or unreadable formats need a readable copy; the reason is shown without recording an incomplete expense.") },
               ].map((f, i) => (
                 <div key={i} className="border-b border-border/50 pb-3 last:border-0">
                   <div className="text-foreground font-semibold mb-1">{f.q}</div>
