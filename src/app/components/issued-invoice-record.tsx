@@ -23,7 +23,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
   initialAction?: InvoiceAction;
   invoice: Invoice; onClose: () => void; onRefresh: () => Promise<void>; onPayment: () => void;
   /** Chart of accounts · enables the limited post-issue reclassification. */
-  accounts?: Array<{ id: string; code?: string | null; name: string; type?: string }>;
+  accounts?: Array<{ id: string; code?: string | null; name: string; nameAr?: string | null; type?: string }>;
   /** «إرسال» — opens the compose page (never fires an email directly, UX-1).
    *  Pass a past DocumentSendRecord to prefill the page from «إعادة الإرسال». */
   onSend?: (prefill?: DocumentSendRecord) => void;

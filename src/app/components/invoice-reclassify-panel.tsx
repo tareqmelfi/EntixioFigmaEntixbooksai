@@ -20,8 +20,9 @@ import { Button } from "./ui/button";
 import { SearchableCombobox } from "./searchable-combobox";
 import { api, ApiError, type Invoice } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
+import { displayName } from "../lib/display-name";
 
-type AccountOption = { id: string; code?: string | null; name: string; type?: string };
+type AccountOption = { id: string; code?: string | null; name: string; nameAr?: string | null; type?: string };
 
 export function InvoiceReclassifyPanel({
   invoice, accounts, onDone,
@@ -30,7 +31,7 @@ export function InvoiceReclassifyPanel({
   accounts: AccountOption[];
   onDone: () => Promise<void> | void;
 }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +116,7 @@ export function InvoiceReclassifyPanel({
                   <SearchableCombobox
                     value={choice[l.id] ?? (l.accountId || "")}
                     onChange={(id) => setChoice((prev) => ({ ...prev, [l.id]: id }))}
-                    items={revenue.map((a) => ({ id: a.id, label: a.name, sublabel: a.code || undefined }))}
+                    items={revenue.map((a) => ({ id: a.id, label: displayName(a, language), sublabel: a.code || undefined }))}
                     placeholder={t("اختر حساباً", "Choose an account")}
                   />
                 </td>

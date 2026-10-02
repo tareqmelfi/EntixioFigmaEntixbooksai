@@ -1,3 +1,4 @@
+import { displayName } from "../lib/display-name";
 import { ExpenseReviewForm } from "../components/expense-review-form";
 import { PurchaseNotesPanel } from "../components/purchase-notes-panel";
 import { roundDocumentMoney } from "../lib/document-money";
@@ -736,10 +737,10 @@ export function Expenses() {
   formDataRef.current = formData;
   const expenseAccountItems = accounts
     .filter((a) => ["EXPENSE", "ASSET"].includes(a.type) && a.isActive !== false)
-    .map((a) => ({ id: a.id, label: `${a.code} · ${a.nameAr || a.name}`, sublabel: a.subtype || undefined }));
+    .map((a) => ({ id: a.id, label: `${a.code} · ${displayName(a, language)}`, sublabel: a.subtype || undefined }));
   const accountLabel = (id?: string | null) => {
     const a = accounts.find((x) => x.id === id);
-    return a ? `${a.code} · ${a.nameAr || a.name}` : "";
+    return a ? `${a.code} · ${displayName(a, language)}` : "";
   };
   useEffect(() => {
     if (!createOpen || expenseAccountItems.length === 0) return;
@@ -1635,7 +1636,7 @@ export function Expenses() {
                         .filter((a) => a.type === "ASSET")
                         .map((a) => ({
                           id: a.id,
-                          label: `${a.code} · ${a.nameAr || a.name}`,
+                          label: `${a.code} · ${displayName(a, language)}`,
                           sublabel: /fixed|intangible/i.test(a.subtype || "") ? t("فرع الأصول الثابتة", "fixed-asset branch") : (a.subtype || undefined),
                         }))}
                       placeholder={t("حساب الأصل من الشجرة (اختياري)...", "Asset account from the chart (optional)...")}
@@ -2188,7 +2189,7 @@ export function Expenses() {
                       {lineItems.map((line, idx) => (
                         <TableRow key={idx} className="h-11 hover:bg-transparent">
                           <TableCell className="align-middle overflow-hidden"><span className="block truncate" title={line.description}><bdi dir="auto">{line.description}</bdi></span></TableCell>
-                          <TableCell className="align-middle overflow-hidden text-xs text-content-secondary"><span className="block truncate"><bdi dir="auto">{line.accountName || (() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${account.nameAr || account.name}` : line.category || "—"; })()}</bdi></span></TableCell>
+                          <TableCell className="align-middle overflow-hidden text-xs text-content-secondary"><span className="block truncate"><bdi dir="auto">{(() => { const account = accounts.find(a => a.id === line.accountId); return account ? `${account.code} · ${displayName(account, language)}` : line.accountName || line.category || "—"; })()}</bdi></span></TableCell>
                           <TableCell className="text-start align-middle"><span dir="ltr" className="font-english tabular-nums">{line.quantity || 1}</span></TableCell>
                           <TableCell className="text-start align-middle"><span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-english tabular-nums">{money2(line.unitPrice || 0, selected.currency)}</span></TableCell>
                           <TableCell className="text-start align-middle"><span dir="ltr" className="whitespace-nowrap font-english tabular-nums">{line.taxRate != null ? `${Number(line.taxRate) * 100}%` : "—"}</span></TableCell>

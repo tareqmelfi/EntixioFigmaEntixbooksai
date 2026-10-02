@@ -1,3 +1,4 @@
+import { displayName } from "../lib/display-name";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { PurchaseNotesPanel } from "../components/purchase-notes-panel";
 import { JournalPurchaseIntake } from "../components/journal-purchase-intake";
@@ -278,8 +279,8 @@ export function PurchaseBills() {
   const clearingAccounts = accounts.filter((a: any) => a.subtype === "payment-clearing" || CLEARING_ACCOUNT_KEYWORDS.some(k => (a.name + " " + (a.nameAr || "")).toLowerCase().includes(k.toLowerCase())));
   const regularAccounts = accounts.filter((a: any) => !clearingAccounts.includes(a));
   const splitAccountOptions = (method: string) => {
-    const regular = regularAccounts.map((a: any) => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.type }));
-    if (method === "CLEARING") return clearingAccounts.map((a: any) => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.type }));
+    const regular = regularAccounts.map((a: any) => ({ id: a.id, label: `${a.code} · ${displayName(a, language)}`, sublabel: a.type }));
+    if (method === "CLEARING") return clearingAccounts.map((a: any) => ({ id: a.id, label: `${a.code} · ${displayName(a, language)}`, sublabel: a.type }));
     return [...regular, ...bankAccounts.map((b: any) => ({ id: b.id, label: `${b.name} · ${b.accountNumber || ""}`, sublabel: "bank" }))];
   };
 
@@ -632,7 +633,7 @@ export function PurchaseBills() {
                 taxRate: normalizeTaxRate(p.taxRate, 0.15).rate, taxInclusive: !!p.taxInclusive,
                 accountId: p.expenseAccountId || p.revenueAccountId,
               }))}
-              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: a.name, type: a.type, subtype: a.subtype }))}
+              accounts={accounts.map((a: any) => ({ id: a.id, code: a.code, name: displayName(a, language), type: a.type, subtype: a.subtype }))}
               onCreateProduct={async (name) => {
                 const p = await (api as any).products.create({ code: `P-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, sellPrice: 0, kind: "GOOD", isActive: true });
                 setProducts((prev) => [p, ...prev]);
@@ -641,7 +642,7 @@ export function PurchaseBills() {
               onCreateAccount={async (name) => {
                 const a = await (api as any).accounts.create({ code: `EXP-${Date.now().toString(36).slice(-4).toUpperCase()}`, name, type: "EXPENSE" });
                 setAccounts((prev) => [a, ...prev]);
-                return { id: a.id, code: a.code, name: a.name, type: a.type };
+                return { id: a.id, code: a.code, name: displayName(a, language), type: a.type };
               }}
             />
 
