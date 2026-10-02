@@ -11,6 +11,7 @@ export type DuplicateDecisionAction = 'USE_EXISTING' | 'UPDATE_DRAFT' | 'CREATE_
 
 export interface SimilarityReview {
   candidate: { entityType: 'Bill' | 'Expense'; id: string; status?: string | null }
+  crossPurchase?: boolean
   tier: string
   matchedSignals: string[]
   differingSignals: string[]
