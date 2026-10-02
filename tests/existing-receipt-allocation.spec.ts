@@ -58,9 +58,11 @@ test('existing receipt keeps its date, retains failed input, retries once and pr
   await page.goto('/print/voucher/existing-receipt?lang=en');
   await expect(page.locator('.voucher-document')).toContainText('INV-EXISTING');await expect(page.locator('.voucher-document')).toContainText('2026-08-02');
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'تنزيل PDF · Download PDF'}).click();await (await download).saveAs(info.outputPath('allocated-receipt.pdf'));
+  const explicit=page.waitForEvent('download');await page.getByRole('link',{name:'حفظ ملف PDF · Save PDF file'}).click();await (await explicit).saveAs(info.outputPath('allocated-receipt-explicit.pdf'));
+  expect((await readFile(info.outputPath('allocated-receipt-explicit.pdf'))).equals(await readFile(info.outputPath('allocated-receipt.pdf')))).toBe(true);
 });
 
-test('draft invoice visibly differs from approved invoice on every sheet',async({page})=>{
+test('draft invoice visibly differs from approved invoice on every sheet',async({page},info)=>{
   await prepareVisualApp(page,'ar');
   let status='DRAFT';
   await page.route('**/api/invoices/draft-label',r=>r.fulfill({json:{id:'draft-label',orgId:visualOrgId,invoiceNumber:'INV-DRAFT',status,issueDate:'2026-10-02',currency:'USD',total:100,subtotal:100,taxTotal:0,amountPaid:0,lines:[{description:'Synthetic service',quantity:1,unitPrice:100,subtotal:100}]}}));
@@ -69,4 +71,7 @@ test('draft invoice visibly differs from approved invoice on every sheet',async(
   await page.goto('/print/invoice/draft-label?lang=ar');await expect(page.locator('.draft-mark').first()).toContainText('مسودة');
   expect(await page.locator('.draft-mark').count()).toBe(await page.locator('.edoc .sheet').count());
   status='APPROVED';await page.reload();await expect(page.locator('.edoc')).toBeVisible();await expect(page.locator('.draft-mark')).toHaveCount(0);
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'تنزيل PDF · Download PDF'}).click();await (await download).saveAs(info.outputPath('approved-invoice.pdf'));
+  const explicit=page.waitForEvent('download');await page.getByRole('link',{name:'حفظ ملف PDF · Save PDF file'}).click();await (await explicit).saveAs(info.outputPath('approved-invoice-explicit.pdf'));
+  expect((await readFile(info.outputPath('approved-invoice-explicit.pdf'))).equals(await readFile(info.outputPath('approved-invoice.pdf')))).toBe(true);
 });

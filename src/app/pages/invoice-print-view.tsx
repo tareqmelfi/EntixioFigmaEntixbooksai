@@ -1,4 +1,4 @@
-import { downloadDocumentPdf, loadReceiptPdfFrame } from "../lib/document-pdf";
+import { downloadDocumentPdf, loadReceiptPdfFrame, type PreparedDocumentPdf } from "../lib/document-pdf";
 import { resolveDocumentLanguage } from "../lib/document-language";
 import { EntixWordmark } from "../components/entix-brand";
 import { getOrgId } from "../lib/api";
@@ -33,6 +33,9 @@ export function InvoicePrintView() {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [preparedPdf, setPreparedPdf] = useState<PreparedDocumentPdf | null>(null);
+  useEffect(() => () => { if (preparedPdf) URL.revokeObjectURL(preparedPdf.url); }, [preparedPdf]);
+  useEffect(() => { setPreparedPdf(null); }, [id, searchParams.toString()]);
   const [error, setError] = useState<string | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [contact, setContact] = useState<Contact | null>(null);
@@ -229,22 +232,23 @@ export function InvoicePrintView() {
       {!embed && <div className="no-print" style={{position:'fixed',bottom:12,left:12,zIndex:100,background:'white',padding:8}}>
         <button type="button" disabled={downloading || !printImages || !tplReady} onClick={async () => {
           const root = document.querySelector<HTMLElement>(".edoc"); if (!root) return;
-          setDownloading(true); setDownloadError(null);
-          try { await downloadDocumentPdf(root, ".sheet", invoice.invoiceNumber); }
+          setDownloading(true); setDownloadError(null); setPreparedPdf(null);
+          try { await downloadDocumentPdf(root, ".sheet", invoice.invoiceNumber, [], setPreparedPdf); }
           catch { setDownloadError("تعذر تنزيل PDF؛ لم يُحفظ ملف مكتمل. / PDF download failed."); }
           finally { setDownloading(false); }
         }}>{downloading ? "…" : "تنزيل PDF · Download PDF"}</button>
         {!!invoice.receipts?.length && <button type="button" disabled={downloading || !printImages || !tplReady} onClick={async () => {
           const root = document.querySelector<HTMLElement>(".edoc"); if (!root) return;
-          setDownloading(true); setDownloadError(null);
+          setDownloading(true); setDownloadError(null); setPreparedPdf(null);
           const frames: Awaited<ReturnType<typeof loadReceiptPdfFrame>>[] = [];
           try {
             for (const receipt of invoice.receipts || []) frames.push(await loadReceiptPdfFrame(receipt.id, org.id, langOverride || "ar"));
-            await downloadDocumentPdf(root, ".sheet", `${invoice.invoiceNumber}-with-receipts`, frames);
+            await downloadDocumentPdf(root, ".sheet", `${invoice.invoiceNumber}-with-receipts`, frames, setPreparedPdf);
           } catch { setDownloadError("تعذر تنزيل الحزمة كاملة؛ أعد المحاولة. / Complete bundle download failed."); }
           finally { frames.forEach(frame => frame.dispose()); setDownloading(false); }
         }}>الفاتورة والسندات PDF · Invoice + receipts PDF</button>}
         {downloadError && <p role="alert">{downloadError}</p>}
+        {preparedPdf && <p>إذا لم يبدأ التنزيل: <a href={preparedPdf.url} download={preparedPdf.filename}>حفظ ملف PDF · Save PDF file</a></p>}
       </div>}
       <style>{`
         /* Reset · standalone route · no app chrome */

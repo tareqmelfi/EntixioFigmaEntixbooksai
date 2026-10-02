@@ -2,7 +2,8 @@ import { assetDataUrl, embedReportFonts, normalizePdfColors } from './report-pag
 import { waitForPrintReady } from './print-image';
 
 /** Snapshot all already-paginated document sheets before async export. */
-export async function downloadDocumentPdf(root: HTMLElement, selector: string, filename: string, attachments: Array<{ root: HTMLElement; selector: string }> = []) {
+export type PreparedDocumentPdf = { url: string; filename: string };
+export async function downloadDocumentPdf(root: HTMLElement, selector: string, filename: string, attachments: Array<{ root: HTMLElement; selector: string }> = [], onReady?: (file: PreparedDocumentPdf) => void) {
   await waitForPrintReady();
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
   const pdf = new jsPDF({ unit:'mm', format:'a4', compress:true });
@@ -50,7 +51,13 @@ export async function downloadDocumentPdf(root: HTMLElement, selector: string, f
 
   } finally { mount.remove(); }
   }
-pdf.save(`${filename.replace(/[\\/:*?"<>|]/g,'-')}.pdf`);
+const safeFilename = `${filename.replace(/[\\/:*?"<>|]/g,'-')}.pdf`;
+if (onReady) {
+  const file = { url: URL.createObjectURL(pdf.output('blob')), filename: safeFilename };
+  onReady(file);
+  const link = document.createElement('a'); link.href = file.url; link.download = file.filename;
+  document.body.append(link); link.click(); link.remove();
+} else pdf.save(safeFilename);
 }
 
 /** Same-origin, org-scoped preview frames. No popup, print dialog, or storage mutation. */
