@@ -99,6 +99,14 @@ export function Receipts() {
     setEmailDialog(true);
   };
 
+  const submitLock = useRef(false);
+  const receiptKeys = useRef(new Map<string, string>());
+  const [approvalRequest, setApprovalRequest] = useState<{ invoices: any[]; snapshot: string } | null>(null);
+  const createReceipt = (payload: any) => {
+    const fingerprint = JSON.stringify({ orgId: getOrgId(), ...payload });
+    if (!receiptKeys.current.has(fingerprint)) receiptKeys.current.set(fingerprint, crypto.randomUUID());
+    return api.vouchers.create({ ...payload, idempotencyKey: receiptKeys.current.get(fingerprint) });
+  };
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const [form, setForm] = useState<any>({
@@ -238,6 +246,8 @@ export function Receipts() {
 
   const closeCreate = () => {
     setOpen(false);
+    setApprovalRequest(null);
+    receiptKeys.current.clear();
     setEditingReceipt(null);
     resetForm();
     if (goBackToSource()) return;
@@ -246,6 +256,7 @@ export function Receipts() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (submitLock.current) return;
     if (!form.contactId) { push("error", t("اختر العميل", "Select customer")); return; }
 
     const allocs = (Array.isArray(form.allocations) ? form.allocations : [])
@@ -259,13 +270,25 @@ export function Receipts() {
       return;
     }
 
+    submitLock.current = true;
     setBusy(true);
     try {
+      if (!editingReceipt) {
+        const ids = [...new Set<string>(allocs.length ? allocs.map((a: any) => a.invoiceId) : form.invoiceId ? [form.invoiceId] : [])];
+        const latest = await Promise.all(ids.map(id => api.invoices.get(id)));
+        const drafts = latest.filter(invoice => invoice.status === "DRAFT");
+        if (drafts.length) {
+          setApprovalRequest({ invoices: drafts, snapshot: JSON.stringify(form) });
+          return;
+        }
+        setApprovalRequest(null);
+      }
       // Edit mode · update the single existing receipt voucher.
       if (editingReceipt) {
-        const updated = await api.vouchers.update(editingReceipt.id, {
+        const updated = await api.vouchers.update(editingReceipt.id, editingReceipt.invoiceId ? { notes: form.notes || null } : {
           contactId: form.contactId,
           invoiceId: form.invoiceId || null,
+          currency: invoices.find((inv: any) => inv.id === form.invoiceId)?.currency || orgCurrency,
           date: form.date,
           amount: Number(directAmount.toFixed(2)),
           paymentMethod: form.paymentMethod,
@@ -288,13 +311,15 @@ export function Receipts() {
         for (const a of allocs) {
           const inv = invoices.find((x: any) => x.id === a.invoiceId);
           const maxRemaining = inv ? Math.max(toNum(inv.total) - toNum(inv.amountPaid), 0) : a.amount;
-          const amount = Math.min(a.amount, maxRemaining);
+          const amount = a.amount;
+          if (amount > maxRemaining) throw new Error(t("المبلغ يتجاوز المتبقي؛ حدّث الفاتورة", "Amount exceeds remaining balance; refresh invoice"));
           if (amount <= 0) continue;
 
-          const v = await api.vouchers.create({
+          const v = await createReceipt({
             type: "RECEIPT",
             contactId: form.contactId,
             invoiceId: a.invoiceId,
+            currency: inv?.currency || orgCurrency,
             date: form.date,
             amount: Number(amount.toFixed(2)),
             paymentMethod: form.paymentMethod,
@@ -306,10 +331,11 @@ export function Receipts() {
           created.push(v);
         }
       } else {
-        const v = await api.vouchers.create({
+        const v = await createReceipt({
           type: "RECEIPT",
           contactId: form.contactId,
           invoiceId: form.invoiceId || null,
+          currency: invoices.find((inv: any) => inv.id === form.invoiceId)?.currency || orgCurrency,
           date: form.date,
           amount: Number(directAmount.toFixed(2)),
           paymentMethod: form.paymentMethod,
@@ -333,7 +359,7 @@ export function Receipts() {
       refresh();
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل الحفظ", en: "Save failed" }));
-    } finally { setBusy(false); }
+    } finally { setBusy(false); submitLock.current = false; }
   };
 
   const openSelected = async (v: Voucher) => {
@@ -724,6 +750,28 @@ export function Receipts() {
         >
           <div className={editingReceipt && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <form onSubmit={handleSubmit} className="w-full space-y-4">
+            {approvalRequest && (
+              <div className="rounded-lg border border-border bg-warning-subtle p-3 space-y-2" role="alert">
+                <p>{t("الفاتورة مسودة ولا تقبل السداد قبل الاعتماد:", "Draft invoices must be approved before receiving payment:")} {approvalRequest.invoices.map(inv => inv.invoiceNumber).join(" · ")}</p>
+                <p className="text-sm">{t("هل تعتمدها وتتابع تسجيل السداد؟ الاعتماد يثبت الفاتورة وقيدها المحاسبي.", "Approve and continue with payment? Approval locks the invoice and posts its journal.")}</p>
+                <Button type="button" disabled={busy} onClick={async () => {
+                  if (submitLock.current) return;
+                  if (approvalRequest.snapshot !== JSON.stringify(form)) { setApprovalRequest(null); push("info", t("تغيرت البيانات. اضغط حفظ لمراجعتها مجددًا.", "Details changed. Save again to review.")); return; }
+                  submitLock.current = true; setBusy(true);
+                  try {
+                    for (const inv of approvalRequest.invoices) await api.invoices.update(inv.id, { status: "APPROVED" });
+                    setApprovalRequest(null);
+                    push("success", t("تم الاعتماد؛ جارٍ تسجيل السداد. إن تعذر السداد تبقى الفاتورة معتمدة ويمكن إعادة المحاولة.", "Approved; recording payment. If payment fails, approval remains and you can retry."));
+                  } catch (error: any) {
+                    push("error", humanizeError(error, language, { ar: "تعذر استكمال الاعتماد؛ لم يُسجل السداد", en: "Approval could not complete; payment was not recorded" }));
+                    return;
+                  } finally { submitLock.current = false; setBusy(false); }
+                  await handleSubmit();
+                }}>{t("اعتماد ومتابعة السداد", "Approve and continue")}</Button>
+                <Button type="button" variant="outline" disabled={busy} onClick={() => setApprovalRequest(null)}>{t("إلغاء", "Cancel")}</Button>
+              </div>
+            )}
+            <fieldset disabled={!!editingReceipt?.invoiceId} className="space-y-4">
             <div>
               <Label className="text-xs">{t("العميل", "Customer")} *</Label>
               {form.contactId && <ContactProfileLink id={form.contactId} name={contacts.find(c => c.id === form.contactId)?.displayName} className="block text-sm" />}
@@ -883,6 +931,12 @@ export function Receipts() {
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f: any) => ({ ...f, branchId: id }))} />
               </div>
             </div>
+            </fieldset>
+            {editingReceipt?.invoiceId && <div className="space-y-2">
+              <p className="text-sm">{t("السند مرتبط بفاتورة؛ بيانات السداد مقفلة لحماية القيد. يمكنك تعديل الملاحظات.", "This receipt settles an invoice; payment details are locked to protect its journal. Notes remain editable.")}</p>
+              <Label>{t("ملاحظات السند", "Receipt notes")}</Label>
+              <Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+            </div>}
           </form>
 
           {editingReceipt && previewOpen && (

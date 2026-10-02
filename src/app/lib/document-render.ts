@@ -1,5 +1,5 @@
-import { roundDocumentMoney } from "./document-money";
-import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social';
+import { roundDocumentMoney } from "./document-money.js";
+import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social.js';
 /**
  * Entix Books · brand document engine (quotes + invoices).
  *
@@ -362,6 +362,7 @@ export interface DocSpec {
   taxTotal: number;
   total: number;
   amountPaid?: number;
+  receipts?: Array<{ number: string; date: string; amount: number; currency: string }>;
   paymentLinkUrl?: string | null;
   paymentPlan?: PaymentPlanRow[] | null;
   /** ZATCA / tax QR payload (invoice) */
@@ -1638,6 +1639,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
     if (!isQuote && paid > 0) {
       rows.push(`<div class="r"><span class="lbl">${t("المسدَّد", "Paid")}</span><span class="amt">${cur} ${money(paid)}</span></div>`);
       rows.push(`<div class="r due"><span class="lbl">${t("المتبقي", "Balance due")}</span><span class="amt">${cur} ${money(due)}</span></div>`);
+      if (due <= 0) rows.push(`<div class="r"><span class="lbl">${t("حالة السداد", "Payment status")}</span><span>${t("مدفوعة بالكامل", "Paid in full")}</span></div>`);
+      for (const receipt of doc.receipts || []) rows.push(`<div class="r"><span class="lbl">${bdi(receipt.number)} · ${esc(receipt.date)}</span><span class="amt">${esc(receipt.currency)} ${money(receipt.amount)}</span></div>`);
     }
     // ── QR / verification code — ALWAYS present (CEO 2026-09-08: «وين الباركود
     // هذه اشياء بديهية لازم دايم تكون موجودة»). Priority: real ZATCA Phase-1 TLV
@@ -2354,7 +2357,7 @@ export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
     kind: "INVOICE",
     number: inv.invoiceNumber || "",
     issueDate: isoDate(inv.issueDate),
-    endDate: isoDate(inv.dueDate),
+    endDate: n(inv.total) > 0 && n(inv.amountPaid) >= n(inv.total) ? null : isoDate(inv.dueDate),
     currency: inv.currency || "SAR",
     status: inv.status || null,
     title: inv.title || null,
@@ -2368,6 +2371,7 @@ export function docFromInvoice(inv: any, qrPayload?: string | null): DocSpec {
     taxBasis: deriveTaxBasis(inv.lines || []),
     total: n(inv.total),
     amountPaid: n(inv.amountPaid),
+    receipts: (inv.receipts || []).map((r: any) => ({ number: r.number, date: isoDate(r.date), amount: n(r.amount), currency: r.currency })),
     paymentLinkUrl: inv.paymentLinkUrl || null,
     paymentPlan: planRows(inv.paymentPlan, n(inv.taxTotal), n(inv.total)),
     qrPayload: qrPayload ?? inv.zatcaQr ?? null,

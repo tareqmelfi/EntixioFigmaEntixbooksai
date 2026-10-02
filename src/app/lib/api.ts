@@ -3747,6 +3747,7 @@ export interface Voucher {
 }
 
 export interface VoucherInput {
+  idempotencyKey?: string
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */

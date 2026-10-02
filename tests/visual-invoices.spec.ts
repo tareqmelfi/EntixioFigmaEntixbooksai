@@ -41,5 +41,5 @@ test('invoices use shared product contracts and semantic status tones', async ({
 
   await expect(page.getByRole('toolbar', { name: 'Invoice filters' })).toBeVisible()
   // Status = dot + word; paid reads in the (blue) success tone, never green.
-  await expect(page.getByText('Paid', { exact: true }).first().locator('xpath=ancestor-or-self::*[contains(@class,"text-success")][1]')).toHaveCount(1)
+  await expect(page.getByText('Issued · Paid', { exact: true }).first().locator('xpath=ancestor-or-self::*[contains(@class,"text-success")][1]')).toHaveCount(1)
 })
