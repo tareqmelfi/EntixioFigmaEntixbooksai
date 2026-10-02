@@ -852,6 +852,10 @@ export const api = {
   },
 
   // Expenses
+  purchaseNotes: {
+    get: (kind: 'bills' | 'expenses', id: string) => request<{ notes: string | null; updatedAt: string; canEdit: boolean }>(`/api/${kind}/${id}/notes`),
+    update: (kind: 'bills' | 'expenses', id: string, body: { expectedUpdatedAt: string; notes: string | null; reason?: string }) => request<{ notes: string | null; updatedAt: string }>(`/api/${kind}/${id}/notes`, { method: 'PATCH', body }),
+  },
   expenses: {
     list: (params?: { category?: string; contactId?: string; from?: string; to?: string; page?: number; limit?: number }) =>
       request<PaginatedResponse<Expense> & { summary: { sumTotal: string; avgTotal: string } }>(
