@@ -1853,7 +1853,7 @@ export const api = {
     updateNotes: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null }) => request<{ notes: string | null; termsConditions: string | null; updatedAt: string }>(`/api/invoices/${id}/notes`, { method: 'PATCH', body }),
     voidInvoiceAdmin: (id: string, body: { reason: string; expectedUpdatedAt: string }) => request<Invoice>(`/api/invoices/${id}/void-admin`, { method: 'POST', body }),
     amendmentPolicy: (id: string) => request<{ canAmend: boolean; canVoidAdmin?: boolean; reason: string | null; country: string }>(`/api/invoices/${id}/amendment-policy`),
-    amend: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null; dueDate: string; lines: Array<{ id: string; description: string; quantity: number; unitPrice: number }> }) => request<Invoice>(`/api/invoices/${id}/amend`, { method: 'POST', body }),
+    amend: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null; issueDate?: string; supplyDate?: string | null; dueDate: string; lines: Array<{ id: string; description: string; quantity: number; unitPrice: number }> }) => request<Invoice>(`/api/invoices/${id}/amend`, { method: 'POST', body }),
     attachments: {
       list: (id: string) => request<{ items: ExpenseAttachment[] }>(`/api/invoices/${id}/attachments`),
       add: (id: string, body: { filename: string; contentType: string; sizeBytes: number; data: string }) => request<ExpenseAttachment>(`/api/invoices/${id}/attachments`, { method: 'POST', body }),

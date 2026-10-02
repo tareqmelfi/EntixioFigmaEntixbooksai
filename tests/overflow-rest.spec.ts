@@ -37,6 +37,8 @@ const shotDir = '/tmp/claude-0/shots/rest'
 
 test.use({  baseURL: process.env.BASE_URL || `http://localhost:${process.env.ENTIX_DEV_PORT || '5173'}` })
 
+// Each language has an independent browser context; do not serialize two long audits and their retries.
+test.describe.configure({ mode: 'parallel' })
 for (const lang of langs) {
   test(`rest pages · zero overflow · ${lang}`, async ({ page }) => {
     test.setTimeout(routes.length * 4 * 6000 + 60_000)
@@ -49,6 +51,7 @@ for (const lang of langs) {
       for (const width of AUDIT_WIDTHS) {
         await page.setViewportSize({ width, height: 900 })
         await page.goto(route, { waitUntil: 'load', timeout: 20_000 }).catch(() => {})
+        await page.evaluate(() => document.fonts.ready)
         await page.waitForTimeout(900)
         const hits = await auditOverflow(page)
         if (hits.length) report[`${route} · ${lang} · ${width}`] = hits
