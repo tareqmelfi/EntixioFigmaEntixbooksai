@@ -16,6 +16,7 @@ for(const lang of ['ar','en'] as const) for(const width of [390,1280,1920]) test
  });
  await page.route('**/api/support/config',r=>r.fulfill({json:{whatsapp:'966593305959',email:'support@entix.io'}}));
  await page.goto('/admin/support?ticket=ticket1');
+ await page.getByText(lang==='ar'?'أداء فريق الدعم والسجل الداخلي':'Support performance and internal record',{exact:true}).click();
  const dashboard=page.getByRole('region',{name:lang==='ar'?'مؤشرات الدعم الفني':'Support performance'});
  await expect(dashboard.getByText('4.0 / 5',{exact:true})).toBeVisible();
  await dashboard.getByRole('combobox',{name:lang==='ar'?'عرض الأداء':'Performance view'}).selectOption('mine');

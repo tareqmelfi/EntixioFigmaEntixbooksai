@@ -1,3 +1,4 @@
+import { adminManagementRequest } from "../lib/admin-management-api";
 import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Admin Dashboard · /admin (W31)
@@ -7,7 +8,7 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  * email is in ADMIN_EMAILS. Tabs: Overview · Orgs · Users · Support · AI usage.
  */
 import { Fragment, useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Loader2, RefreshCw, Search, ShieldCheck, Users, Building2, CreditCard, MessageSquare, Sparkles, KeyRound, BadgeCheck, Ban, Gift, Send, MailWarning, UserPlus, Trash2, DatabaseBackup, Bot, X, Crown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -157,6 +158,8 @@ function OverviewTab({ guard }: { guard: (e: any) => boolean }) {
 
 // ═══ Orgs ═══
 function OrgsTab({ guard, push, t }: any) {
+  const [params,setParams]=useSearchParams();
+  const archived=params.get("archived")==="1";
   const [q, setQ] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -170,8 +173,8 @@ function OrgsTab({ guard, push, t }: any) {
   const [memberBusy, setMemberBusy] = useState(false);
   const load = useCallback(async (query?: string) => {
     setLoading(true);
-    try { setItems((await api.admin.orgs(query || undefined)).items); } catch (e) { guard(e); } finally { setLoading(false); }
-  }, [guard]);
+    try { setItems((await adminManagementRequest<{items:any[]}>(`/orgs?${new URLSearchParams({q:query||"",archived:archived?"1":"0"})}`)).items); } catch (e) { guard(e); } finally { setLoading(false); }
+  }, [guard,archived]);
   useEffect(() => { load(); }, [load]);
   const openMembers = async (orgId: string) => {
     if (membersFor === orgId) { setMembersFor(null); return; }
@@ -189,6 +192,8 @@ function OrgsTab({ guard, push, t }: any) {
   return (
     <Card className="border-border">
       <CardContent className="p-4 space-y-3">
+        <div className="flex gap-2"><Button variant={!archived?"default":"outline"} onClick={()=>setParams({})}>{t("الشركات", "Companies")}</Button><Button variant={archived?"default":"outline"} onClick={()=>setParams({archived:"1"})}>{t("الأرشيف", "Archive")}</Button></div>
+        <p className="text-xs text-muted-foreground">{t("الأرشفة تخفي الشركة من قوائم الإدارة وتحفظ بياناتها وإمكانية استعادتها؛ لا تلغي اشتراكها.", "Archiving hides the company from admin lists and preserves its data and restoration. It does not cancel billing.")}</p>
         <form onSubmit={(e) => { e.preventDefault(); load(q); }} className="flex gap-2">
           <div className="relative flex-1"><Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("بحث بالاسم أو slug…", "Search name or slug…")} className="ps-9 border-border" /></div>
           <Button type="submit" variant="outline">{t("بحث", "Search")}</Button>
@@ -228,6 +233,7 @@ function OrgsTab({ guard, push, t }: any) {
                       <button disabled={!!busyId} onClick={() => act(o.id, "lifetime")} title={t("أعلى باقة · بدون تاريخ انتهاء", "Highest plan · no expiry")} className="text-[11px] px-2 py-1 rounded bg-warning-subtle text-warning border border-warning-border hover:bg-warning-subtle disabled:opacity-50"><Crown className="inline h-3 w-3 me-0.5" />{t("مدى الحياة", "Lifetime")}</button>
                       <button disabled={!!busyId} onClick={() => act(o.id, "trial")} className="text-[11px] px-2 py-1 rounded bg-info-subtle text-info border border-info-border hover:bg-info-subtle disabled:opacity-50">{t("تجريبي 30ي", "Trial 30d")}</button>
                       <button disabled={!!busyId} onClick={() => setPendingCancel(o.id)} className="text-[11px] px-2 py-1 rounded bg-danger-subtle text-danger border border-danger-border hover:bg-danger-subtle disabled:opacity-50"><Ban className="inline h-3 w-3 me-0.5" />{t("إلغاء", "Cancel")}</button>
+                      <button disabled={!!busyId} className="rounded border border-border px-2 py-1 text-xs" onClick={async()=>{setBusyId(o.id);try{await adminManagementRequest(`/orgs/${encodeURIComponent(o.id)}/archive`,"POST",{archived:!archived});await load(q);push("success",t("تم تحديث الأرشيف", "Archive updated"));}catch(e){guard(e);}finally{setBusyId(null);}}}>{archived?t("استعادة", "Restore"):t("أرشفة", "Archive")}</button>
                       <button onClick={() => openMembers(o.id)} className="text-[11px] px-2 py-1 rounded bg-muted text-foreground border border-border hover:bg-accent"><Users className="inline h-3 w-3 me-0.5" />{t("الأعضاء", "Members")}</button>
                     </div>
                     {pendingCancel === o.id && <InlineConfirm label={t(`إلغاء اشتراك ${o.name} الآن وإيقاف التجديد؟ تبقى البيانات محفوظة.`, `Cancel ${o.name} now and stop renewal? Data is preserved.`)} onCancel={() => setPendingCancel(null)} onConfirm={async () => { setPendingCancel(null); await act(o.id, "cancel"); }} />}
@@ -423,7 +429,7 @@ function SupportTab({ guard, push, t }: any) {
   return (
     <div className="space-y-4">
     {/* 2026-09-14 · WhatsApp + website chat arrive as tickets and are answered here */}
-    <AdminSupportInbox guard={guard} push={push} />
+    <AdminSupportInbox guard={guard} push={push}>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card className="border-border">
         <CardHeader className="flex-row items-center justify-between"><CardTitle className="text-base text-foreground">{t("محادثات الوكيل داخل المنصة", "In-app agent conversations")}</CardTitle><Button variant="outline" size="sm" onClick={load}><RefreshCw className="h-3.5 w-3.5" /></Button></CardHeader>
@@ -469,6 +475,7 @@ function SupportTab({ guard, push, t }: any) {
         </CardContent>
       </Card>
     </div>
+    </AdminSupportInbox>
     </div>
   );
 }
@@ -530,7 +537,7 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
     setBusy(email);
     try {
       await api.admin.unsuppressEmail(email);
-      push("success", t("أُزيل من قائمة المنع — الرسائل القادمة تصل طبيعية", "Removed from the suppression list — future emails will arrive"));
+      push("success", t("أُعيد السماح بالإرسال. لم تُرسل رسالة؛ تحقق من سبب الارتداد قبل المحاولة القادمة", "Sending is allowed again. No email was sent; verify the bounce cause before retrying."));
       await load();
     } catch (e) { guard(e); } finally { setBusy(null); }
   };
@@ -545,8 +552,8 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
     <div className="space-y-4">
       <Card className="border-border">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2"><MailWarning className="h-4 w-4 text-warning" />{t("قائمة المنع (Suppression List)", "Suppression list")}</CardTitle>
-          <p className="text-xs text-muted-foreground">{t("أي عنوان هنا لا تصله رسائلنا إطلاقًا — أُضيف تلقائيًا بعد ارتداد سابق. الإرسال من:", "Addresses here never receive our emails — auto-added after a past bounce. Sending from:")} <span dir="ltr" className="font-english">{data.from || "—"}</span></p>
+          <CardTitle className="text-base flex items-center gap-2"><MailWarning className="h-4 w-4 text-warning" />{t("عناوين أُوقف الإرسال إليها", "Suppression list")}</CardTitle>
+          <p className="text-xs text-muted-foreground">{t("هذه قائمة حماية للبريد وليست حظر دخول العملاء. يوقف مزود البريد الإرسال بعد ارتداد أو شكوى. راجع السبب وصحة العنوان قبل إعادة السماح؛ الإزالة لا تعيد إرسال الرسائل القديمة ولا تضمن وصول الجديدة. الإرسال من:", "This protects email delivery; it does not block customer login. Bounces or complaints can stop sending. Verify the address and cause before allowing future sends; removing suppression neither resends old mail nor guarantees delivery. Sending from:")} <span dir="ltr" className="font-english">{data.from || "—"}</span></p>
         </CardHeader>
         <CardContent>
           {data.suppressions.length === 0 ? (
@@ -561,7 +568,7 @@ function EmailTab({ guard, push, t }: { guard: (e: any) => boolean; push: (kind:
                   </div>
                   <button onClick={() => unsuppress(sp.email)} disabled={busy === sp.email}
                     className="text-[11px] px-2.5 py-1.5 rounded bg-danger-subtle text-danger border border-danger-border hover:bg-danger-subtle disabled:opacity-50">
-                    {busy === sp.email ? <Loader2 className="h-3 w-3 animate-spin" /> : t("إزالة من المنع", "Unsuppress")}
+                    {busy === sp.email ? <Loader2 className="h-3 w-3 animate-spin" /> : t("السماح بالإرسال مجددًا", "Allow future sends")}
                   </button>
                 </div>
               ))}

@@ -30,7 +30,7 @@ function ChannelIcon({ channel }: { channel?: string }) {
   return <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />;
 }
 
-export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean; push: (kind: "success" | "error", msg: string) => void }) {
+export function AdminSupportInbox({ guard, push, children }: { children?: React.ReactNode; guard: (e: any) => boolean; push: (kind: "success" | "error", msg: string) => void }) {
   const { t } = useLanguage();
   const [params, setParams] = useSearchParams();
   const [creating, setCreating] = useState(false);
@@ -43,9 +43,18 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const [channels, setChannels] = useState<{ whatsapp?: string | null; email?: string } | null>(null);
   useEffect(() => { api.admin.me().then(r => { setCanWrite(r.permissions.includes("*") || r.permissions.includes("support.write")); setScoped(r.assignedOrgIds != null); }).catch(guard); supportDesk.channels().then(setChannels).catch(guard); }, [guard]);
   const [metricsVersion, setMetricsVersion] = useState(0);
-  const [statusFilter, setStatusFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [filter, setFilter] = useState<Filter>("needs");
+  const statusFilter = params.get("status") || "";
+  const categoryFilter = params.get("category") || "";
+  const filter: Filter = (["needs", "whatsapp", "web", "portal"].includes(params.get("view") || "") ? params.get("view") : "all") as Filter;
+  const closedFrom = params.get("closedFrom") || "";
+  const closedTo = params.get("closedTo") || "";
+  const changeFilter = (key: string, value: string) => setParams(previous => {
+    const next = new URLSearchParams(previous);
+    if (value) next.set(key, value); else next.delete(key);
+    if (key === "status") { next.delete("closedFrom"); next.delete("closedTo"); }
+    return next;
+  });
+  const setFilter = (value: Filter) => changeFilter("view", value);
   const [rows, setRows] = useState<AdminTicketRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -54,24 +63,27 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   const [busy, setBusy] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const threadRequest = useRef(0);
+  const listRequest = useRef(0);
   const selectedId = useRef<string | null>(null);
 
   const load = useCallback(async () => {
+    const version = ++listRequest.current;
     setLoading(true);
     try {
-      const params =
+      const query =
         filter === "needs"
           ? { needsHuman: "1" }
           : filter === "all"
             ? {}
             : { channel: filter };
-      setRows((await api.admin.tickets({ ...params, status: statusFilter || undefined, category: categoryFilter || undefined })).tickets);
+      const result = await supportDesk.list({ ...query, status: statusFilter || undefined, category: categoryFilter || undefined, closedFrom: closedFrom || undefined, closedTo: closedTo || undefined });
+      if (version === listRequest.current) setRows(result.tickets);
     } catch (e) {
-      guard(e);
+      if (version === listRequest.current) { setRows([]); guard(e); }
     } finally {
-      setLoading(false);
+      if (version === listRequest.current) setLoading(false);
     }
-  }, [filter, statusFilter, categoryFilter, guard]);
+  }, [filter, statusFilter, categoryFilter, closedFrom, closedTo, guard]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -86,6 +98,21 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
       setThread(ticket); setSubject(ticket.subject); setAssignment(ticket.assignedAgentEmail || ""); setReply("");
     } catch (e) { if (version === threadRequest.current) guard(e); }
   }, [guard]);
+
+  useEffect(() => {
+    if (busy) return;
+    const timer = setInterval(async () => {
+      if (document.hidden) return;
+      void load();
+      const id = selectedId.current, version = threadRequest.current;
+      if (!id) return;
+      try {
+        const result = await api.admin.ticket(id);
+        if (selectedId.current === id && threadRequest.current === version) setThread(result.ticket);
+      } catch { /* keep the current conversation; the next refresh retries */ }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [busy, load]);
 
   useEffect(() => { const id = params.get("ticket"); if (id) void openThread(id); else { ++threadRequest.current; selectedId.current = null; setOpenId(null); setThread(null); } }, [params, openThread]);
   const selectThread = (id: string) => { if (busy) return; setCreating(false); setParams(p => { p.set("ticket", id); return p; }); };
@@ -132,7 +159,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
   ];
 
   return (
-    <div className="min-w-0 space-y-5"><SupportPerformance version={metricsVersion}/><Card className="min-w-0 border-border">
+    <div className="min-w-0 space-y-5"><Card className="min-w-0 border-border">
       <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
         <CardTitle className="text-base text-foreground">{t("صندوق الدعم الموحّد", "Unified support inbox")}</CardTitle>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -153,8 +180,8 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
       </CardHeader>
       <div className="space-y-3 px-4 pb-4 text-sm sm:px-6">
         <div className="flex flex-wrap gap-3">
-          <label>{t('تصفية بالحالة','Filter status')} <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)} className="rounded-lg border border-border p-2"><option value="">{t('كل الحالات','All statuses')}</option>{Object.entries(STATUS).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
-          <label>{t('نوع الطلب','Request category')} <select value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)} className="max-w-full rounded-lg border border-border p-2"><option value="">{t('كل الأنواع','All categories')}</option>{Object.entries(CATEGORY_LABEL).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
+          <label>{t('تصفية بالحالة','Filter status')} <select value={statusFilter} onChange={e=>changeFilter("status", e.target.value)} className="rounded-lg border border-border p-2"><option value="">{t('كل الحالات','All statuses')}</option><option value="ACTIVE">{t('مفتوحة وبانتظار العميل','Open and pending')}</option><option value="DONE">{t('تم الحل والإغلاق','Resolved and closed')}</option>{Object.entries(STATUS).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
+          <label>{t('نوع الطلب','Request category')} <select value={categoryFilter} onChange={e=>changeFilter("category", e.target.value)} className="max-w-full rounded-lg border border-border p-2"><option value="">{t('كل الأنواع','All categories')}</option>{Object.entries(CATEGORY_LABEL).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
         </div>
         <p className="text-muted-foreground">{t("رسائل الموقع وواتساب وطلبات البوابة تظهر هنا. استخدم الملاحظات الداخلية لتوثيق المتابعة مع فريقك.", "Website chat, WhatsApp and portal requests appear here. Use internal notes to coordinate with your team.")}</p>
         <div className="flex flex-wrap gap-4">
@@ -251,7 +278,7 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
                   <label className="block">{t("موضوع التذكرة", "Ticket subject")}<input className="mt-1 w-full rounded border border-border p-2" value={subject} maxLength={200} onChange={e=>setSubject(e.target.value)}/></label>
                   <label className="block">{t("المسؤول عن المتابعة (بريد)", "Assigned operator (email)")}<input type="email" className="mt-1 w-full rounded border border-border p-2" value={assignment} onChange={e=>setAssignment(e.target.value)}/></label>
                   <Button size="sm" variant="outline" disabled={busy || !subject.trim() || (!!assignment && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(assignment))} onClick={() => void update({ subject:subject.trim(), assignedAgentEmail:assignment.trim() || null })}>{t("حفظ معلومات التذكرة", "Save ticket details")}</Button>
-                  {(thread.channel === "web" || thread.channel === "whatsapp") && <div className="flex flex-wrap items-center gap-2">
+                  {(["web", "whatsapp", "portal"].includes(thread.channel || "")) && <div className="flex flex-wrap items-center gap-2">
                     <span>{thread.needsHuman || thread.meta?.supportAgentMode === "human" ? t("المحادثة مع الفريق؛ رد الوكيل متوقف", "Team handling this conversation; agent replies paused") : t("الوكيل يجيب على الأسئلة العامة", "Agent answers general questions")}</span>
                     <Button size="sm" variant="outline" disabled={busy} onClick={() => void update({ agentMode: thread.needsHuman || thread.meta?.supportAgentMode === "human" ? "auto" : "human" })}>{thread.needsHuman || thread.meta?.supportAgentMode === "human" ? t("إعادة للوكيل", "Return to agent") : t("استلام المحادثة", "Take over")}</Button>
                   </div>}
@@ -301,6 +328,11 @@ export function AdminSupportInbox({ guard, push }: { guard: (e: any) => boolean;
           )}
         </div>
       </CardContent>
-    </Card></div>
+    </Card>
+    {children}
+    <details className="rounded-lg border border-border p-3">
+      <summary className="cursor-pointer text-sm font-semibold">{t("أداء فريق الدعم والسجل الداخلي", "Support performance and internal record")}</summary>
+      <SupportPerformance version={metricsVersion}/>
+    </details></div>
   );
 }

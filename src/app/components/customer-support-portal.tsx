@@ -11,6 +11,7 @@ export function CustomerSupportPortal() {
   const [selected, setSelected] = useState<string | null>(null);
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [creating, setCreating] = useState(false);
+  const [assistant, setAssistant] = useState(false);
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [category, setCategory] = useState('support');
@@ -35,7 +36,8 @@ export function CustomerSupportPortal() {
     setBusy(true); setError('');
     try {
       if (creating) {
-        const result = await api.support.create({ subject, body, category, language });
+        const input = { subject: assistant ? body.trim().slice(0, 80) : subject, body, category, language, assistant };
+        const result = await api.support.create(input);
         setSelected(result.ticket.id); setCreating(false); setSubject('');
       } else if (selected) {
         await api.support.reply(selected, body); setTicket((await api.support.get(selected)).ticket);
@@ -53,7 +55,7 @@ export function CustomerSupportPortal() {
   return <section className="space-y-4" aria-label={t('طلبات الدعم والمحادثات', 'Support requests and conversations')}>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h2 className="font-semibold">{t('محادثاتي مع فريق الدعم', 'My conversations with support')}</h2><p className="text-sm text-muted-foreground">{t('طلبات محفوظة وردود الفريق تظهر هنا تلقائيًا. متاح لجميع الباقات.', 'Saved requests with team replies updated here automatically. Available on every plan.')}</p></div>
-      <Button onClick={() => { setCreating(true); setSelected(null); setTicket(null); setBody(''); }}>{t('محادثة جديدة', 'New conversation')}</Button>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => { setAssistant(true); setCreating(true); setSelected(null); setTicket(null); setBody(''); }}>{t('اسأل مساعد الدعم', 'Ask support assistant')}</Button><Button onClick={() => { setAssistant(false); setCreating(true); setSelected(null); setTicket(null); setBody(''); }}>{t('محادثة جديدة', 'New conversation')}</Button></div>
     </div>
     {error && <InlineAlert tone="critical">{error}</InlineAlert>}
     <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -65,11 +67,12 @@ export function CustomerSupportPortal() {
       </nav>
       <div className="min-w-0 rounded-xl border border-border bg-card p-4">
         {creating ? <form onSubmit={send} className="space-y-4">
-          <label className="block text-sm">{t('عنوان الطلب', 'Subject')}<input required maxLength={200} value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3" /></label>
+          {assistant && <p className="text-sm">{t('مرحبًا بك، كيف أقدر أساعدك في Entix؟ عند الحاجة أُحيل المحادثة لفريق الدعم هنا.', 'Welcome! How can I help you with Entix? I can hand this conversation to our support team when needed.')}</p>}
+          {!assistant && <label className="block text-sm">{t('عنوان الطلب', 'Subject')}<input required maxLength={200} value={subject} onChange={e => setSubject(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3" /></label>}
           <label className="block text-sm">{t('الموضوع', 'Category')}<select value={category} onChange={e => setCategory(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3">{Object.entries(SUPPORT_CATEGORY).filter(([key])=>!key.startsWith('sales_')).map(([key,label])=><option key={key} value={key}>{t(...label)}</option>)}</select></label>
           <label className="block text-sm">{t('كيف نقدر نساعدك؟', 'How can we help?')}<textarea required maxLength={10000} rows={5} value={body} onChange={e => setBody(e.target.value)} className="mt-1 w-full rounded-lg border border-border bg-background p-3" /></label>
           <p className="text-xs text-muted-foreground">{t('اذكر رقم المستند والخطوات. لا ترسل كلمات مرور أو مفاتيح API.', 'Include the document number and steps. Do not send passwords or API keys.')}</p>
-          <Button disabled={busy || !body.trim() || !subject.trim()}>{busy ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال للدعم', 'Send to support')}</Button>
+          <Button disabled={busy || !body.trim() || (!assistant && !subject.trim())}>{busy ? t('جارٍ الإرسال…', 'Sending…') : t('إرسال للدعم', 'Send to support')}</Button>
         </form> : ticket ? <>
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold">{ticket.subject}</h3><Button size="sm" variant="outline" disabled={busy} onClick={status}>{ticket.status === 'RESOLVED' || ticket.status === 'CLOSED' ? t('إعادة فتح', 'Reopen') : t('تم حل المشكلة', 'Mark resolved')}</Button></div>
           <div className="max-h-[440px] space-y-3 overflow-y-auto" role="log" aria-live="polite">
