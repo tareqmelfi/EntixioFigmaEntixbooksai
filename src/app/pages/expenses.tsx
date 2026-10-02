@@ -1451,6 +1451,31 @@ export function Expenses() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [createOpen, editingId, formData, extractionSummary]);
 
+  const similarityReview = pendingSimilarity && (
+        <SimilarityReviewDialog
+          review={pendingSimilarity.review}
+          busy={busy}
+          onCancel={() => setPendingSimilarity(null)}
+          onChoose={async (action) => {
+            const pending = pendingSimilarity;
+            setBusy(true);
+            try {
+              const saved = await api.expenses.create({
+                ...pending.input,
+                duplicateDecision: buildDuplicateDecision(pending.review, action),
+              });
+              setPendingSimilarity(null);
+              await finalizeSavedExpense(saved);
+            } catch (e: any) {
+              setCreateError(humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" }));
+              setPendingSimilarity(null);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      );
+
   if (createOpen) {
     return (
       <>
@@ -1459,6 +1484,7 @@ export function Expenses() {
           subtitle={t("ارفع الإيصال وسيتم استخراج المورد والضريبة والأصناف تلقائياً", "Upload the receipt and supplier, tax, and items will be extracted automatically")}
           onClose={closeCreate}
           disableEscape={busy}
+          toolbar={similarityReview}
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => closeCreate()} className="border-border">{t("إلغاء", "Cancel")}</Button>
@@ -2331,30 +2357,7 @@ export function Expenses() {
 
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      {pendingSimilarity && (
-        <SimilarityReviewDialog
-          review={pendingSimilarity.review}
-          busy={busy}
-          onCancel={() => setPendingSimilarity(null)}
-          onChoose={async (action) => {
-            const pending = pendingSimilarity;
-            setBusy(true);
-            try {
-              const saved = await api.expenses.create({
-                ...pending.input,
-                duplicateDecision: buildDuplicateDecision(pending.review, action),
-              });
-              setPendingSimilarity(null);
-              await finalizeSavedExpense(saved);
-            } catch (e: any) {
-              setCreateError(humanizeError(e, language, { ar: "فشل حفظ المصروف", en: "Failed to save expense" }));
-              setPendingSimilarity(null);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        />
-      )}
+
     </div>
   );
 }

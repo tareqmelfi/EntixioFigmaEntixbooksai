@@ -5,6 +5,8 @@
  * duplicateDecision (buildDuplicateDecision).
  */
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Link } from "react-router";
+import { useEffect, useRef } from 'react';
 import { useLanguage } from "./LanguageContext";
 import { Button } from "./ui/button";
 import {
@@ -24,6 +26,8 @@ interface Props {
 }
 
 export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose, onCancel }: Props) {
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => { section.current?.scrollIntoView({ block: 'center' }); section.current?.focus({ preventScroll: true }); }, [review.decisionToken]);
   const { language } = useLanguage();
   const lang: "ar" | "en" = language === "en" ? "en" : "ar";
   const t = (ar: string, en: string) => (lang === "en" ? en : ar);
@@ -35,8 +39,8 @@ export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose,
   ];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-foreground/40 p-4">
-      <div className="w-full max-w-xl rounded-2xl bg-card p-6 shadow-xl space-y-4">
+    <section ref={section} tabIndex={-1} aria-label={t("مراجعة تشابه المستندات", "Document similarity review")} className="my-4 rounded-xl border border-warning/40 bg-card p-4">
+      <div className="w-full space-y-3">
         <div className="flex items-center gap-3">
           <div className="rounded-full bg-warning/10 p-2">
             <AlertTriangle className="h-5 w-5 text-warning" />
@@ -58,6 +62,21 @@ export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose,
             {candidateLabel ? ` · ${candidateLabel}` : ""}
             {review.candidate.status ? ` · ${review.candidate.status}` : ""}
           </p>
+          <Link className="mt-2 inline-block text-primary underline" target="_blank" rel="noopener noreferrer"
+            to={review.candidate.entityType === "Bill" ? `/app/purchases/bills/${encodeURIComponent(review.candidate.id)}` : `/app/expenses/${encodeURIComponent(review.candidate.id)}`}>
+            {t("فتح المستند الموجود", "Open existing document")}
+          </Link>
+          {review.crossPurchase && review.candidate.entityType === 'Bill' && ['RECEIVED', 'DUE', 'PARTIAL', 'OVERDUE'].includes(review.candidate.status || '') && (
+            <Link className="ms-4 inline-block text-primary underline" target="_blank" rel="noopener noreferrer"
+              to={`/app/payments/new?billId=${encodeURIComponent(review.candidate.id)}`}>
+              {t('سداد الفاتورة الموجودة', 'Pay existing bill')}
+            </Link>
+          )}
+          {review.crossPurchase && <p className="mt-2 text-sm text-muted-foreground">
+            {review.candidate.entityType === "Bill"
+              ? t("قد يكون هذا سدادًا لفاتورة شراء موجودة. راجع الفاتورة وسجّل السداد بسند صرف مرتبط بها؛ لا تنشئ مصروفًا ثانيًا لنفس الشراء.", "This may settle an existing purchase bill. Review it and record a linked payment voucher; do not create a second expense for the same purchase.")
+              : t("قد يكون الشراء مسجلًا بالفعل كمصروف مدفوع. راجع المستند الموجود؛ اختر إنشاء منفصل فقط إذا كانت عملية شراء أخرى.", "This purchase may already be recorded as a paid expense. Review the existing document; create separately only for a different purchase.")}
+          </p>}
           <div className="mt-2 space-y-1">
             {review.matchedSignals.length > 0 && (
               <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
@@ -100,6 +119,6 @@ export function SimilarityReviewDialog({ review, candidateLabel, busy, onChoose,
             ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }

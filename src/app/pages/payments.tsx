@@ -105,9 +105,18 @@ export function Payments() {
     const wantsCreate = location.pathname.endsWith("/new") || searchParams.get("new") === "1";
     if (!wantsCreate || open) return;
     const contactId = searchParams.get("contactId");
+    const billId = searchParams.get("billId");
     resetForm();
     setEditingPayment(null);
     if (contactId) setForm((f: any) => ({ ...f, contactId }));
+    if (billId) api.bills.get(billId).then((bill: any) => {
+      if (!['RECEIVED', 'DUE', 'PARTIAL', 'OVERDUE'].includes(bill.status)) {
+        push('error', t('الفاتورة غير قابلة للسداد؛ راجع حالتها أولًا.', 'Review the bill status before payment.'));
+        return;
+      }
+      setForm((f: any) => ({ ...f, contactId: bill.contactId, billId: bill.id,
+        amount: String(Math.max(0, Number(bill.total) - Number(bill.amountPaid || 0))) }));
+    }).catch(() => push('error', t('تعذر تحميل فاتورة المشتريات', 'Could not load purchase bill')));
     setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, searchParams]);
@@ -146,6 +155,7 @@ export function Payments() {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   const [form, setForm] = useState<any>({
+    idempotencyRoot: crypto.randomUUID(),
     contactId: "",
     billId: "",
     date: new Date().toISOString().slice(0, 10),
@@ -157,7 +167,7 @@ export function Payments() {
     branchId: undefined as string | null | undefined, // B1 · undefined = apply member default
     allocations: [] as Array<{ billId: string; amount: string }>,
   });
-  const draft = useFormDraft({ key: editingPayment ? `payment:${editingPayment.id}` : "payment:new", open, snapshot: form, restore: (s) => setForm(s) });
+  const draft = useFormDraft({ key: editingPayment ? `payment:${editingPayment.id}` : "payment:new", open, snapshot: form, restore: (s) => setForm({ ...s, idempotencyRoot: s.idempotencyRoot || crypto.randomUUID() }) });
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -218,6 +228,7 @@ export function Payments() {
   const singleCur = byCur.length === 1 ? byCur[0].currency : null;
 
   const resetForm = () => setForm({
+    idempotencyRoot: crypto.randomUUID(),
     contactId: "", billId: "",
     date: new Date().toISOString().slice(0, 10),
     amount: "", paymentMethod: "BANK_TRANSFER", reference: "", bankAccountId: "", notes: "",
@@ -227,6 +238,7 @@ export function Payments() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     if (!form.contactId) { push("error", t("اختر المورد", "Select supplier")); return; }
 
     const allocs = (Array.isArray(form.allocations) ? form.allocations : [])
@@ -271,8 +283,10 @@ export function Payments() {
           const amount = Math.min(a.amount, maxRemaining);
           if (amount <= 0) continue;
 
-          const v = await api.vouchers.create({
-            type: "PAYMENT",
+          const payment = {
+            idempotencyKey: `${form.idempotencyRoot}:${a.billId}`,
+            currency: bill?.currency || orgCurrency,
+            type: "PAYMENT" as const,
             contactId: form.contactId,
             billId: a.billId,
             date: form.date,
@@ -282,12 +296,15 @@ export function Payments() {
             reference: bill?.billNumber || form.reference || null,
             notes: form.notes || null,
             branchId: form.branchId ?? null,
-          });
+          };
+          const v = await api.vouchers.create(payment);
           created.push(v);
         }
       } else {
-        const v = await api.vouchers.create({
-          type: "PAYMENT",
+        const payment = {
+          idempotencyKey: form.billId ? `${form.idempotencyRoot}:${form.billId}` : undefined,
+          currency: bills.find(b => b.id === form.billId)?.currency || orgCurrency,
+          type: "PAYMENT" as const,
           contactId: form.contactId,
           billId: form.billId || null,
           date: form.date,
@@ -297,7 +314,8 @@ export function Payments() {
           reference: form.reference || null,
           notes: form.notes || null,
           branchId: form.branchId ?? null,
-        });
+        };
+        const v = await api.vouchers.create(payment);
         created.push(v);
       }
 
@@ -497,7 +515,7 @@ export function Payments() {
               <Button size="sm" onClick={() => handlePrint(selected)}>
                 <Printer className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("طباعة / PDF", "Print / PDF")}
               </Button>
-              <Button size="sm" onClick={() => openEdit(selected)} variant="outline">
+              <Button size="sm" disabled={Boolean(selected.billId)} onClick={() => openEdit(selected)} variant="outline">
                 <Wallet className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("تعديل", "Edit")}
               </Button>
               <Button size="sm" onClick={() => {
@@ -511,11 +529,12 @@ export function Payments() {
                   <Button size="sm" onClick={() => setPendingDelete(null)} variant="outline">{t("إلغاء", "Cancel")}</Button>
                 </span>
               ) : (
-                <Button size="sm" onClick={() => setPendingDelete(selected.id)} variant="outline" className="text-danger">
+                <Button size="sm" disabled={Boolean(selected.billId)} onClick={() => setPendingDelete(selected.id)} variant="outline" className="text-danger">
                   <Trash2 className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("حذف", "Delete")}
                 </Button>
               )}
             </div>
+            {selected.billId && <p className="text-xs text-muted-foreground">{t('هذا السداد مرتبط بالدفاتر؛ تصحيح المبلغ يتطلب عكس القيد، ويمكن إضافة المرفقات.', 'This payment is posted. Amount corrections require reversal; attachments can still be added.')}</p>}
           </>
         )}
       </div>
