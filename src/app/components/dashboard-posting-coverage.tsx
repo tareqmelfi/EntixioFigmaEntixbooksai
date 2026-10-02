@@ -25,10 +25,10 @@ export function DashboardPostingCoverage({coverage,from,to,onPosted}: {coverage?
     'credit-note':['الإشعارات الدائنة','Credit notes','/app/credit-notes'],
   };
   const amount=(value:number)=>value.toLocaleString(displayLocale('en-US'),{minimumFractionDigits:2,maximumFractionDigits:2});
-  return <section data-testid="dashboard-posting-coverage" className="min-w-0 rounded-lg border border-border bg-card p-4">
-    {coverage.unlinkedCount>0 && <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+  return <section data-testid="dashboard-posting-coverage" className="min-w-0 border-b border-border/60 pb-2">
+    {coverage.unlinkedCount>0 && <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
       <p role="status">{coverage.unlinkedCount} {t('مستندًا يحتاج استكمال قيده؛ الأرباح تعرض القيود المرحلة فقط.','documents need journal completion; profit includes posted journals only.')}</p>
-      <Button size="sm" onClick={()=>setReview(v=>!v)}>{review?t('إغلاق المراجعة','Close review'):t('مراجعة واعتماد','Review and approve')}</Button>
+      <Button size="sm" variant="outline" className="h-6 border-border/50 px-2 text-[11px]" onClick={()=>setReview(v=>!v)}>{review?t('إغلاق المراجعة','Close review'):t('مراجعة واعتماد','Review and approve')}</Button>
     </div>}
     {review&&<PostingReview from={from} to={to} onPosted={onPosted}/>}
     <details className="mt-2"><summary className="cursor-pointer text-xs text-content-secondary">{t('تفاصيل المستندات والمسودات','Document and draft totals')}</summary>

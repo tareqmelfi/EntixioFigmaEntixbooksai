@@ -589,7 +589,7 @@ function SidebarContent({
   return (
     <>
       {/* ── Sidebar header · vector wordmark · workspace card · quiet search ── */}
-      <div className="flex flex-col gap-[14px] px-[16px] pb-[14px] pt-[20px]">
+      <div className="flex flex-col gap-[10px] px-[16px] pb-[10px] pt-[20px]">
         {/* Reference artboard centres the wordmark in the 248px column and has no
             rail toggle; we keep the toggle but float it on the end edge so the
             mark still sits dead centre. */}
@@ -615,7 +615,7 @@ function SidebarContent({
         </div>
 
         {/* Active org switcher · Wafeq-style with logo + search + "مختارة حالياً" tag */}
-        {!collapsed && <OrgSwitcher />}
+        {!collapsed && <OrgSwitcher className="!border-border/40 !bg-transparent !px-2.5 !py-2" />}
 
         {!collapsed && (
         <div className="relative" ref={searchRef}>
@@ -623,7 +623,7 @@ function SidebarContent({
           <input
             type="text"
             placeholder={tr("اذهب إلى صفحة...")}
-            className="h-[40px] w-full rounded-lg border border-border bg-card ps-[34px] pe-8 text-[13px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+            className="h-[32px] w-full rounded-md border border-border/40 bg-transparent ps-[34px] pe-8 text-[12px] text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setSearchFocused(true)}

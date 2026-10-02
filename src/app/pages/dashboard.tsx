@@ -224,9 +224,9 @@ useEffect(() => {
   const sessionName = (session as any)?.data?.user?.name as string | undefined;
   const greetName = (sessionName && sessionName.trim().split(/\s+/)[0]) || data.org.name;
   return (
-    <div className="space-y-4 md:space-y-[18px] xl:space-y-6">
+    <div className="space-y-3 md:space-y-4">
       {/* Masthead · eyebrow date + greeting + primary actions */}
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1 xl:gap-1.5">
           {/* The page name stays the h1 (a11y + tests); the greeting is display copy under it. */}
           <h1 className="text-[12px] font-normal text-content-secondary xl:text-[13px]">
@@ -238,9 +238,9 @@ useEffect(() => {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 xl:gap-2.5">
-          <Button asChild className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]"><Link to="/app/invoices?new=1">{t("+ فاتورة", "+ Invoice")}</Link></Button>
-          <Button asChild variant="outline" className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]"><Link to="/app/expenses/new">{t("+ مصروف", "+ Expense")}</Link></Button>
-          <Button asChild variant="secondary" className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
+          <Button asChild className="h-7 border border-border/50 px-2.5 py-0 text-[11px] font-medium shadow-none"><Link to="/app/invoices?new=1">{t("+ فاتورة", "+ Invoice")}</Link></Button>
+          <Button asChild variant="outline" className="h-7 border border-border/50 px-2.5 py-0 text-[11px] font-medium shadow-none"><Link to="/app/expenses/new">{t("+ مصروف", "+ Expense")}</Link></Button>
+          <Button asChild variant="secondary" className="h-7 border border-border/50 px-2.5 py-0 text-[11px] font-medium shadow-none">
             <Link to="/app/vouchers/new" title={t("+ سند", "+ Voucher")}>{t("+ قيد", "+ Entry")}</Link>
           </Button>
         </div>
