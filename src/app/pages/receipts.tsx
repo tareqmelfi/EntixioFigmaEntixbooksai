@@ -40,6 +40,11 @@ export function Receipts() {
   const location = useLocation();
   const navigate = useNavigate();
   const { language, t } = useLanguage();
+  const createParams = new URLSearchParams(location.search);
+  const sourceInvoiceId = (location.pathname.endsWith('/new') || createParams.get('new') === '1') ? createParams.get('invoiceId') || '' : '';
+  const [sourceInvoice, setSourceInvoice] = useState<any>(null);
+  const [invoiceError, setInvoiceError] = useState('');
+  const [invoiceRetry, setInvoiceRetry] = useState(0);
 
   const METHOD_LABELS: Record<Voucher["paymentMethod"], string> = {
     CASH: t("نقداً", "Cash"), BANK_TRANSFER: t("تحويل بنكي", "Bank Transfer"), CARD: t("بطاقة ائتمان", "Credit Card"),
@@ -120,14 +125,15 @@ export function Receipts() {
     notes: "",
     branchId: undefined as string | null | undefined, // B1 · undefined = apply member default
     allocations: [] as Array<{ invoiceId: string; amount: string }>,
+    distributeInvoices: false,
   });
-  const draft = useFormDraft({ key: editingReceipt ? `receipt:${editingReceipt.id}` : "receipt:new", open, snapshot: form, restore: (s) => setForm(s) });
+  const draft = useFormDraft({ key: editingReceipt ? `receipt:${editingReceipt.id}` : sourceInvoiceId ? `receipt:invoice:${sourceInvoiceId}` : "receipt:new", open, snapshot: form, restoreMode: 'prompt', restore: (s) => setForm(sourceInvoice ? { ...s, contactId: sourceInvoice.contactId, invoiceId: sourceInvoice.id } : s) });
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
       const [v, c, b] = await Promise.all([
-        api.vouchers.list({ type: "RECEIPT" }),
+        api.vouchers.list({ type: "RECEIPT", ...(sourceInvoiceId ? { invoiceId: sourceInvoiceId } : {}) }),
         api.contacts.list({ role: "customer" }).catch(() => ({ items: [] })),
         api.bankAccounts.list().catch(() => ({ items: [] })),
       ]);
@@ -138,7 +144,7 @@ export function Receipts() {
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
-  }, [push]);
+  }, [push, sourceInvoiceId]);
   useEffect(() => { refresh(); }, [refresh]);
 
   // Deep link · /app/receipts/:id → open that voucher's detail panel
@@ -154,28 +160,32 @@ export function Receipts() {
 
   // Load all customer invoices for selected contact (for direct linking from receipt)
   useEffect(() => {
+    if (sourceInvoiceId && !form.distributeInvoices) { setInvoices(sourceInvoice ? [sourceInvoice] : []); return; }
     if (!form.contactId) { setInvoices([]); return; }
+    let live = true;
+    setInvoices(sourceInvoice ? [sourceInvoice] : []);
     api.invoices.list({ contactId: form.contactId, status: "DRAFT,APPROVED,SENT,VIEWED,PARTIAL,OVERDUE,PAID" as any, limit: 200 })
       .then((r) => {
-        const items = r.items || [];
+        if (!live) return;
+        const items = (r.items || []).filter((inv: any) => inv.contactId === form.contactId && inv.status !== 'CANCELLED' && inv.paymentLinkProvider !== 'stripe-subscription' && (!sourceInvoice || inv.currency === sourceInvoice.currency));
+        if (sourceInvoice && !items.some((inv: any) => inv.id === sourceInvoice.id)) items.unshift(sourceInvoice);
         setInvoices(items);
-        setForm((prev: any) => ({
-          ...prev,
-          allocations: items
-            .filter((inv: any) => Math.max(toNum(inv.total) - toNum(inv.amountPaid), 0) > 0)
-            .map((inv: any) => ({ invoiceId: inv.id, amount: "" })),
-        }));
       })
-      .catch(() => setInvoices([]));
-  }, [form.contactId]);
+      .catch(() => { if (live) setInvoices(sourceInvoice ? [sourceInvoice] : []); });
+    return () => { live = false; };
+  }, [form.contactId, sourceInvoiceId, sourceInvoice, form.distributeInvoices]);
 
   // URL-driven create flow (from invoice "دفعة" action)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const wantsCreate = location.pathname.endsWith("/new") || params.get("new") === "1";
     if (!wantsCreate) return;
-
     setOpen(true);
+    setEditingReceipt(null);
+    setSelected(null);
+    setApprovalRequest(null);
+    setSourceInvoice(null);
+    setInvoiceError('');
 
     const contactId = params.get("contactId");
     const invoiceId = params.get("invoiceId");
@@ -183,6 +193,17 @@ export function Receipts() {
     const date = params.get("date");
     const reference = params.get("reference");
 
+    if (invoiceId) {
+      let live = true;
+      api.invoices.get(invoiceId).then(inv => {
+        if (!live) return;
+        setSourceInvoice(inv);
+        setForm((prev: any) => ({ ...prev, contactId: inv.contactId, invoiceId: inv.id,
+          amount: Math.max(toNum(inv.total) - toNum(inv.amountPaid), 0).toFixed(2),
+          date: String(inv.issueDate).slice(0, 10), reference: inv.invoiceNumber || '', allocations: [], distributeInvoices: false }));
+      }).catch(e => { if (live) setInvoiceError(humanizeError(e, language, { ar: 'تعذر تحميل الفاتورة. أعد المحاولة قبل تسجيل الدفعة.', en: 'Could not load the invoice. Retry before recording payment.' })); });
+      return () => { live = false; };
+    }
     setForm((prev: any) => ({
       ...prev,
       contactId: contactId || prev.contactId,
@@ -191,7 +212,7 @@ export function Receipts() {
       date: date || prev.date,
       reference: reference || prev.reference,
     }));
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, invoiceRetry]);
 
   const filtered = items.filter(p =>
     !searchQuery || p.number.includes(searchQuery) ||
@@ -208,6 +229,7 @@ export function Receipts() {
     amount: "", paymentMethod: "BANK_TRANSFER", reference: "", bankAccountId: "", notes: "",
     branchId: undefined,
     allocations: [],
+    distributeInvoices: false,
   });
 
   const openCreate = () => {
@@ -251,17 +273,23 @@ export function Receipts() {
     setEditingReceipt(null);
     resetForm();
     if (goBackToSource()) return;
+    if (sourceInvoiceId) { navigate(`/app/invoices/${sourceInvoiceId}`, { replace: true }); return; }
     navigate("/app/receipts", { replace: true });
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (submitLock.current) return;
+    if (sourceInvoiceId && (!sourceInvoice || invoiceError || form.invoiceId !== sourceInvoice.id || form.contactId !== sourceInvoice.contactId)) return;
+    const parsedDate = new Date(form.date + 'T00:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(form.date) || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== form.date) { push('error', t('أدخل تاريخًا صحيحًا للدفعة', 'Enter a valid payment date')); return; }
     if (!form.contactId) { push("error", t("اختر العميل", "Select customer")); return; }
 
-    const allocs = (Array.isArray(form.allocations) ? form.allocations : [])
+    const allocs = (form.distributeInvoices && Array.isArray(form.allocations) ? form.allocations : [])
       .map((a: any) => ({ invoiceId: a.invoiceId, amount: toNum(a.amount) }))
       .filter((a: any) => a.invoiceId && a.amount > 0);
+    if (allocs.some((a: any) => !invoices.some((inv: any) => inv.id === a.invoiceId && inv.contactId === form.contactId))) { push('error', t('راجع الفواتير المحددة لهذا العميل', 'Review the invoices selected for this customer')); return; }
+    if (form.distributeInvoices && allocs.length === 0) { push('error', t('حدد مبلغًا لفاتورة واحدة على الأقل، أو اختر الاكتفاء بالفاتورة المحددة.', 'Allocate an amount to at least one invoice, or use the selected invoice only.')); return; }
 
     const directAmount = toNum(form.amount);
 
@@ -598,7 +626,7 @@ export function Receipts() {
     <div className="space-y-6">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
 
-      <div className={wideViewport && selected ? "grid grid-cols-[minmax(0,1fr)_minmax(380px,30%)] items-start gap-8" : ""}>
+      {!open && <div className={wideViewport && selected ? "grid grid-cols-[minmax(0,1fr)_minmax(380px,30%)] items-start gap-8" : ""}>
       <div className="min-w-0 space-y-6">
         <PageHeader
           className="[&_h1]:text-[24px] sm:[&_h1]:text-[28px] [&_h1]:leading-tight"
@@ -718,11 +746,11 @@ export function Receipts() {
       {wideViewport && selected && (
         <aside className="sticky top-4 min-w-0">{panel}</aside>
       )}
-      </div>
+      </div>}
       {open && (
         <FullPageForm
-          title={editingReceipt ? t("تعديل سند قبض", "Edit receipt voucher") : t("سند قبض جديد", "New receipt voucher")}
-          subtitle={editingReceipt ? t(`مراجعة السند ${editingReceipt.number} · المعاينة يسار`, `Review voucher ${editingReceipt.number} · preview on left`) : t("إنشاء سند قبض مرتبط بالفواتير أو توزيع مبلغ على أكثر من فاتورة", "Create a receipt voucher linked to invoices or distribute an amount across multiple invoices")}
+          title={editingReceipt ? t("تعديل سند قبض", "Edit receipt voucher") : sourceInvoiceId ? t('تسجيل دفعة فاتورة', 'Record invoice payment') : t("سند قبض جديد", "New receipt voucher")}
+          subtitle={editingReceipt ? t(`مراجعة السند ${editingReceipt.number} · المعاينة يسار`, `Review voucher ${editingReceipt.number} · preview on left`) : sourceInvoiceId ? sourceInvoice?.invoiceNumber || t('تحميل الفاتورة…', 'Loading invoice…') : t("إنشاء سند قبض مرتبط بالفواتير أو توزيع مبلغ على أكثر من فاتورة", "Create a receipt voucher linked to invoices or distribute an amount across multiple invoices")}
           onClose={closeCreate}
           disableEscape={busy}
           draft={draft}
@@ -742,7 +770,7 @@ export function Receipts() {
                   </Button>
                 )}
               </div>
-              <Button type="button" onClick={() => handleSubmit()} disabled={busy} className="bg-primary hover:bg-primary/90">
+              <Button type="button" onClick={() => handleSubmit()} disabled={busy || (!!sourceInvoiceId && (!sourceInvoice || !!invoiceError || toNum(sourceInvoice.total) <= toNum(sourceInvoice.amountPaid) || sourceInvoice.status === 'CANCELLED' || sourceInvoice.paymentLinkProvider === 'stripe-subscription'))} className="bg-primary hover:bg-primary/90">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ", "Save")}
               </Button>
             </div>
@@ -750,6 +778,23 @@ export function Receipts() {
         >
           <div className={editingReceipt && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <form onSubmit={handleSubmit} className="w-full space-y-4">
+            {sourceInvoiceId && !sourceInvoice && <div role={invoiceError ? 'alert' : 'status'} className="rounded-lg border border-border p-4">
+              {invoiceError || t('جارٍ تحميل تفاصيل الفاتورة…', 'Loading invoice details…')}
+              {invoiceError && <Button type="button" variant="outline" onClick={() => setInvoiceRetry(n => n + 1)}>{t('إعادة المحاولة', 'Retry')}</Button>}
+            </div>}
+            {sourceInvoice && <section aria-label={t('الفاتورة المحددة', 'Selected invoice')} className="rounded-lg border border-border bg-card p-4 space-y-3">
+              <div className="flex flex-wrap justify-between gap-2">
+                <div><Link className="font-code text-primary underline" to={`/app/invoices/${sourceInvoice.id}`}>{sourceInvoice.invoiceNumber}</Link><div className="text-sm"><ContactProfileLink id={sourceInvoice.contactId} name={sourceInvoice.contact?.displayName || contacts.find(c => c.id === sourceInvoice.contactId)?.displayName} /></div></div>
+                <span className="text-sm">{t('تاريخ الفاتورة', 'Invoice date')} · <bdi>{String(sourceInvoice.issueDate).slice(0, 10)}</bdi></span>
+              </div>
+              <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                {[ [t('الإجمالي', 'Total'), sourceInvoice.total], [t('المسدد', 'Paid'), sourceInvoice.amountPaid], [t('المتبقي', 'Remaining'), Math.max(toNum(sourceInvoice.total) - toNum(sourceInvoice.amountPaid), 0)] ].map(([label, value]) => <div key={label}><dt className="text-muted-foreground">{label}</dt><dd className="font-semibold"><bdi>{money2(value)} {sourceInvoice.currency}</bdi></dd></div>)}
+              </dl>
+              {!!sourceInvoice.lines?.length && <details className="text-sm"><summary className="cursor-pointer text-primary">{t('بنود الفاتورة', 'Invoice items')} ({sourceInvoice.lines.length})</summary><ul className="mt-2 space-y-1">{sourceInvoice.lines.map((line: any, i: number) => <li key={line.id || i} className="flex justify-between gap-3"><span className="break-words">{line.description}</span><span>{t('الكمية', 'Quantity')} · {line.quantity}</span></li>)}</ul></details>}
+              {toNum(sourceInvoice.total) <= toNum(sourceInvoice.amountPaid) && <p role="alert">{t('الفاتورة مسددة بالكامل؛ لا توجد دفعة متبقية.', 'This invoice is fully paid; no payment remains.')}</p>}
+              {sourceInvoice.status === 'CANCELLED' && <p role="alert">{t('الفاتورة ملغاة ولا تقبل السداد.', 'Cancelled invoices cannot receive payment.')}</p>}
+              {sourceInvoice.paymentLinkProvider === 'stripe-subscription' && <p role="alert">{t('سداد هذه الفاتورة يُدار من Stripe.', 'Payments for this invoice are managed by Stripe.')}</p>}
+            </section>}
             {approvalRequest && (
               <div className="rounded-lg border border-border bg-warning-subtle p-3 space-y-2" role="alert">
                 <p>{t("الفاتورة مسودة ولا تقبل السداد قبل الاعتماد:", "Draft invoices must be approved before receiving payment:")} {approvalRequest.invoices.map(inv => inv.invoiceNumber).join(" · ")}</p>
@@ -771,13 +816,13 @@ export function Receipts() {
                 <Button type="button" variant="outline" disabled={busy} onClick={() => setApprovalRequest(null)}>{t("إلغاء", "Cancel")}</Button>
               </div>
             )}
-            <fieldset disabled={!!editingReceipt?.invoiceId} className="space-y-4">
-            <div>
+            <fieldset disabled={busy || !!editingReceipt?.invoiceId || (!!sourceInvoiceId && !sourceInvoice)} className="space-y-4">
+            {!sourceInvoiceId && <div>
               <Label className="text-xs">{t("العميل", "Customer")} *</Label>
               {form.contactId && <ContactProfileLink id={form.contactId} name={contacts.find(c => c.id === form.contactId)?.displayName} className="block text-sm" />}
               <SearchableCombobox
                 value={form.contactId}
-                onChange={(id) => setForm({ ...form, contactId: id, invoiceId: "", amount: "", allocations: [] })}
+                onChange={(id) => setForm({ ...form, contactId: id, invoiceId: "", amount: "", allocations: [], distributeInvoices: false })}
                 items={contacts.map((c) => ({ id: c.id, label: c.displayName, sublabel: [(c as any).legalName, c.email].filter(Boolean).join(" · ") || undefined }))}
                 placeholder={t("ابحث عن عميل...", "Search customer...")}
                 onCreate={async (name) => {
@@ -792,11 +837,11 @@ export function Receipts() {
                 }}
                 createLabel={(q) => t(`+ إنشاء جديد "${q}"`, `+ Create new "${q}"`)}
               />
-            </div>
+            </div>}
 
             {form.contactId && (
               <>
-                <div>
+                {!sourceInvoiceId && <div>
                   <Label className="text-xs">{t("الفاتورة المرتبطة (اختياري)", "Linked invoice (optional)")}</Label>
                   <select value={form.invoiceId} onChange={(e) => {
                     const inv = invoices.find((i) => i.id === e.target.value);
@@ -807,10 +852,11 @@ export function Receipts() {
                       amount: inv ? String(remaining.toFixed(2)) : form.amount,
                       date: inv?.issueDate ? String(inv.issueDate).slice(0, 10) : form.date,
                       reference: inv?.invoiceNumber || form.reference,
+                      allocations: [], distributeInvoices: false,
                     });
                   }} className="w-full text-sm rounded border border-border px-3 py-2 bg-card">
                     <option value="">{t("— غير مرتبط —", "— Not linked —")}</option>
-                    {invoices.map((inv) => {
+                    {invoices.filter(inv => toNum(inv.total) > toNum(inv.amountPaid) || inv.id === form.invoiceId).map((inv) => {
                       const remaining = Math.max(0, toNum(inv.total) - toNum(inv.amountPaid || 0));
                       const isPaid = remaining <= 0;
                       return (
@@ -823,9 +869,13 @@ export function Receipts() {
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {t("تظهر هنا فواتير هذا العميل فقط، والربط سيكون مباشرًا على نفس الحساب.", "Only this customer's invoices appear here; the link is direct on the same account.")}
                   </p>
-                </div>
+                </div>}
 
-                {invoices.some((inv) => Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0) > 0) && (
+                {!editingReceipt && <Button type="button" variant="outline" size="sm" aria-expanded={!!form.distributeInvoices} onClick={() => setForm((prev: any) => ({ ...prev, distributeInvoices: !prev.distributeInvoices, allocations: !prev.distributeInvoices && sourceInvoice ? [{ invoiceId: sourceInvoice.id, amount: prev.amount }] : [] }))}>
+                  {form.distributeInvoices ? t('الاكتفاء بالفاتورة المحددة', 'Use selected invoice only') : t('توزيع الدفعة على فواتير أخرى لهذا العميل', 'Allocate to other invoices for this customer')}
+                </Button>}
+
+                {form.distributeInvoices && invoices.some((inv) => Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0) > 0) && (
                   <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
                     <div className="text-xs text-muted-foreground" style={{ fontWeight: 600 }}>{t("توزيع المبلغ على الفواتير (اختياري)", "Distribute amount across invoices (optional)")}</div>
                     {invoices
@@ -834,13 +884,14 @@ export function Receipts() {
                         const remaining = Math.max(toNum(inv.total) - toNum(inv.amountPaid || 0), 0);
                         const allocation = (form.allocations || []).find((a: any) => a.invoiceId === inv.id);
                         return (
-                          <div key={inv.id} className="grid grid-cols-[1fr_140px_auto] gap-2 items-center">
+                          <div key={inv.id} className="grid grid-cols-[minmax(0,1fr)_100px] sm:grid-cols-[minmax(0,1fr)_120px_auto] gap-2 items-center">
                             <div className="text-xs text-foreground/90">
                               <span className="font-english text-primary">{inv.invoiceNumber}</span>
                               <span className="text-muted-foreground"> · {t("متبقي", "remaining")} </span>
                               <span className="font-english">{displayDigits(remaining.toFixed(2))} {inv.currency}</span>
                             </div>
                             <Input
+                              aria-label={`${t('مبلغ', 'Amount')} ${inv.invoiceNumber}`}
                               type="number"
                               step="0.01"
                               value={allocation?.amount || ""}
@@ -882,14 +933,18 @@ export function Receipts() {
               </>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">{t("التاريخ", "Date")} *</Label>
-                <DateInput value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
+                <Label htmlFor="receipt-date" className="text-xs">{t("تاريخ الدفعة", "Payment date")} *</Label>
+                <DateInput id="receipt-date" value={form.date} onChange={(iso) => setForm({ ...form, date: iso })} required inputClassName="" />
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {(sourceInvoice || invoices.find(inv => inv.id === form.invoiceId))?.issueDate && <Button type="button" variant="outline" size="sm" onClick={() => setForm({ ...form, date: String((sourceInvoice || invoices.find(inv => inv.id === form.invoiceId)).issueDate).slice(0, 10) })}>{t('بتاريخ الفاتورة', 'Use invoice date')}</Button>}
+                  <Button type="button" variant="outline" size="sm" onClick={() => { const now = new Date(); setForm({ ...form, date: `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}` }); }}>{t('اليوم', 'Today')}</Button>
+                </div>
               </div>
               <div>
-                <Label className="text-xs">{t("المبلغ (أو وزّعه على الفواتير)", "Amount (or distribute across invoices)")}</Label>
-                <Input type="number" step="0.01" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} dir="ltr" className="font-english" />
+                <Label htmlFor="receipt-amount" className="text-xs">{t('مبلغ الدفعة', 'Payment amount')} {sourceInvoice?.currency}</Label>
+                <Input id="receipt-amount" type="number" step="0.01" disabled={!!form.distributeInvoices} value={form.distributeInvoices ? (form.allocations || []).reduce((n: number, a: any) => n + toNum(a.amount), 0).toFixed(2) : form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} dir="ltr" className="font-english" />
               </div>
             </div>
 
