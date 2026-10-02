@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api, type Invoice } from '../lib/api';
 import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
+import { DateInput } from './date-input';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { humanizeError } from '../lib/error-messages';
@@ -20,6 +21,7 @@ function InvoiceRestriction({ policy }: { policy?: AmendmentPolicy }) {
     related_document: ['توجد مستندات أو جداول مرتبطة تحتاج مراجعة مشتركة مع الفاتورة.', 'Related documents or schedules need to be reviewed with this invoice.'],
     receipts_exist: ['الإلغاء غير متاح لوجود تحصيل أو حركة بنكية مرتبطة؛ راجع التسوية أولًا.', 'Voiding is unavailable because receipts or bank transactions are linked. Review their settlement first.'],
     payment_link: ['الإلغاء غير متاح مع رابط دفع نشط؛ يلزم إيقاف الرابط أولًا.', 'Voiding is unavailable while a payment link is active. Retire the payment link first.'],
+    void_role_required: ['الإلغاء متاح لمالك الشركة أو مديرها.', 'Voiding requires the company owner or administrator.'],
     super_admin_required: ['الإلغاء الإداري متاح للسوبر أدمن فقط.', 'Administrative void requires a platform super admin.'],
     role_required: ['صلاحية التعديل متاحة للمالك أو المدير أو المحاسب.', 'Amendment access requires an owner, administrator or accountant.'],
     ledger_review: ['يلزم مراجعة قيد الفاتورة قبل الإلغاء.', 'The invoice ledger needs review before voiding.'],
@@ -67,6 +69,7 @@ export function InvoiceAmendmentPanel({ invoice, onDone, initialAction }: { invo
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState(invoice.notes || '');
   const [terms, setTerms] = useState(invoice.termsConditions || '');
+  const [dateValidity, setDateValidity] = useState({ issueDate: true, supplyDate: true, dueDate: true });
   const [issueDate, setIssueDate] = useState(invoice.issueDate?.slice(0, 10) || '');
   const [supplyDate, setSupplyDate] = useState(invoice.supplyDate?.slice(0, 10) || '');
   const [dueDate, setDueDate] = useState(invoice.dueDate?.slice(0, 10) || '');
@@ -98,18 +101,18 @@ export function InvoiceAmendmentPanel({ invoice, onDone, initialAction }: { invo
         <td className="p-2 min-w-64"><Input aria-label={`${t('الوصف', 'Description')} ${index + 1}`} value={l.description} onChange={e => setLines(v => v.map((x, i) => i === index ? { ...x, description: e.target.value } : x))} /></td>
         {(['quantity', 'unitPrice'] as const).map(field => <td key={field} className="p-2 w-32"><Input type="number" min={field === 'quantity' ? 0.001 : 0} step="any" aria-label={`${field === 'quantity' ? t('الكمية', 'Quantity') : t('سعر الوحدة', 'Unit price')} ${index + 1}`} value={l[field]} onChange={e => setLines(v => v.map((x, i) => i === index ? { ...x, [field]: e.target.value } : x))} /></td>)}
       </tr>)}</tbody></table></div>
-      <label className="block text-sm">{t('تاريخ الإصدار', 'Issue date')}<Input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} /></label>
-      <label className="block text-sm">{t('تاريخ التوريد', 'Supply date')}<Input type="date" value={supplyDate} onChange={e => setSupplyDate(e.target.value)} /></label>
+      <label className="block text-sm">{t('تاريخ الإصدار', 'Issue date')}<DateInput value={issueDate} onChange={setIssueDate} onValidityChange={valid => setDateValidity(v => ({ ...v, issueDate: valid }))} /></label>
+      <label className="block text-sm">{t('تاريخ التوريد', 'Supply date')}<DateInput value={supplyDate} onChange={setSupplyDate} onValidityChange={valid => setDateValidity(v => ({ ...v, supplyDate: valid }))} /></label>
       <p className="text-xs text-muted-foreground">{t('تصحيح تاريخ الإصدار يصحح تاريخ قيد الفاتورة نفسه مع حفظ التاريخ السابق في السجل.', 'Correcting the issue date updates the original invoice journal date and retains the previous date in the audit log.')}</p>
-      <label className="block text-sm">{t('تاريخ الاستحقاق', 'Due date')}<Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></label>
+      <label className="block text-sm">{t('تاريخ الاستحقاق', 'Due date')}<DateInput value={dueDate} onChange={setDueDate} onValidityChange={valid => setDateValidity(v => ({ ...v, dueDate: valid }))} /></label>
       <label className="block text-sm">{t('ملاحظات', 'Notes')}<Textarea value={notes} onChange={e => setNotes(e.target.value)} /></label>
       <label className="block text-sm">{t('الشروط', 'Terms')}<Textarea value={terms} onChange={e => setTerms(e.target.value)} /></label>
       <label className="block text-sm">{t('سبب التعديل — مطلوب', 'Reason for amendment — required')}<Textarea value={reason} onChange={e => setReason(e.target.value)} /></label>
-      <div className="flex gap-2"><Button disabled={busy || reason.trim().length < 5} onClick={save}>{busy ? t('جارٍ الحفظ…', 'Saving…') : t('حفظ التعديل', 'Save amendment')}</Button><Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>{t('إلغاء', 'Cancel')}</Button></div>
+      <div className="flex gap-2"><Button disabled={busy || !issueDate || !dueDate || !Object.values(dateValidity).every(Boolean) || reason.trim().length < 5} onClick={save}>{busy ? t('جارٍ الحفظ…', 'Saving…') : t('حفظ التعديل', 'Save amendment')}</Button><Button variant="outline" disabled={busy} onClick={() => setOpen(false)}>{t('إلغاء', 'Cancel')}</Button></div>
     </div>}
     {policy?.canVoidAdmin && !open && <div className="border-t border-border pt-3 space-y-3">
       <Button variant="outline" onClick={() => { setReason(''); setVoidOpen(v => !v); }}>{t('إلغاء الفاتورة', 'Void invoice')}</Button>
-      {voidOpen && <><p className="text-sm">{t('للسوبر أدمن فقط: إلغاء فاتورة بلا تحصيل أو روابط نشطة، مع حفظ الأصل وقيد العكس وسجل السبب. لا تُمحى السجلات.', 'Super admin only: void an invoice with no receipts or active links, retaining the original, reversal and reason. Records are not erased.')}</p>
+      {voidOpen && <><p className="text-sm">{t('إلغاء فاتورة بلا تحصيل أو روابط نشطة، مع حفظ الأصل وقيد العكس وسجل السبب. لا تُمحى السجلات.', 'Void an invoice with no receipts or active links, retaining the original, reversal and reason. Records are not erased.')}</p>
         <label className="block text-sm">{t('سبب الإلغاء', 'Reason for void')}<Textarea value={reason} onChange={e => setReason(e.target.value)} /></label>
         <Button disabled={busy || reason.trim().length < 5} onClick={async () => { setBusy(true); setError(''); try { await api.invoices.voidInvoiceAdmin(invoice.id, { reason, expectedUpdatedAt: invoice.updatedAt! }); await onDone(); } catch (e) { setError(humanizeError(e, language, { ar: 'تعذر الإلغاء', en: 'Could not void invoice' })); } finally { setBusy(false); } }}>{t('تأكيد الإلغاء مع حفظ السجل', 'Confirm void and retain history')}</Button><Button variant="outline" disabled={busy} onClick={() => setVoidOpen(false)}>{t('تراجع', 'Keep invoice')}</Button></>}
     </div>}

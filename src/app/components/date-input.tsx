@@ -19,6 +19,7 @@
  *  - External value stays ISO `yyyy-mm-dd` (what the API expects)
  */
 import { useEffect, useRef, useState } from "react";
+import { parseDocumentDate as parseDisplay } from "../lib/document-date";
 import { Calendar } from "lucide-react";
 import { useLanguage } from "./LanguageContext";
 
@@ -28,30 +29,6 @@ function isoToDisplay(iso: string): string {
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
 
-function parseDisplay(text: string): string | null {
-  const t = (text || "").trim();
-  if (!t) return null;
-  let m: RegExpExecArray | null;
-  // yyyy-mm-dd (ISO passthrough)
-  if ((m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(t))) {
-    return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-  }
-  // dd/mm/yyyy · dd-mm-yyyy · dd.mm.yy(YY)
-  if ((m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/.exec(t))) {
-    const d = m[1].padStart(2, "0");
-    const mo = m[2].padStart(2, "0");
-    let y = m[3];
-    if (y.length === 2) y = (Number(y) > 50 ? "19" : "20") + y;
-    if (Number(mo) < 1 || Number(mo) > 12 || Number(d) < 1 || Number(d) > 31) return "";
-    return `${y}-${mo}-${d}`;
-  }
-  // ddmmyyyy (8 digits)
-  if ((m = /^(\d{2})(\d{2})(\d{4})$/.exec(t))) {
-    if (Number(m[2]) < 1 || Number(m[2]) > 12 || Number(m[1]) < 1 || Number(m[1]) > 31) return "";
-    return `${m[3]}-${m[2]}-${m[1]}`;
-  }
-  return "";
-}
 
 interface Props {
   value: string;                    // ISO yyyy-mm-dd (or "")
@@ -62,9 +39,10 @@ interface Props {
   disabled?: boolean;
   required?: boolean;
   id?: string;
+  onValidityChange?: (valid: boolean) => void;
 }
 
-export function DateInput({ value, onChange, className = "", inputClassName = "", placeholder, disabled, required, id }: Props) {
+export function DateInput({ value, onChange, className = "", inputClassName = "", placeholder, disabled, required, id, onValidityChange }: Props) {
   const { t } = useLanguage();
   const resolvedPlaceholder = placeholder ?? t("يوم/شهر/سنة", "day/month/year");
   const [text, setText] = useState(isoToDisplay(value));
@@ -90,6 +68,7 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
     if (!raw.trim()) {
       invalidRef.current = false;
       setInvalid(false);
+      onValidityChange?.(true);
       onChange("");
       return;
     }
@@ -97,9 +76,11 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
     if (iso) {
       invalidRef.current = false;
       setInvalid(false);
+      onValidityChange?.(true);
       onChange(iso);
     } else {
       invalidRef.current = true;
+      onValidityChange?.(false);
       setInvalid(true); // keep typing · don't commit
     }
   };
@@ -152,8 +133,8 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
         disabled={disabled}
         tabIndex={-1}
         className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground/70 hover:text-primary transition-colors disabled:opacity-40"
-        aria-label="فتح التقويم"
-        title="فتح التقويم"
+        aria-label={t("فتح التقويم", "Open calendar")}
+        title={t("فتح التقويم", "Open calendar")}
       >
         <Calendar className="h-4.5 w-4.5" style={{ width: 18, height: 18 }} />
       </button>
@@ -168,6 +149,7 @@ export function DateInput({ value, onChange, className = "", inputClassName = ""
             invalidRef.current = false;
             setInvalid(false);
             setText(isoToDisplay(iso));
+            onValidityChange?.(true);
             onChange(iso);
           }
         }}
