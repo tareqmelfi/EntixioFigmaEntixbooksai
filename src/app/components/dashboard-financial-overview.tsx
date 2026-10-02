@@ -7,10 +7,12 @@ import type { DashboardSummary, DashboardPeriodKey, DashboardOpenBalances, Histo
 import { displayDigits, displayLocale } from '../lib/number-display';
 import { useLanguage } from './LanguageContext';
 import { Card } from './ui/card';
-import { DashboardFigures } from './dashboard-figures';
+import { Check, Circle } from 'lucide-react';
+import { dashboardTotalsMatch } from '../lib/dashboard-totals-match';
+import { DashboardFigures, DashboardNumeral as Numeral } from './dashboard-figures';
 import { DashboardPostingCoverage, type PostingCoverage } from './dashboard-posting-coverage';
 
-const BOX = 'gap-2.5 p-4 md:gap-3 md:px-5 md:py-[18px] xl:gap-4 xl:px-6 xl:py-[22px] min-w-0';
+const BOX = 'gap-2.5 p-3.5 md:p-4 min-w-0';
 const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-5)', 'var(--chart-4)'];
 const number = (value: number) => value.toLocaleString(displayLocale('en-US'), {minimumFractionDigits:2,maximumFractionDigits:2});
 const date = (value?: string | null) => value ? displayDigits(value.slice(0,10)) : '—';
@@ -27,19 +29,6 @@ export function financialReportHref(id: 'income-statement' | 'balance-sheet', fr
   if (!from && id === 'income-statement') query.set('allTime','1');
   return `/app/reports/${id}?${query}`;
 }
-/** Big ledger numeral: large integer part, small muted fraction. */
-function Numeral({ value, fraction = true }: { value: number; fraction?: boolean }) {
-  const abs = Math.abs(value);
-  const int = Math.trunc(abs).toLocaleString(displayLocale(undefined), { maximumFractionDigits: 0 });
-  const frac = displayDigits((abs - Math.trunc(abs)).toFixed(2).slice(1));
-  return (
-    <>
-      {value < 0 ? "−" : ""}{int}
-      {fraction && <small className="text-[0.45em] text-content-secondary">{frac}</small>}
-    </>
-  );
-}
-
 function ChartLegend({items}: {items:Array<{label:string;color:string}>}) {
   return <div className="flex flex-wrap gap-5 text-xs text-content-secondary">{items.map(item=><span key={item.label} className="flex items-center gap-1.5"><span aria-hidden="true" className="inline-block size-2.5" style={{backgroundColor:item.color}}/>{item.label}</span>)}</div>;
 }
@@ -123,13 +112,24 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
   ];
   const comparisonContent=!compareLast&&!compareYear?<p className="py-4 text-xs text-content-secondary">{t('لا تتوفر فترات ذات بيانات قابلة للمقارنة.','No periods with comparable recorded data are available.')}</p>:<div className="overflow-x-auto"><table className="w-full min-w-[530px] text-xs"><thead><tr className="border-b border-border"><th className="py-2 text-start">{cur}</th>{[currentCompare,...(compareLast?[priorCompare]:[]),...(compareYear&&yearCompare?[yearCompare]:[])].map((point,index)=><th key={index} className="px-2 text-end"><bdi>{range(point.fromDate,point.toDate)}</bdi></th>)}</tr></thead><tbody>{comparisonRows.map(([key,label])=><tr key={key} className="border-b border-border"><th className="py-3 text-start font-normal">{label}</th><td className="text-end tabular-nums">{number(currentCompare[key])}</td>{[...(compareLast?[priorCompare]:[]),...(compareYear&&yearCompare?[yearCompare]:[])].map((point,index)=>{const growth=comparableGrowth(currentCompare[key],point[key],true);return <td key={index} className="px-2 text-end tabular-nums">{number(point[key])}<span className="ms-2 text-content-secondary">{growth===null?'—':`${growth>0?'+':''}${growth.toFixed(1)}%`}</span></td>})}</tr>)}</tbody></table></div>;
   return <>
-    <div data-testid="flow-period" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs">
-      <div className="flex flex-wrap items-center gap-2"><label htmlFor="dashboard-flow-period" className="text-content-secondary">{t('الفترة','Period')}</label><select id="dashboard-flow-period" aria-label={t('فترة الحركات','Activity period')} className="h-8 max-w-full rounded-full border border-border bg-card px-3 text-xs" value={period} onChange={event=>onPeriodChange(event.target.value as DashboardPeriodKey)}>{([
+    <div className="space-y-1.5" data-testid="dashboard-toolbar">
+    <div data-testid="flow-period" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
+      <div className="flex flex-wrap items-center gap-2"><label htmlFor="dashboard-flow-period" className="text-content-secondary">{t('الفترة','Period')}</label><select id="dashboard-flow-period" aria-label={t('فترة الحركات','Activity period')} className="h-7 max-w-full rounded-full border border-border/50 bg-transparent px-2 text-[11px]" value={period} onChange={event=>onPeriodChange(event.target.value as DashboardPeriodKey)}>{([
         ['fiscal_ytd',t('السنة المالية حتى اليوم','Fiscal year to date')],['previous_fiscal_year',t('السنة المالية السابقة','Previous fiscal year')],['month',t('الشهر الحالي حتى اليوم','Current month to date')],['previous_month',t('الشهر السابق','Previous month')],['all_time',t('كل الفترات','All time')]
       ] as const).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
       <span className="text-content-secondary" data-testid="flow-dates">{scopedText(flowDates)} · {cur}</span>
     </div>
-    {data.savedActivity&&<div className="flex gap-2 text-xs" role="group" aria-label={t('مصدر لوحة التحكم','Dashboard basis')}><button className="rounded-full border border-border px-4 py-2 aria-pressed:bg-primary aria-pressed:text-primary-foreground" aria-pressed={savedView} onClick={()=>setBasis('saved')}>{t('المستندات المحفوظة','Saved documents')}</button><button className="rounded-full border border-border px-4 py-2 aria-pressed:bg-primary aria-pressed:text-primary-foreground" aria-pressed={!savedView} onClick={()=>setBasis('ledger')}>{t('الدفاتر المعتمدة','Posted books')}</button></div>}
+    {data.savedActivity&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="dashboard-basis-row">
+      <div className="inline-flex items-center gap-0.5 rounded-full border border-border/50 p-0.5 text-[11px]" role="group" aria-label={t('مصدر لوحة التحكم','Dashboard basis')}>
+        <button className="h-6 rounded-full px-2.5 text-content-secondary transition-colors hover:text-foreground aria-pressed:bg-foreground/5 aria-pressed:text-foreground aria-pressed:font-semibold" aria-pressed={savedView} onClick={()=>setBasis('saved')}>{t('المستندات المحفوظة','Saved documents')}</button>
+        <button className="h-6 rounded-full px-2.5 text-content-secondary transition-colors hover:text-foreground aria-pressed:bg-foreground/5 aria-pressed:text-foreground aria-pressed:font-semibold" aria-pressed={!savedView} onClick={()=>setBasis('ledger')}>{t('الدفاتر المعتمدة','Posted books')}</button>
+      </div>
+      <span data-testid="dashboard-match" role="status" className={`inline-flex items-center gap-1 text-[11px] ${dashboardTotalsMatch(data)?'text-success':'text-content-secondary'}`} title={t('مقارنة صافي المبيعات والتكاليف المسجلة بإجماليات الدفاتر للفترة والعملة نفسها؛ لا تغني عن التسوية البنكية أو مراجعة كل قيد.','Compares saved net sales and costs with book totals for the same period and currency; not bank reconciliation or a journal audit.')}>
+        {dashboardTotalsMatch(data)?<Check className="size-3.5" aria-hidden="true"/>:<Circle className="size-3" aria-hidden="true"/>}
+        {dashboardTotalsMatch(data)?t('إجماليات الفترة متطابقة','Period totals match'):t('المطابقة تحتاج مراجعة','Matching needs review')}
+      </span>
+    </div>}
+    </div>
     {savedView?<DashboardSavedActivity key={data.org.id} data={data}/>:<>
     <DashboardPostingCoverage key={`${p?.fromDate}-${p?.toDate}`} coverage={data.postingCoverage} source={p?.source} from={p?.fromDate} to={p?.toDate} onPosted={onPosted}/>
     <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
