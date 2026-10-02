@@ -183,6 +183,7 @@ export function VoucherPrintView() {
   const currency = voucher.currency || "SAR";
 
   const orgAddress = [
+    (org as any).addressLine,
     (org as any).buildingNumber,
     (org as any).streetName,
     (org as any).district,
@@ -336,6 +337,12 @@ export function VoucherPrintView() {
             <div style={{ marginTop: 6, fontSize: 12 }}>{amountInWords}</div>
           </div>
 
+          {(voucher.receiptAllocations || []).filter(a => !a.cancelledAt).length > 0 && <section style={{ marginTop: 14 }}>
+            <h2 style={{ fontSize: 13 }}>{T("مطابقة القبض بالفواتير", "Receipt allocations")}</h2>
+            {(voucher.receiptAllocations || []).filter(a => !a.cancelledAt).map(a => <div key={a.id} style={{ padding: "6px 0", borderBottom: "1px solid #D1D5DB", fontSize: 11 }}>
+              <NumericText>{a.invoice?.invoiceNumber || a.invoiceId}</NumericText> · <NumericText>{Number(a.amount).toFixed(2)} {currency}</NumericText> · {T("تاريخ المطابقة", "Applied on")}: <NumericText>{a.appliedAt.slice(0, 10)}</NumericText>
+            </div>)}
+          </section>}
           {voucher.notes && (
             <div style={{ marginTop: 16, padding: "12px 14px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 8, fontSize: 12 }}>
               <strong>{T("ملاحظات:", "Notes:")}</strong> {voucher.notes}
@@ -357,8 +364,8 @@ export function VoucherPrintView() {
                   <div style={{ width: 110, height: 110, margin: "0 auto" }} dangerouslySetInnerHTML={{ __html: qrSvg }} />
                   <div style={{ fontSize: 8, color: "#9CA3AF", marginTop: 4, maxWidth: 150, marginInline: "auto", lineHeight: 1.4 }}>
                     {isRtl
-                      ? "يحتوي رمز QR على بيانات الفاتورة الأساسية. المستند غير مختوم من ZATCA وغير مفعّل للاعتماد الإنتاجي."
-                      : "QR contains core invoice data. This document is not ZATCA-stamped and is not enabled for production reliance."}
+                      ? "رمز بيانات سند القبض؛ لا يثبت إرسالًا أو قبولًا من هيئة الزكاة والضريبة والجمارك."
+                      : "Voucher data QR; it does not prove submission to or acceptance by ZATCA."}
                   </div>
                 </>
               ) : (

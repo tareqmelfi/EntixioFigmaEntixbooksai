@@ -1820,6 +1820,9 @@ export const api = {
 
   // Vouchers (سند قبض / سند صرف)
   vouchers: {
+    allocationPreview: (id: string, invoiceId?: string) => request<any>(`/api/vouchers/${id}/allocation-preview`, { query: { invoiceId } }),
+    allocate: (id: string, data: { invoiceId: string; amount: number; appliedAt: string; requestKey: string }) => request<any>(`/api/vouchers/${id}/allocations`, { method: 'POST', body: data }),
+    cancelAllocation: (id: string, allocationId: string, reason: string) => request<any>(`/api/vouchers/${id}/allocations/${allocationId}/cancel`, { method: 'POST', body: { reason } }),
     list: (params?: { type?: 'RECEIPT' | 'PAYMENT'; bankAccountId?: string; contactId?: string; invoiceId?: string; billId?: string }) =>
       request<{ items: Voucher[]; total: number; summary: { sumAmount: string; avgAmount: string } }>(
         '/api/vouchers',
@@ -3730,6 +3733,8 @@ export interface QuoteInput {
 }
 
 export interface Voucher {
+  receiptAllocations?: Array<{ id: string; invoiceId: string; amount: string | number; appliedAt: string; cancelledAt?: string | null; invoice?: { invoiceNumber: string } }>;
+
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
