@@ -21,7 +21,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { InlineAlert, LedgerFigure, Metric, MetricStrip, PageHeader, SectionHeader, StatusBadge, TableNumericCell } from "../components/product";
-import { api, ApiError, ContactSummary } from "../lib/api";
+import { api, ApiError } from "../lib/api";
+import { loadContactSummary, type ContactSummary, type PurchaseDocument } from "../lib/contact-purchases";
 import { ContactWizard } from "../components/contact-wizard";
 import { ImageCropperModal } from "../components/image-cropper-modal";
 import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
@@ -126,21 +127,25 @@ export function ContactDetail() {
     }
   };
 
+  const requestVersion = useRef(0);
+  const [currency, setCurrency] = useState<string>();
+  useEffect(() => { setCurrency(undefined); }, [id]);
   const refresh = useCallback(async () => {
+    const version = ++requestVersion.current;
     if (!id) return;
     setLoading(true);
     setError(null);
     try {
-      const s = await api.contacts.summary(id);
-      setData(s);
+      const s = await loadContactSummary(id, currency);
+      if (version === requestVersion.current) setData(s);
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : t("فشل تحميل بيانات جهة الاتصال", "Failed to load contact data"));
+      if (version === requestVersion.current) setError(e instanceof ApiError ? e.message : t("فشل تحميل بيانات جهة الاتصال", "Failed to load contact data"));
     } finally {
-      setLoading(false);
+      if (version === requestVersion.current) setLoading(false);
     }
-  }, [id]);
+  }, [id, currency]);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => { refresh(); return () => { requestVersion.current++; }; }, [refresh]);
 
   if (loading) {
     return (
@@ -164,7 +169,7 @@ export function ContactDetail() {
   }
 
   const { contact, totals } = data;
-  const cur = contact.country === "SA" ? "SAR" : (contact.defaultCurrency || "SAR");
+  const cur = data.currency || (contact.country === "SA" ? "SAR" : (contact.defaultCurrency || "SAR"));
 
   return (
     <div className="space-y-5">
@@ -295,6 +300,10 @@ export function ContactDetail() {
         {/* Right column · figures + tabs + tab content (the card stays beside them) */}
         <div className="min-w-0 space-y-5">
 
+      {data.currencyTotals && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+        <p>{t("المستندات تشمل المسودات وتستبعد الملغاة؛ المستحق من الفواتير المعتمدة فقط. كل عملة منفصلة.", "Documents include drafts and exclude cancellations; balances use approved invoices only. Currencies are separate.")}</p>
+        <label className="flex items-center gap-2">{t("العملة", "Currency")}<select aria-label={t("العملة", "Currency")} value={cur} onChange={e => setCurrency(e.target.value)} className="rounded-md border border-border bg-background p-1.5 text-foreground">{data.currencyTotals.map(c => <option key={c.currency} value={c.currency}>{c.currency}</option>)}</select></label>
+      </div>}
       {/* Top KPI strip */}
       <MetricStrip>
         <Metric
@@ -304,10 +313,10 @@ export function ContactDetail() {
           hint={<><span className="font-english tabular-nums font-semibold">{totals.invoices.count}</span> {t("فاتورة", "invoices")}</>}
         />
         <Metric
-          label={t("فواتير الشراء", "Purchase bills")}
+          label={data.purchases ? t("المشتريات والمصروفات", "Purchases & expenses") : t("فواتير الشراء", "Purchase bills")}
           icon={<ShoppingBag className="h-3.5 w-3.5" />}
-          value={<LedgerFigure value={totals.bills.total} currency={cur} />}
-          hint={<><span className="font-english tabular-nums font-semibold">{totals.bills.count}</span> {t("فاتورة شراء", "purchase bills")}</>}
+          value={<LedgerFigure value={totals.purchases?.total ?? totals.bills.total} currency={cur} />}
+          hint={<><span className="font-english tabular-nums font-semibold">{totals.bills.count}</span> {t("فاتورة شراء", "purchase bills")}{totals.expenses && <> · {totals.expenses.count} {t("مصروف", "expenses")} · {totals.purchases?.draftCount || 0} {t("مسودة", "drafts")}</>}</>}
         />
         <Metric
           tone="success"
@@ -321,7 +330,7 @@ export function ContactDetail() {
           label={t("الرصيد الصافي", "Net balance")}
           icon={<Banknote className="h-3.5 w-3.5" />}
           value={<LedgerFigure value={Math.abs(totals.balance)} currency={cur} />}
-          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</span></span></>}
+          hint={<><span className={totals.balance > 0 ? "text-success" : totals.balance < 0 ? "text-warning" : "text-muted-foreground"}>{totals.balance > 0 ? t("يستحق لي", "Owed to me") : totals.balance < 0 ? t("أستحق له", "I owe") : t("متعادل", "Settled")}</span><span className="mt-1 block border-t border-border pt-1">{data.purchases ? t("إجمالي المستندات", "Total documents") : t("إجمالي العمليات", "Total transactions")} <span dir="ltr" className="font-english tabular-nums font-semibold text-foreground">{(totals.documentTotal ?? (totals.invoices.total + totals.bills.total + totals.receipts.total + totals.payments.total)).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</span></span></>}
         />
       </MetricStrip>
 
@@ -492,12 +501,12 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader
-              title={<span className="flex items-center gap-1.5"><ShoppingBag className="h-4 w-4" /> {t("آخر فواتير الشراء", "Latest purchase bills")}</span>}
+              title={<span className="flex items-center gap-1.5"><ShoppingBag className="h-4 w-4" /> {data.purchases ? t("آخر المشتريات والمصروفات", "Latest purchases & expenses") : t("آخر فواتير الشراء", "Latest purchase bills")}</span>}
               actions={<span className="text-xs text-muted-foreground">{t("مستحق:", "Due:")} <span dir="ltr" className="inline-block font-english tabular-nums">{totals.apOpen.toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {cur}</span></span>}
             />
           </CardHeader>
           <CardContent>
-            {recentBills.length === 0 ? (
+            {data.purchases ? <PurchaseRows rows={data.purchases.items.slice(0, 5)} /> : recentBills.length === 0 ? (
               <EmptyMini icon={ShoppingBag} text={t("لا توجد فواتير شراء", "No purchase bills")} cta={{ to: `/app/purchases/bills?new=1&contactId=${contact.id}`, label: t("+ سجّل فاتورة شراء", "+ Record a purchase bill") }} />
             ) : (
               <DocList
@@ -571,14 +580,14 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
   const { t } = useLanguage();
   const { contact } = data;
   type Section = "invoices" | "bills" | "quotes" | "vouchers" | "expenses";
-  const [section, setSection] = useState<Section>("invoices");
+  const [section, setSection] = useState<Section>(data.purchases && contact.isSupplier ? "bills" : "invoices");
 
   const sections: Array<{ key: Section; label: string; count: number; total: number }> = [
     { key: "invoices", label: t("فواتير المبيعات", "Sales invoices"), count: data.totals.invoices.count, total: data.totals.invoices.total },
-    { key: "bills", label: t("فواتير الشراء", "Purchase bills"), count: data.totals.bills.count, total: data.totals.bills.total },
+    { key: "bills", label: data.purchases ? t("المشتريات والمصروفات", "Purchases & expenses") : t("فواتير الشراء", "Purchase bills"), count: data.totals.purchases?.count ?? data.totals.bills.count, total: data.totals.purchases?.total ?? data.totals.bills.total },
     { key: "quotes", label: t("عروض الأسعار", "Quotes"), count: data.totals.quotes.count, total: data.totals.quotes.total },
     { key: "vouchers", label: t("السندات", "Vouchers"), count: data.totals.receipts.count + data.totals.payments.count, total: data.totals.receipts.total + data.totals.payments.total },
-    { key: "expenses", label: t("المصروفات", "Expenses"), count: data.expenses.length, total: data.expenses.reduce((s, e) => s + Number(e.total), 0) },
+    { key: "expenses", label: t("المصروفات", "Expenses"), count: data.totals.expenses?.count ?? data.expenses.length, total: data.totals.expenses?.total ?? data.expenses.reduce((s, e) => s + Number(e.total), 0) },
   ];
 
   const newLinks: Record<Section, string> = {
@@ -586,7 +595,7 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
     bills: `/app/purchases/bills?new=1&contactId=${contact.id}`,
     quotes: `/app/quotes?new=1&contactId=${contact.id}`,
     vouchers: `/app/vouchers/new?contactId=${contact.id}`,
-    expenses: `/app/expenses/new?contactId=${contact.id}`,
+    expenses: `/app/expenses?new=1&contactId=${contact.id}`,
   };
 
   return (
@@ -624,14 +633,47 @@ function OperationsTab({ data, cur }: { data: ContactSummary; cur: string }) {
       <Card className="border-border">
         <CardContent className="p-0">
           {section === "invoices" && <InvTable rows={data.invoices.map((i) => ({ id: i.id, number: i.invoiceNumber, date: i.issueDate, due: i.dueDate, total: Number(i.total), paid: Number(i.amountPaid), status: i.status, cur: i.currency, href: `/app/invoices/${i.id}` }))} />}
-          {section === "bills"    && <InvTable rows={data.bills.map((b) => ({ id: b.id, number: b.billNumber, date: b.issueDate, due: b.dueDate, total: Number(b.total), paid: Number(b.amountPaid), status: b.status, cur: b.currency, href: `/app/purchases/bills/${b.id}` }))} />}
+          {section === "bills" && data.purchases && <PurchaseHistory key={`${contact.id}:${cur}:all`} data={data} />}
+          {section === "bills" && !data.purchases && <InvTable rows={data.bills.map((b) => ({ id: b.id, number: b.billNumber, date: b.issueDate, due: b.dueDate, total: Number(b.total), paid: Number(b.amountPaid), status: b.status, cur: b.currency, href: `/app/purchases/bills/${b.id}` }))} />}
           {section === "quotes"   && <InvTable rows={data.quotes.map((q) => ({ id: q.id, number: q.quoteNumber, date: q.issueDate, due: q.validUntil, total: Number(q.total), paid: 0, status: q.status, cur: q.currency, href: `/app/quotes/${q.id}` }))} />}
           {section === "vouchers" && <VchTable rows={data.vouchers} />}
-          {section === "expenses" && <ExpTable rows={data.expenses} />}
+          {section === "expenses" && (data.purchases ? <PurchaseHistory key={`${contact.id}:${cur}:expenses`} data={data} expensesOnly /> : <ExpTable rows={data.expenses} />)}
         </CardContent>
       </Card>
     </div>
   );
+}
+
+function PurchaseRows({ rows }: { rows: PurchaseDocument[] }) {
+  const { t } = useLanguage();
+  if (!rows.length) return <p className="p-4 text-sm text-muted-foreground">{t("لا توجد مستندات لهذه العملة في هذه القائمة", "No documents for this currency in this list")}</p>;
+  return <div className="divide-y divide-border" data-testid="contact-purchases">{rows.map(row => <Link key={`${row.kind}:${row.id}`} to={row.kind === "EXPENSE" ? `/app/expenses/${row.id}` : `/app/purchases/bills/${row.id}`} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 hover:bg-primary/5">
+    <div className="min-w-0 text-sm"><div className="flex flex-wrap items-center gap-2"><span className="break-all font-english">{row.number || row.documentNumber || row.id}</span><StatusBadge>{row.kind === "EXPENSE" ? t("مصروف", "Expense") : t("فاتورة شراء", "Purchase bill")}</StatusBadge><DocumentStatus status={row.status} /></div>
+    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground"><span dir="ltr">{row.date.slice(0, 10)}</span>{row.documentNumber && <span>{t("رقم المورد:", "Supplier reference:")} <bdi>{row.documentNumber}</bdi></span>}{row.category && <span>{row.category}</span>}{row.matchedBy === "legacyName" && <span>{t("مطابقة الاسم لسجل قديم", "Legacy name match")}</span>}</div></div>
+    <span dir="ltr" className="max-w-full break-all font-english text-sm tabular-nums font-semibold">{Number(row.total).toLocaleString(displayLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.currency}</span>
+  </Link>)}</div>;
+}
+function PurchaseHistory({ data, expensesOnly = false }: { data: ContactSummary; expensesOnly?: boolean }) {
+  const { t } = useLanguage();
+  const [items, setItems] = useState(data.purchases!.items);
+  const [cursor, setCursor] = useState(data.purchases!.nextCursor);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
+  async function more() {
+    if (!cursor || busy) return;
+    setBusy(true); setError(false);
+    try {
+      const next = await loadContactSummary(data.contact.id, data.currency, cursor);
+      if (!active.current) return;
+      if (!next.purchases) throw new Error("Missing purchases");
+      setItems(current => [...new Map([...current, ...next.purchases!.items].map(row => [`${row.kind}:${row.id}`, row])).values()]);
+      setCursor(next.purchases.nextCursor);
+    } catch { if (active.current) setError(true); }
+    finally { if (active.current) setBusy(false); }
+  }
+  return <><PurchaseRows rows={expensesOnly ? items.filter(row => row.kind === "EXPENSE") : items} />{error && <p role="alert" className="p-3 text-sm text-destructive">{t("تعذر تحميل المزيد؛ المستندات الحالية محفوظة. أعد المحاولة.", "Could not load more; current documents remain. Try again.")}</p>}{cursor && <div className="p-3"><Button variant="outline" disabled={busy} onClick={more}>{busy ? t("جار التحميل…", "Loading…") : t("عرض المزيد", "Load more")}</Button></div>}</>;
 }
 
 function InvTable({ rows }: { rows: Array<{ id: string; number: string; date: string; due: string | null; total: number; paid: number; status: string; cur: string; href: string }> }) {
