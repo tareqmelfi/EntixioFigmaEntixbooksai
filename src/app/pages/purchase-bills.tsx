@@ -1,4 +1,5 @@
 import { ContactProfileLink } from "../components/contact-profile-link";
+import { PurchaseNotesPanel } from "../components/purchase-notes-panel";
 import { JournalPurchaseIntake } from "../components/journal-purchase-intake";
 import { readSourceFile } from "../lib/source-file";
 import { displayDigits, displayLocale } from "../lib/number-display";
@@ -473,7 +474,7 @@ export function PurchaseBills() {
           title={editingId
             ? `${t("فاتورة مشتريات", "Purchase invoice")} · ${form.billNumber || ""}`
             : t("فاتورة مشتريات جديدة", "New purchase invoice")}
-          subtitle={lockedBill ? t("فاتورة معتمدة — التصحيح بإشعار مورد والدفعات بسند صرف", "Approved bill — correct with supplier credits; record payments with vouchers") : editingId
+          subtitle={lockedBill ? t("فاتورة معتمدة — الملاحظات والمرفقات قابلة للتعديل", "Approved bill — notes and attachments remain editable") : editingId
             ? t("فاتورة مسجلة — أي تعديل هنا يحدّث نفس الفاتورة", "A recorded bill — edits here update this same bill")
             : t("املأ البيانات الأساسية · يمكنك التعديل لاحقاً", "Fill in the basic data · you can edit later")}
           onClose={closeCreate}
@@ -486,7 +487,7 @@ export function PurchaseBills() {
                 <Button type="button" disabled={busy || lockedBill} onClick={() => handleSubmit("draft")} className="bg-primary hover:bg-primary/90">
                   {busy ? "..." : t("حفظ كمسودة", "Save as draft")}
                 </Button>
-                <Button type="button" disabled={busy || lockedBill} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-primary/5" title={t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                <Button type="button" disabled={busy || lockedBill} variant="outline" onClick={() => handleSubmit("approve")} className="border-primary text-primary hover:bg-primary/5" title={t("اعتماد الفاتورة وترحيلها", "Approve and post bill")}>
                   {busy ? "..." : t("اعتماد", "Approve")}
                 </Button>
               </div>
@@ -496,7 +497,7 @@ export function PurchaseBills() {
           {!editingId && <div className="mb-4 rounded-lg border border-border p-3 text-sm"><b>{t("سأدفع لاحقًا", "Pay later")}</b> · {t("تُحفظ الفاتورة كمبلغ مستحق للمورد حتى تسجيل الدفع.", "This bill remains payable until you record its payment.")} <Link to="/app/expenses/new" className="text-primary underline">{t("دفعت بالفعل؟ تسجيل شراء مدفوع", "Already paid? Record a paid purchase")}</Link></div>}
           <div className="mb-4 space-y-2">
             {lockedBill && sourceJournal && <p className="rounded-lg bg-primary/5 p-3 text-sm">{t("مرتبطة بالقيد الأصلي دون ترحيل إضافي:", "Linked to the original journal without additional posting:")} <Link className="text-primary underline" to={`/app/journal-entries?entryId=${sourceJournal.id}`}>{sourceJournal.number}</Link></p>}
-            {lockedBill && <p role="status" className="rounded-lg bg-muted p-3 text-sm">{t("هذه الفاتورة معتمدة ومحمية للحفاظ على تطابق الحسابات. استخدم إشعار مورد للتصحيح.", "This approved bill is protected to keep the accounts consistent. Use a supplier credit to correct it.")} <a className="text-primary underline" href="/app/purchases/supplier-credits">{t("إشعارات الموردين", "Supplier credits")}</a></p>}
+            {lockedBill && <p role="status" className="rounded-lg bg-muted p-3 text-sm">{t("يمكن تعديل الملاحظات والمرفقات أدناه. تصحيح المبالغ والضريبة يتم بإشعار مورد مرتبط بالفاتورة.", "Edit notes and attachments below. Correct amounts and tax with a supplier credit linked to this bill.")} <a className="text-primary underline" href="/app/purchases/supplier-credits">{t("إشعارات الموردين", "Supplier credits")}</a></p>}
             {billAttachments.map(a => <a key={a.id} className="block text-sm text-primary underline" href={a.fileUrl} download={a.fileName}>{a.fileName}</a>)}
             {editingId && <label className="block text-sm">{t("إرفاق المستند الأصلي · حتى 10MB", "Attach source document · up to 10MB")}<input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv" disabled={busy} onChange={async e => {
               const file = e.currentTarget.files?.[0]; e.currentTarget.value = ""; if (!file) return;
@@ -507,6 +508,7 @@ export function PurchaseBills() {
             }} /></label>}
           </div>
           <p className="mb-3 text-sm"><ContactProfileLink id={form.contactId} name={suppliers.find(c => c.id === form.contactId)?.displayName} /></p>
+          {editingId && lockedBill && <PurchaseNotesPanel kind="bills" id={editingId} onDone={async () => { openEdit(await api.bills.get(editingId)); }} />}
           <fieldset disabled={lockedBill} className="min-w-0 border-0 p-0 m-0">
           <div className="w-full max-w-none mx-auto space-y-4">
             {createError && <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">{createError}</div>}

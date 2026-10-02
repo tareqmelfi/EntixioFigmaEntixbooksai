@@ -1,4 +1,5 @@
 import { ExpenseReviewForm } from "../components/expense-review-form";
+import { PurchaseNotesPanel } from "../components/purchase-notes-panel";
 import { roundDocumentMoney } from "../lib/document-money";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { isFinancialNotice } from "../lib/financial-notice";
@@ -2085,6 +2086,7 @@ export function Expenses() {
             </div>
           </aside>
           <div data-testid="expense-review-details" className="min-w-0 space-y-4 lg:col-start-1 lg:row-start-1">
+            <PurchaseNotesPanel kind="expenses" id={selected.id} onDone={async () => { setSelected(await api.expenses.get(selected.id)); }} />
             {reviewIds.length > 0 && <ExpenseReviewForm key={reviewIds.join('|')} ids={reviewIds} accounts={accounts} onSaved={onReviewSaved} onClose={() => setReviewIds([])} />}
 
 
