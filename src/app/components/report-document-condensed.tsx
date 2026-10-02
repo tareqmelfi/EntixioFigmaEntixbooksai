@@ -1,3 +1,5 @@
+import { isComparisonValue } from '../lib/report-comparison';
+import { ReportComparisonValue } from './report-comparison-value';
 import { reportAppearance, reportTheme, reportSign } from '../lib/report-appearance';
 import { reportPaperSize } from '../lib/report-pagination';
 import { ReportEquation } from './report-equation';
@@ -145,7 +147,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                               className={`${total ? "border-t border-border-strong font-bold text-foreground" : "text-foreground"}${column.key === "label" ? (report.id === "trial-balance" ? " whitespace-normal break-words" : " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap") : " whitespace-nowrap"}`}
                               style={{ padding: "var(--report-cell-padding)", textAlign: align, ...(column.key === "label" && depth > 0 ? { paddingInlineStart: `${depth * 16 + 10}px`, color: "#475569" } : {}) }}
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>
-                              {v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span>
+                              {isComparisonValue(row, column.key) ? <ReportComparisonValue row={row} column={column.key} /> : v === null || v === undefined || v === "" ? <span className="text-muted-foreground">—</span>
                                 : money ? <NumericText className={`${reportSign(v)} ${total ? "font-bold" : "font-medium"}`}>{Number(v) < 0 ? `(${num(Math.abs(Number(v)))})` : num(Number(v))}</NumericText>
                                 : column.kind === "number" && typeof v === "number" ? <NumericText className={reportSign(v)}>{v.toLocaleString(displayLocale("en-US"), { maximumFractionDigits: 2 })}</NumericText>
                                 : column.key === "label" ? <Bi value={String(v)} lang={lang} size="sm" both={bilingual} />

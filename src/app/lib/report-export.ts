@@ -1,3 +1,4 @@
+import { comparisonTone, isComparisonValue } from './report-comparison';
 import { reportPalette, reportFonts, reportEquationValues } from './report-appearance';
 import type { PaperSize } from 'exceljs';
 import type { ReportPayload, ReportPrintSettings } from './api';
@@ -8,7 +9,7 @@ const download = (blob: Blob, name: string) => { const url=URL.createObjectURL(b
 const filename=(r:ReportPayload)=>`Entix-${r.id}-${r.period.from||'all'}-${r.period.to}`;
 export function exportReportCsv(report:ReportPayload,language:string) {
  const rows:unknown[][]=[[report.org.name],[language==='en'?report.englishTitle:report.title],[report.period.from,report.period.to,report.currency],...(report.notices||[]).map(n=>[reportLabel(n,language)])];
- for(const section of report.sections){rows.push([reportLabel(section.title,language)],section.columns.map(c=>reportLabel(c.label,language)));for(const row of section.rows)rows.push(section.columns.map(c=>{const value=c.key==='label'?row.values.label??row.label??'':row.values[c.key]??'';return typeof value==='string'?reportLabel(value,language):value;}));}
+ for(const section of report.sections){rows.push([reportLabel(section.title,language)],section.columns.map(c=>reportLabel(c.label,language)));for(const row of section.rows)rows.push(section.columns.map(c=>{const value=c.key==='label'?row.values.label??row.label??'':row.values[c.key]??'';return c.key==='comparisonPercent'&&typeof value==='number'?value*100:typeof value==='string'?reportLabel(value,language):value;}));}
  const escape=(v:unknown)=>{let s=String(v??'');if(typeof v==='string'&&/^[\s]*[=+@-]/.test(s))s="'"+s;return `"${s.replace(/"/g,'""')}"`;};
  download(new Blob(['\uFEFF'+rows.map(r=>r.map(escape).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'}),filename(report)+'.csv');
 }
@@ -45,7 +46,7 @@ export async function reportWorkbook(report:ReportPayload,language:string, optio
   const heading=title(reportLabel(section.title,language)); heading.font={name:font,bold:true,color:{argb:plain?'FF111111':argb(palette.foreground)}};heading.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(palette.section)}};heading.height=20;
   const header=sheet.addRow(section.columns.map(c=>reportLabel(c.label,language))); header.font={name:font,bold:true,color:{argb:'FF111111'}};header.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(palette.header)}};header.height=20;if(!firstHeader)firstHeader=header.number;
   for(const [index,source] of section.rows.entries()){const row=sheet.addRow(section.columns.map(c=>{const value=c.key==='label'?source.values.label??source.label??'':source.values[c.key]??null;return typeof value==='string'?reportLabel(value,language):value;}));row.height=Math.max(options.settings?.density==='comfortable'?25:18,Math.ceil(String(row.getCell(1).value||'').length/48)*14);row.font={name:font,size:fontSize,bold:/(^|-)total$/.test(source.id)||source.id==='net-income'||source.id==='current-earnings'};row.fill={type:'pattern',pattern:'solid',fgColor:{argb:argb(row.font.bold?palette.total:index%2?palette.stripe:'#ffffff')}};row.getCell(1).alignment={wrapText:true,indent:Math.min(source.depth||0,5),readingOrder:language==='ar'?'rtl':'ltr'};
-   section.columns.forEach((c,i)=>{const cell=row.getCell(i+1);if(c.kind==='money'||c.kind==='number'){cell.numFmt=colorNumbers?'#,##0.00;[Red](#,##0.00);0.00':'#,##0.00;(#,##0.00);0.00';if(colorNumbers&&typeof cell.value==='number'&&cell.value>0)cell.font={...row.font,color:{argb:'FF16624B'}};}cell.border={bottom:{style:'hair',color:{argb:'FFE3E6EB'}}};});
+   section.columns.forEach((c,i)=>{const cell=row.getCell(i+1);if(c.kind==='money'||c.kind==='number'){cell.numFmt=colorNumbers?'#,##0.00;[Red](#,##0.00);0.00':'#,##0.00;(#,##0.00);0.00';if(colorNumbers&&typeof cell.value==='number'&&cell.value>0)cell.font={...row.font,color:{argb:'FF16624B'}};}if(isComparisonValue(source,c.key)){cell.numFmt=c.key==='comparisonPercent'?'"↑ +"0.0%;"↓ −"0.0%;"= "0.0%':c.key==='comparisonDelta'?'"↑ +"#,##0.00;"↓ −"#,##0.00;"= "0.00':'#,##0.00;-#,##0.00;0.00';const tone=comparisonTone(source,c.key);cell.font={...row.font,color:{argb:colorNumbers&&tone!=='report-zero'?(tone==='report-positive'?'FF16624B':'FFA32D2D'):'FF111111'}};}cell.border={bottom:{style:'hair',color:{argb:'FFE3E6EB'}}};});
   }
  }
  sheet.getColumn(1).width=48;for(let i=2;i<=count;i++)sheet.getColumn(i).width=17;

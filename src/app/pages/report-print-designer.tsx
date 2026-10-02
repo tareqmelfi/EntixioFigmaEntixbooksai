@@ -1,3 +1,4 @@
+import { compareReport, comparisonMode } from '../lib/report-comparison';
 import { ReportDesignControls } from '../components/report-design-controls';
 import { exportReportExcel } from '../lib/report-export';
 import { presentReport } from '../lib/report-presentation';
@@ -40,6 +41,7 @@ export function ReportPrintDesigner() {
   const from = searchParams.get("from") || undefined;
   const to = searchParams.get("to") || undefined;
   const allTime = searchParams.get("allTime") === "1" ? 1 : undefined;
+  const comparison = comparisonMode(searchParams.get("comparison") || (searchParams.has("compareTo") ? "previous_period" : null), id, from, to);
   const compareTo = searchParams.get("compareTo") || undefined;
   const contactId = searchParams.get("contactId") || undefined;
   const branchId = searchParams.get("branchId") || undefined;
@@ -53,9 +55,10 @@ export function ReportPrintDesigner() {
       setError(null);
       try {
         if (!printOrgId) throw new ApiError(400, t("افتح التقرير من داخل الشركة ثم اختر الطباعة.", "Open the report from your company, then choose Print."));
-        let payload = await api.reports.get(id, { from, to, allTime, compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
+        let payload = await api.reports.get(id, { from, to, allTime, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, branchId, projectId, contactId }, printOrgId);
         if (payload.org.id !== printOrgId) throw new ApiError(409, t("تغيّرت الشركة. أعد فتح التقرير.", "Company mismatch. Reopen the report."));
         if (monthly) payload = await monthlyReport(payload, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId,projectId,contactId},printOrgId));
+        if (!monthly && !allTime) payload = await compareReport(payload, comparison, period => api.reports.get(id, { ...period, bilingual: 1, branchId, projectId, contactId }, printOrgId));
         const fullOrg = await api.orgs.get(payload.org.id);
         const nextSettings = normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports);
         if (alive) {
@@ -72,7 +75,7 @@ export function ReportPrintDesigner() {
     return () => {
       alive = false;
     };
-  }, [id, printOrgId, from, to, allTime, compareTo, branchId, projectId, contactId, monthly]);
+  }, [id, printOrgId, from, to, allTime, compareTo, comparison, branchId, projectId, contactId, monthly]);
 
   const visibleReport = useMemo(() => report ? presentReport(summary ? summarizeReport(report) : report) : report, [report, summary]);
   const resolved = useMemo(() => normalizeReportSettings(settings), [settings]);

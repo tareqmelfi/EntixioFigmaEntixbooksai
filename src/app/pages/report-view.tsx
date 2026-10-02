@@ -1,3 +1,5 @@
+import { compareReport, comparisonMode } from '../lib/report-comparison';
+import { ReportComparisonSelect } from '../components/report-comparison-select';
 import { presentReport } from '../lib/report-presentation';
 import { monthlyReport } from '../lib/report-months';
 import { exportReportCsv, exportReportExcel } from '../lib/report-export';
@@ -87,6 +89,7 @@ function SingleReportView() {
   const [exportBusy, setExportBusy] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
+  const [comparison, setComparison] = useState(() => comparisonMode(searchParams.get("comparison") || (searchParams.get("compare") === "1" ? "previous_period" : null), id, from, to));
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
   // B1 · branch scope ("" = all · "none" = unassigned · id)
   const [branchId, setBranchId] = useState(searchParams.get("branchId") || "");
@@ -116,8 +119,8 @@ function SingleReportView() {
   };
 
   useEffect(() => {
-    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(monthly && id === "income-statement" ? {groupBy:"month"} : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
-  }, [from, to, allTime, compare, monthly, id, branchId, projectId, contactId, setSearchParams]);
+    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(id === "income-statement" ? { comparison } : {}), ...(monthly && id === "income-statement" ? {groupBy:"month"} : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
+  }, [from, to, allTime, compare, comparison, monthly, id, branchId, projectId, contactId, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -126,10 +129,14 @@ function SingleReportView() {
       setError(null);
       try {
         // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
-        let data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
+        let data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
         if (monthly && id === "income-statement" && !allTime) {
           const base = data;
           data = await monthlyReport(base, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId:branchId||undefined,projectId:projectId||undefined,contactId:contactId||undefined},base.org.id));
+        }
+        if (!monthly && !allTime) {
+          const base = data;
+          data = await compareReport(base, comparison, period => api.reports.get(id, { ...period, bilingual: 1, branchId: branchId || undefined, projectId: projectId || undefined, contactId: contactId || undefined }, base.org.id));
         }
         if (alive) {
           setReport(data);
@@ -144,7 +151,7 @@ function SingleReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, allTime, compareTo, monthly, branchId, projectId, contactId, refreshVersion]);
+  }, [id, from, to, allTime, compareTo, comparison, monthly, branchId, projectId, contactId, refreshVersion]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -158,7 +165,7 @@ function SingleReportView() {
   // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.
   // Printing from inside it produced a blank page — `h-dvh` + `overflow:hidden`
   // ancestors clipped the document before the print stylesheet ever ran.
-  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${monthly && id === "income-statement" ? "&groupBy=month" : ""}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${id === "income-statement" ? `&comparison=${comparison}` : ""}${monthly && id === "income-statement" ? "&groupBy=month" : ""}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
   const printHref = `/print/report/${id}?${printQuery}`;
 
   const exportCsv = () => { if (visibleReport) exportReportCsv(visibleReport, language); };
@@ -218,7 +225,7 @@ function SingleReportView() {
           </label>
           <BranchFilter value={branchId} onChange={setBranchId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
           <ProjectFilter value={projectId} onChange={setProjectId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
-          <button
+          {id === "income-statement" ? <ReportComparisonSelect value={comparison} onChange={setComparison} disabled={allTime || monthly} /> : <button
             type="button"
             disabled={allTime || monthly}
             onClick={() => setCompare((v) => !v)}
@@ -226,7 +233,7 @@ function SingleReportView() {
             title={t("قارن بالفترة السابقة وفق نطاق التقرير", "Compare against the preceding report period")}
           >
             {t("مقارنة بالفترة السابقة", "Compare previous period")}
-          </button>
+          </button>}
           <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
             {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{loading ? t("جارٍ التحميل", "Loading") : report?.dataBasis?.status === "unavailable" ? t("غير متاح من البيانات المسجلة", "Unavailable from recorded data") : report?.dataBasis?.status === "no_activity" ? t("لا توجد بيانات مسجلة للفترة", "No recorded data for this period") : report?.dataBasis?.status === "available" ? t("بحسب البيانات المسجلة", "Based on recorded data") : report?.status === "live" ? t("بحسب البيانات المتاحة", "Based on available data") : t("فارغ", "Empty")}</span>
           </div>
