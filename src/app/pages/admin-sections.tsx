@@ -1,3 +1,5 @@
+import { adminManagement, adminManagementRequest } from "../lib/admin-management-api";
+import { InlineConfirm } from "../components/side-panel";
 import { AdminBillingLedger } from "../components/admin-billing-ledger";
 import { displayLocale } from "../lib/number-display";
 /**
@@ -8,7 +10,7 @@ import { displayLocale } from "../lib/number-display";
  * No dialogs (UX-1) · inline edits · toast feedback.
  */
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { CreditCard, Download, Loader2, RefreshCw, ScrollText, Search, Tags, Crown, Ban } from "lucide-react";
 import { Card, CardContent, CardHeader } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -36,15 +38,18 @@ export function AdminSubscriptions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState("");
-  const [country, setCountry] = useState("");
+  const [params, setParams] = useSearchParams();
+  const status = params.get("status") || "";
+  const country = params.get("country") || "";
+  const archived=params.get("archived")==="1";
+  const setQuery = (key: string, value: string) => setParams(previous => { const next = new URLSearchParams(previous); if(value) next.set(key,value); else next.delete(key); return next; });
 
   const load = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setData(await api.admin.subscriptions({ q: q || undefined, status: status || undefined, country: country || undefined })); }
+    try { setData(await adminManagementRequest<AdminSubscriptionsPayload>(`/subscriptions?${new URLSearchParams({q,status,country,archived:archived?"1":"0"})}`)); }
     catch (e) { setError(e instanceof ApiError ? e.message : t("تعذر التحميل", "Could not load")); }
     finally { setLoading(false); }
-  }, [q, status, country, t]);
+  }, [q, status, country, archived, t]);
   useEffect(() => { const h = setTimeout(() => { void load(); }, 250); return () => clearTimeout(h); }, [load]);
 
   const statuses = useMemo(() => Object.keys(data?.byStatus || {}), [data]);
@@ -60,6 +65,7 @@ export function AdminSubscriptions() {
         <Button variant="outline" className="border-border" onClick={() => void load()} disabled={loading}><RefreshCw className="me-2 h-4 w-4" />{t("تحديث", "Refresh")}</Button>
       </div>
 
+      <div className="flex gap-2"><Button variant={!archived?"default":"outline"} onClick={()=>setQuery("archived","")}>{t("الاشتراكات", "Subscriptions")}</Button><Button variant={archived?"default":"outline"} onClick={()=>setQuery("archived","1")}>{t("الأرشيف", "Archive")}</Button></div>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {Object.entries(data?.mrrCents || {}).map(([cur, cents]) => (
           <Card key={cur} className="border-border"><CardContent className="p-4"><div className="text-xs text-muted-foreground">MRR · {cur}</div><div className="font-english text-xl text-foreground" dir="ltr" style={{ fontWeight: 700 }}>{money(cents, cur)}</div></CardContent></Card>
@@ -75,8 +81,8 @@ export function AdminSubscriptions() {
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[220px]"><Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("بحث باسم الشركة", "Search by company")} className="ps-8 h-9" /></div>
-            <select value={status} onChange={(e) => setStatus(e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الحالات", "All statuses")}</option>{["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "EXPIRED", "INCOMPLETE"].map((s) => <option key={s} value={s}>{s}</option>)}</select>
-            <select value={country} onChange={(e) => setCountry(e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الدول", "All countries")}</option><option value="SA">SA</option><option value="US">US</option></select>
+            <select value={status} onChange={(e) => setQuery("status", e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الحالات", "All statuses")}</option>{["ACTIVE", "TRIALING", "PAST_DUE", "CANCELED", "EXPIRED", "INCOMPLETE"].map((s) => <option key={s} value={s}>{s}</option>)}</select>
+            <select value={country} onChange={(e) => setQuery("country", e.target.value)} className="h-9 rounded-md border border-border bg-card px-2 text-sm"><option value="">{t("كل الدول", "All countries")}</option><option value="SA">SA</option><option value="US">US</option></select>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -112,7 +118,9 @@ export function AdminSubscriptions() {
                     <td className="px-3 py-2 text-xs" dir="ltr"><SubscriptionSourceBadge source={r.source} lifetime={r.lifetime} sponsored={r.sponsored} />{r.stripeSubscriptionId ? <div className="mt-0.5 text-[10px] text-muted-foreground font-english">{r.stripeSubscriptionId.slice(0, 12)}…</div> : null}</td>
                     <td className="px-3 py-2"><SubscriptionProgress compact start={r.currentPeriodStart} end={r.currentPeriodEnd || r.trialEndsAt} status={r.status} lifetime={r.lifetime} sponsored={r.sponsored} />{!r.lifetime && !r.sponsored && (r.currentPeriodEnd || r.trialEndsAt) ? <div className="text-[10px] text-muted-foreground font-english" dir="ltr">{fmtDate(r.currentPeriodEnd || r.trialEndsAt)}</div> : null}</td>
                     <td className="px-3 py-2 text-end font-english" dir="ltr">{r.mrrCents ? money(r.mrrCents, r.currency) : "—"}</td>
-                    <td className="px-3 py-2 text-end"><button type="button" onClick={() => setEditing(editing === r.orgId ? null : r.orgId)} className="rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-muted/50" style={{ fontWeight: 600 }}>{editing === r.orgId ? t("إغلاق", "Close") : t("تغيير", "Change")}</button></td>
+                    <td className="px-3 py-2 text-end"><button type="button" onClick={() => setEditing(editing === r.orgId ? null : r.orgId)} className="rounded-md border border-border px-2.5 py-1 text-xs text-foreground hover:bg-muted/50" style={{ fontWeight: 600 }}>{editing === r.orgId ? t("إغلاق", "Close") : t("تغيير", "Change")}</button>
+                      {(archived || ["CANCELED","EXPIRED"].includes(r.status)) && <button className="ms-2 rounded border border-border px-2 py-1 text-xs" onClick={async()=>{try{await adminManagementRequest(`/subscriptions/${encodeURIComponent(r.id)}/archive`,"POST",{archived:!archived});await load();push("success",t("تم تحديث الأرشيف", "Archive updated"));}catch(e){push("error",e instanceof Error?e.message:"Failed");}}}>{archived?t("استعادة", "Restore"):t("إخفاء في الأرشيف", "Move to archive")}</button>}
+                    </td>
                   </tr>
                   {editing === r.orgId && (
                     <tr className="border-b border-border/50 bg-primary/5"><td colSpan={8} className="p-3">
@@ -141,6 +149,10 @@ export function AdminPlans() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [edit, setEdit] = useState<{ id: string; name: string; nameAr: string } | null>(null);
+  const [pendingDelete,setPendingDelete]=useState<string|null>(null);
+  const [importing,setImporting]=useState(false);
+  const [priceId,setPriceId]=useState("");
+  const [tier,setTier]=useState("starter");
   const load = useCallback(async () => { setLoading(true); try { setItems((await api.admin.plans()).items); } catch (e) { push("error", e instanceof ApiError ? e.message : t("تعذر التحميل", "Could not load")); } finally { setLoading(false); } }, [push, t]);
   useEffect(() => { void load(); }, [load]);
   const toggle = async (p: AdminPlanRecord) => {
@@ -159,8 +171,14 @@ export function AdminPlans() {
       <ToastStack toasts={toasts} onDismiss={dismiss} />
       <div>
         <h1 className="text-foreground flex items-center gap-2" style={{ fontSize: "1.6rem", fontWeight: 700 }}><Tags className="h-5 w-5 text-primary" />{t("الباقات", "Plans")}</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">{t("الأسعار تعيش على Stripe (غير قابلة للتعديل) — تغيير السعر = باقة جديدة. هنا: التفعيل والأسماء.", "Prices live on Stripe (immutable) — a price change is a new plan. Here: activation and names.")}</p>
+        <p className="text-sm text-muted-foreground mt-0.5">{t("أنشئ السعر في Stripe ثم اربطه هنا. تُضاف الباقة موقوفة حتى تراجعها وتفعّلها. حذف الباقة غير المستخدمة لا يحذف سجلات Stripe.", "Create a price in Stripe, then link it here. Imported plans stay inactive until reviewed and activated. Deleting an unused plan preserves Stripe records.")}</p>
       </div>
+      <form className="flex flex-wrap items-end gap-3 rounded-lg border border-border bg-card p-4" onSubmit={async e=>{e.preventDefault();setImporting(true);try{const result=await adminManagement.importPlan({stripePriceId:priceId.trim(),tier});push("success",result.existing?t("الباقة مرتبطة مسبقًا", "Plan already linked"):t("رُبطت الباقة؛ راجعها ثم فعّلها", "Plan linked; review before activation"));setPriceId("");await load();}catch(error){push("error",error instanceof Error?error.message:t("تعذر الربط", "Could not link"));}finally{setImporting(false);}}}>
+        <label className="text-sm">{t("معرّف السعر في Stripe", "Stripe price ID")}<Input dir="ltr" required pattern="price_[A-Za-z0-9]+" placeholder="price_…" value={priceId} onChange={e=>setPriceId(e.target.value)}/></label>
+        <label className="text-sm">{t("فئة الصلاحيات", "Entitlement tier")}<select className="block rounded border border-border p-2" value={tier} onChange={e=>setTier(e.target.value)}>{["starter","lite","professional","enterprise"].map(value=><option key={value}>{value}</option>)}</select></label>
+        <Button type="submit" disabled={importing || !priceId.trim()}>{t("ربط باقة من Stripe", "Link Stripe plan")}</Button>
+        <a className="text-sm text-primary underline" href="https://dashboard.stripe.com/products" target="_blank" rel="noreferrer">{t("إنشاء باقة في Stripe", "Create in Stripe")}</a>
+      </form>
       <Card className="border-border">
         <CardContent className="p-0 overflow-x-auto">
           {loading ? <div className="py-10 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" /></div> : (
@@ -184,6 +202,9 @@ export function AdminPlans() {
                     <td className="px-3 py-2 text-end whitespace-nowrap">
                       <Button size="sm" variant="outline" className="h-8 border-border me-1" onClick={() => setEdit({ id: p.id, name: p.name, nameAr: p.nameAr || "" })}>{t("الأسماء", "Names")}</Button>
                       <Button size="sm" variant="outline" className="h-8 border-border" disabled={busy === p.id} onClick={() => void toggle(p)}>{p.isActive ? t("إيقاف", "Deactivate") : t("تفعيل", "Activate")}</Button>
+                      {!p.isActive && p.subscriptions === 0 && <Button size="sm" variant="outline" className="ms-1 h-8 text-danger" disabled={busy === p.id} onClick={()=>setPendingDelete(p.id)}>{t("حذف نهائي", "Delete permanently")}</Button>}
+                      {pendingDelete===p.id && <InlineConfirm label={t(`حذف ${p.name} من Entix نهائيًا؟`, `Permanently delete ${p.name} from Entix?`)} onCancel={()=>setPendingDelete(null)} onConfirm={async()=>{setBusy(p.id);try{await adminManagement.deletePlan(p.id);setPendingDelete(null);await load();push("success",t("حُذفت الباقة غير المستخدمة", "Unused plan deleted"));}catch(e){push("error",e instanceof Error?e.message:t("تعذر الحذف", "Could not delete"));}finally{setBusy(null);}}}/>}
+
                     </td>
                   </tr>
                 ))}

@@ -60,12 +60,14 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
   const [whatsapp, setWhatsapp] = useState("966593305959");
   const [needsHuman, setNeedsHuman] = useState(false);
   const [unseen, setUnseen] = useState(0);
-  const sessionRef = useRef<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(readSession);
+  const sessionRef = useRef<string | null>(sessionId);
+  const [welcome, setWelcome] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const hidden = HIDDEN_PREFIXES.some((p) => path.startsWith(p));
 
   useEffect(() => {
-    sessionRef.current = readSession();
+    try { setWelcome(!sessionStorage.getItem("entix-support-welcome-dismissed") && !readSession()); } catch { /* optional welcome */ }
   }, []);
 
   // Boot payload: greeting + the live WhatsApp number, both owned by the API.
@@ -109,7 +111,7 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
     void poll();
     const id = setInterval(poll, POLL_MS);
     return () => clearInterval(id);
-  }, [poll, hidden]);
+  }, [poll, hidden, sessionId]);
 
   useEffect(() => {
     if (open) {
@@ -144,6 +146,7 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
       if (d?.sessionId) {
         sessionRef.current = d.sessionId;
         writeSession(d.sessionId);
+        setSessionId(d.sessionId);
       }
       if (d?.reply) setMsgs((m) => [...m, { id: d.ticketId + Date.now(), author: "agent", body: d.reply }]);
       if (d?.handoff) setNeedsHuman(true);
@@ -166,10 +169,15 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
 
   const shown: Msg[] = msgs.length
     ? msgs
-    : [{ id: "greet", author: "agent", body: greeting || t("حياك الله في Entix Books 👋 وش أقدر أساعدك فيه؟", "Welcome to Entix Books 👋 How can I help?") }];
+    : [{ id: "greet", author: "agent", body: greeting || t("مرحبًا بك في Entix Books. كيف يمكنني مساعدتك؟", "Welcome to Entix Books 👋 How can I help?") }];
 
   return (
     <>
+      {!open && welcome && <div className="fixed bottom-20 end-4 z-40 max-w-[280px] rounded-xl border border-border bg-card p-3 shadow-raised" dir={language === "ar" ? "rtl" : "ltr"}>
+        <button className="float-end p-1" aria-label={t("إخفاء الترحيب", "Dismiss welcome")} onClick={() => { setWelcome(false); try { sessionStorage.setItem("entix-support-welcome-dismissed", "1"); } catch {} }}><X className="h-3 w-3"/></button>
+        <p className="text-sm">{t("مرحبًا بك في Entix. أساعدك في اختيار الباقة أو الإجابة عن أسئلتك.", "Welcome to Entix. I can help you choose a plan or answer your questions.")}</p>
+        <button className="mt-2 text-sm font-semibold text-primary" onClick={() => { setOpen(true); setWelcome(false); }}>{t("ابدأ المحادثة", "Start conversation")}</button>
+      </div>}
       {open && (
         <div
           dir={language === "ar" ? "rtl" : "ltr"}
@@ -184,7 +192,7 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
               <div className="text-[11px] opacity-80">
                 {needsHuman
                   ? t("طلبك وصل الفريق — الرد يظهر هنا", "Your request reached the team — the reply shows up here")
-                  : t("نرد خلال ثوانٍ", "We answer in seconds")}
+                  : t("مساعد الدعم · والتحويل للفريق عند الحاجة", "Support assistant · team handoff when needed")}
               </div>
             </div>
             <button onClick={() => setOpen(false)} aria-label={t("إغلاق", "Close")} className="rounded-lg p-1.5 hover:bg-white/10">

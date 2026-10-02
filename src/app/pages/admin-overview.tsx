@@ -143,7 +143,7 @@ export function AdminOverview() {
         <Tile icon={Sparkles} tone="blue" label={t("تسجيلات جديدة", "New signups")} value={`${fmtInt(k.newUsers)} / ${fmtInt(k.newOrgs)}`} sub={t("مستخدم / شركة", "users / companies")} delta={<Delta now={k.newOrgs} prev={k.newOrgsPrev} />} to="/admin/orgs" />
         <Tile icon={Clock} tone="amber" label={t("تجارب جارية", "Trials running")} value={fmtInt(k.trialing)} sub={`${data.attention.filter((a) => a.kind === "trial_ending").length} ${t("تنتهي خلال 7 أيام", "end within 7 days")}`} to="/admin/subscriptions?status=TRIALING" />
         <Tile icon={TrendingDown} tone={k.churnRate > 5 ? "amber" : "cyan"} label={t("معدل الانسحاب", "Churn rate")} value={`${k.churnRate}%`} sub={`${k.churned} ${t("ألغوا في الفترة", "churned this window")}`} to="/admin/subscriptions?status=CANCELED" />
-        <Tile icon={LifeBuoy} tone={data.support.open > 0 ? "amber" : "cyan"} label={t("تذاكر مفتوحة", "Open tickets")} value={fmtInt(data.support.open + data.support.pending)} sub={data.support.oldestWaiting ? `${t("الأقدم ينتظر", "oldest waiting")} ${data.support.oldestWaiting.hours}h` : t("لا انتظار", "nothing waiting")} to="/admin/support" />
+        <Tile icon={LifeBuoy} tone={data.support.open > 0 ? "amber" : "cyan"} label={t("تذاكر مفتوحة", "Open tickets")} value={fmtInt(data.support.open + data.support.pending)} sub={data.support.oldestWaiting ? `${t("الأقدم ينتظر", "oldest waiting")} ${data.support.oldestWaiting.hours}h` : t("لا انتظار", "nothing waiting")} to="/admin/support?status=ACTIVE" />
       </div>
 
       {/* Chart + mix */}
@@ -212,15 +212,15 @@ export function AdminOverview() {
         <div className="grid gap-4">
           <Panel title={t("الدعم وخدمة العملاء", "Support & customer service")} icon={LifeBuoy} action={<Link to="/admin/support" className="text-xs text-primary hover:underline">{t("كل التذاكر", "All tickets")}</Link>}>
             <div className="grid grid-cols-3 gap-2 text-center">
-              {[[t("مفتوحة", "Open"), data.support.open, "text-warning bg-warning-subtle"], [t("بانتظار العميل", "Pending"), data.support.pending, "text-info bg-info-subtle"], [t("حُلّت في الفترة", "Resolved"), data.support.resolvedInWindow, "text-success bg-success-subtle"]].map(([l, v, cls]) => (
-                <div key={String(l)} className={`rounded-xl px-2 py-3 ${cls}`}><div className="text-xl font-english tabular-nums" style={{ fontWeight: 800 }}>{v as number}</div><div className="text-[11px]" style={{ fontWeight: 600 }}>{l as string}</div></div>
+              {[[t("مفتوحة", "Open"), data.support.open, "text-warning bg-warning-subtle", "/admin/support?status=OPEN"], [t("بانتظار العميل", "Pending"), data.support.pending, "text-info bg-info-subtle", "/admin/support?status=PENDING"], [t("حُلّت في الفترة", "Resolved"), data.support.resolvedInWindow, "text-success bg-success-subtle", `/admin/support?status=DONE&closedFrom=${encodeURIComponent(new Date(new Date(data.generatedAt).getTime() - days * 86400000).toISOString())}&closedTo=${encodeURIComponent(data.generatedAt)}`]].map(([l, v, cls, href]) => (
+                <Link to={String(href)} key={String(l)} className={`rounded-xl px-2 py-3 hover:underline focus-visible:outline focus-visible:outline-primary ${cls}`}><div className="text-xl font-english tabular-nums" style={{ fontWeight: 800 }}>{v as number}</div><div className="text-[11px]" style={{ fontWeight: 600 }}>{l as string}</div></Link>
               ))}
             </div>
             {data.support.oldestWaiting ? (
               <div className="mt-3 flex items-center gap-3 rounded-xl border border-warning-border bg-warning-subtle/60 p-3 text-xs">
                 <Clock className="h-4 w-4 shrink-0 text-warning" />
                 <div className="min-w-0 flex-1"><div className="truncate text-foreground" style={{ fontWeight: 600 }}>{data.support.oldestWaiting.subject}</div><div className="text-muted-foreground">{data.support.oldestWaiting.orgName || "—"} · {data.support.oldestWaiting.priority} · {t("ينتظر", "waiting")} {data.support.oldestWaiting.hours}h</div></div>
-                <Link to="/admin/support" className="shrink-0 text-primary hover:underline" style={{ fontWeight: 600 }}>{t("افتح", "Open")}</Link>
+                <Link to={`/admin/support?ticket=${encodeURIComponent(data.support.oldestWaiting.id)}`} className="shrink-0 text-primary hover:underline" style={{ fontWeight: 600 }}>{t("افتح", "Open")}</Link>
               </div>
             ) : null}
             <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
