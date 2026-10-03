@@ -1,3 +1,4 @@
+import { loadInvoiceOverview } from '../lib/invoice-overview';
 import { InvoiceGridEditor } from '../components/invoice-grid-editor';
 import { invoiceStatusLabel } from "../lib/invoice-status-label";
 import { BidiText } from "../components/bidi-text";
@@ -147,8 +148,8 @@ export function Invoices() {
   const [gridIds, setGridIds] = useState<string[] | null>(null);
   const toggleChecked = (id: string) => setCheckedIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
   const [items, setItems] = useState<Invoice[]>([]);
-  const [billingTotals, setBillingTotals] = useState<Record<string, { total: number; paid: number; outstanding: number }> | null>(null);
-  const [invoiceCount, setInvoiceCount] = useState(0);
+  const [loadError, setLoadError] = useState(false);
+  const loadSequence = useRef(0);
   const [sourceFilter, setSourceFilter] = useState("ALL");
   const [customers, setCustomers] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -278,23 +279,27 @@ export function Invoices() {
   const { toasts, push, dismiss } = useToasts();
 
   const refresh = useCallback(async () => {
+    const sequence = ++loadSequence.current;
     setLoading(true);
+    setLoadError(false);
     try {
       const [invRes, contactsRes, productsRes, accountsRes] = await Promise.all([
-        api.invoices.list({ limit: 200, ...(sourceFilter === "entix.io" ? { source: "entix.io" } : {}) }),
+        loadInvoiceOverview(sourceFilter === "entix.io" ? "entix.io" : undefined),
         api.contacts.list({ limit: 200 }),
         (api as any).products?.list?.({ limit: 200 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
         (api as any).accounts?.list?.({ limit: 500 }).catch(() => ({ items: [] })) ?? Promise.resolve({ items: [] }),
       ]);
-      setItems(invRes.items);
-      setBillingTotals(invRes.totalsByCurrency || null);
-      setInvoiceCount(invRes.total);
+      if (sequence !== loadSequence.current) return;
+      setItems(invRes);
       setCustomers(contactsRes.items.filter(c => c.type === "CUSTOMER" || c.type === "BOTH"));
       setProducts((productsRes as any).items || []);
       setAccounts((accountsRes as any).items || []);
     } catch (e: any) {
+      if (sequence !== loadSequence.current) return;
+      setItems([]);
+      setLoadError(true);
       push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
-    } finally { setLoading(false); }
+    } finally { if (sequence === loadSequence.current) setLoading(false); }
   }, [push, sourceFilter]);
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -369,13 +374,14 @@ export function Invoices() {
     return true;
   });
 
-  const totalsByCurrency = billingTotals || items.filter(i => !['DRAFT', 'CANCELLED'].includes(i.status)).reduce((groups: Record<string, { total: number; paid: number; outstanding: number }>, i) => {
-    const row = groups[i.currency || orgCurrency] ||= { total: 0, paid: 0, outstanding: 0 };
+  const totalsByCurrency = items.filter(i => !['DRAFT', 'CANCELLED'].includes(i.status)).reduce((groups: Record<string, { total: number; paid: number; outstanding: number; overdue: number }>, i) => {
+    const row = groups[i.currency || orgCurrency] ||= { total: 0, paid: 0, outstanding: 0, overdue: 0 };
     row.total += Number(i.total); row.paid += Number(i.amountPaid || 0); row.outstanding += Number(i.total) - Number(i.amountPaid || 0);
+    if (overdueDays(i) > 0) row.overdue += Math.max(0, Number(i.total) - Number(i.amountPaid || 0));
     return groups;
   }, {});
   // Ledger figure per currency (main 2026-09 keeps currency totals separate — never summed across currencies).
-  const currencyFigure = (key: 'total' | 'paid' | 'outstanding') => {
+  const currencyFigure = (key: 'total' | 'paid' | 'outstanding' | 'overdue') => {
     const entries = Object.entries(totalsByCurrency);
     if (!entries.length) return <span className="flex flex-col gap-1"><span><Figure value={0} /><small className="ms-1 text-[0.45em] text-content-secondary">{orgCurrency}</small></span></span>;
     return <span className="flex flex-col gap-1">{entries.map(([currency, value]) => <span key={currency}><Figure value={value[key]} /><small className="ms-1 text-[0.45em] text-content-secondary">{currency}</small></span>)}</span>;
@@ -385,10 +391,6 @@ export function Invoices() {
     return acc;
   }, {});
   counts.OVERDUE = items.filter(i => overdueDays(i) > 0).length;
-  // Ledger figures strip · derived from the same list, no extra API call.
-  const overdueAmount = items.reduce((s, i) => (overdueDays(i) > 0 ? s + (Number(i.total) - Number(i.amountPaid || 0)) : s), 0);
-  const thisMonth = new Date().toISOString().slice(0, 7);
-  const collectedThisMonth = items.reduce((s, i) => (String(i.issueDate || "").slice(0, 7) === thisMonth ? s + Number(i.amountPaid || 0) : s), 0);
   // Filter chips · always the core five, plus any other status actually present.
   const chipStatuses = ["DRAFT", "SENT", "OVERDUE", "PAID", ...Object.keys(counts).filter((s) => !["DRAFT", "SENT", "OVERDUE", "PAID"].includes(s) && counts[s] > 0)];
   const chips = [
@@ -1395,11 +1397,12 @@ export function Invoices() {
         </InlineAlert>
       )}
 
-      <MetricStrip className="grid-cols-3 sm:grid-cols-3 xl:grid-cols-3 [&_.ledger-figure-value]:text-[20px] sm:[&_.ledger-figure-value]:text-[30px] [&_.ledger-figure]:py-3 sm:[&_.ledger-figure]:py-4 max-sm:[&_.ledger-figure]:px-2.5 max-sm:[&_.ledger-figure:first-child]:ps-0 max-sm:[&_.ledger-figure:last-child]:pe-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-t-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-s max-sm:[&_.ledger-figure+.ledger-figure]:!border-s-border">
-        <Metric label={t("مستحقة", "Outstanding")} value={currencyFigure('outstanding')} hint={<span className="font-english tabular-nums">{invoiceCount} {t("فاتورة", "invoices")}</span>} />
-        <Metric label={t("متأخرة", "Overdue")} value={<span className="text-warning"><Figure value={overdueAmount} /></span>} />
-        <Metric label={t("محصّلة هذا الشهر", "Collected this month")} value={<span className="text-primary"><Figure value={collectedThisMonth} /></span>} />
-      </MetricStrip>
+      {loadError && <InlineAlert tone="critical"><span>{t("تعذر تحميل جميع الفواتير. لم تعرض مجاميع جزئية؛ أعد المحاولة.", "Could not load all invoices. Partial totals are hidden; please retry.")}</span><Button variant="outline" size="sm" onClick={refresh}>{t("إعادة المحاولة", "Retry")}</Button></InlineAlert>}
+      {!loading && !loadError && <MetricStrip className="grid-cols-3 sm:grid-cols-3 xl:grid-cols-3 [&_.ledger-figure-value]:text-[20px] sm:[&_.ledger-figure-value]:text-[30px] [&_.ledger-figure]:py-3 sm:[&_.ledger-figure]:py-4 max-sm:[&_.ledger-figure]:px-2.5 max-sm:[&_.ledger-figure:first-child]:ps-0 max-sm:[&_.ledger-figure:last-child]:pe-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-t-0 max-sm:[&_.ledger-figure+.ledger-figure]:!border-s max-sm:[&_.ledger-figure+.ledger-figure]:!border-s-border">
+        <Metric label={t("مستحقة", "Outstanding")} value={currencyFigure('outstanding')} hint={<span className="font-english tabular-nums">{items.length} {t("فاتورة", "invoices")}</span>} />
+        <Metric label={t("متأخرة", "Overdue")} value={<span data-testid="invoice-metric-overdue" className="text-warning">{currencyFigure("overdue")}</span>} />
+        <Metric label={t("إجمالي المحصّل", "Total collected")} value={<span data-testid="invoice-metric-collected" className="text-primary">{currencyFigure("paid")}</span>} />
+      </MetricStrip>}
 
       {isSA && !loading && <InvoiceZatcaSummary invoices={filtered} />}
 
@@ -1437,7 +1440,7 @@ export function Invoices() {
         {selecting && <><label className="flex items-center gap-1"><input type="checkbox" checked={!!filtered.length && filtered.every(i => checkedIds.includes(i.id))} onChange={e => setCheckedIds(e.target.checked ? filtered.map(i => i.id) : [])} />{t('تحديد الظاهر','Select visible')}</label><Button size="sm" disabled={!checkedIds.length} onClick={() => setGridIds(checkedIds)}>{t('تعديل المحدد في جدول','Edit selected in table')} ({checkedIds.length})</Button><span>{t('التحديد من الفواتير المعروضة فقط','Selection includes displayed invoices only')}</span></>}
       </div>}
       {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
-       filtered.length === 0 ? (
+       loadError ? null : filtered.length === 0 ? (
         <EmptyState icon={<FileText className="h-8 w-8" strokeWidth={1.75} />} title={t("لا توجد فواتير", "No invoices")} />
       ) : (
         <>

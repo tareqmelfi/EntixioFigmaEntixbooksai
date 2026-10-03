@@ -33,7 +33,7 @@ test('invoices use shared product contracts and semantic status tones', async ({
   await expect(heading).not.toHaveAttribute('style')
 
   // Ledger: three figures on the ink-rule strip (no boxed KPI cards).
-  const metrics = ['Outstanding', 'Overdue', 'Collected this month']
+  const metrics = ['Outstanding', 'Overdue', 'Total collected']
   for (const label of metrics) {
     const figure = page.getByText(label, { exact: true }).locator('xpath=ancestor::*[contains(@class,"ledger-figure")][1]')
     await expect(figure).toHaveClass(/\bledger-figure\b/)
