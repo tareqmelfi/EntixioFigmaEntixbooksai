@@ -1,3 +1,4 @@
+import { DuesSettlementsReport } from './dues-settlements-report';
 import { compareReport, comparisonMode } from '../lib/report-comparison';
 import { ReportComparisonSelect } from '../components/report-comparison-select';
 import { presentReport } from '../lib/report-presentation';
@@ -71,7 +72,7 @@ function ExportMenu({ onCsv, onPdf, onExcel, disabled }: { onExcel: () => void; 
 
 export function ReportView() {
   const { id } = useParams();
-  return id === "owner-management" ? <OwnerManagementReport /> : id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView />;
+  return id === "dues-settlements" ? <DuesSettlementsReport /> : id === "owner-management" ? <OwnerManagementReport /> : id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView />;
 }
 
 function SingleReportView() {

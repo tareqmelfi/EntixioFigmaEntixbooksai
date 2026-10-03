@@ -38,7 +38,7 @@ function Panel({title,scope,children,testId}: {title:string;scope:string;childre
 function OpenBalances({data,title,scope,href}: {data?:DashboardOpenBalances;title:string;scope:string;href:string}) {
   const {t}=useLanguage();
   const money=(value:number,currency=data?.currency)=>`${number(value)} ${currency}`;
-  return <Panel title={title} scope={scope} testId={href.includes('purchases')?'current-payables':'current-receivables'}>
+  return <Panel title={title} scope={scope} testId={href.includes('payable')?'current-payables':'current-receivables'}>
     {!data ? <p className="text-sm text-content-secondary">{t('تفصيل الأرصدة الحالية غير متاح.', 'Current balance detail unavailable.')}</p> : <>
       <div className="flex flex-wrap justify-between gap-2"><Link to={href} className="text-2xl font-semibold tabular-nums"><bdi>{money(data.total)}</bdi></Link><span className="text-xs text-content-secondary">{data.count} {t('فاتورة قائمة', 'open invoices')}</span></div>
       <dl className="grid grid-cols-2 gap-3 text-xs">{([
@@ -171,7 +171,7 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
 
     <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3" data-testid="dashboard-balances-row">
       <Panel title={t('الذمم المدينة والدائنة','Receivables & Payables')} scope={currentScope} testId="current-balances">
-        {[{label:t('مستحق للشركة (AR)','Receivable (AR)'),balance:data.receivables,href:'/app/invoices'},{label:t('مستحق على الشركة (AP)','Payable (AP)'),balance:data.payables,href:'/app/purchases/bills'}].map(row=><Link key={row.href} to={row.href} className="ledger-hoverable block rounded-lg border border-border p-3"><span className="text-xs text-content-secondary">{row.label}</span><div className="mt-0.5 font-display text-lg tabular-nums"><bdi>{row.balance?money(row.balance.total):'—'}</bdi></div>{row.balance&&<p className="text-xs text-content-secondary">{t('منه متأخر','Overdue portion')}: <bdi>{money(row.balance.overdue)}</bdi></p>}</Link>)}
+        {[{label:t('مستحق للشركة (AR)','Receivable (AR)'),balance:data.receivables,href:'/app/reports/dues-settlements?view=receivable'},{label:t('مستحق على الشركة (AP)','Payable (AP)'),balance:data.payables,href:'/app/reports/dues-settlements?view=payable'}].map(row=><Link key={row.href} to={row.href} className="ledger-hoverable block rounded-lg border border-border p-3"><span className="text-xs text-content-secondary">{row.label}</span><div className="mt-0.5 font-display text-lg tabular-nums"><bdi>{row.balance?money(row.balance.total):'—'}</bdi></div>{row.balance&&<p className="text-xs text-content-secondary">{t('منه متأخر','Overdue portion')}: <bdi>{money(row.balance.overdue)}</bdi></p>}</Link>)}
         <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-3 text-xs"><span className="text-content-secondary">{t('صافي الذمم','Net balance')}</span><bdi>{data.receivables&&data.payables?money(data.receivables.total-data.payables.total):'—'}</bdi></div>
       </Panel>
       <Panel title={t('هذا الشهر مقابل الشهر الماضي','This month vs last month')} scope={t('حتى نفس اليوم من الشهر','Through the same day of the month')} testId="period-comparison">
@@ -200,7 +200,7 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       {p&&<div className="flex flex-wrap gap-3 text-xs font-semibold text-primary"><Link to={incomeLink}>{t('قائمة دخل الفترة','Period income statement')}</Link><Link to={financialReportHref('balance-sheet',null,p.toDate)}>{t('المركز المالي في','Financial position at')} <bdi>{date(p.toDate)}</bdi></Link></div>}
       {!!data.limitations?.length&&<div className="text-xs text-content-secondary">{data.limitations.map((notice,index)=><p key={index}>{displayDigits(language==='ar'?notice.messageAr:notice.messageEn)}</p>)}</div>}
       <p className="text-xs text-content-secondary">{scopedText(trendScope(data.monthlyTrend,p?.source||'documents'))}</p>
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2"><OpenBalances data={data.receivables} title={t('مستحق للشركة — العملاء','Due to the company — customers')} scope={currentScope} href="/app/invoices"/><OpenBalances data={data.payables} title={t('مستحق على الشركة — الموردون','Due by the company — suppliers')} scope={currentScope} href="/app/purchases/bills"/></div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2"><OpenBalances data={data.receivables} title={t('مستحق للشركة — العملاء','Due to the company — customers')} scope={currentScope} href="/app/reports/dues-settlements?view=receivable"/><OpenBalances data={data.payables} title={t('مستحق على الشركة — الموردون','Due by the company — suppliers')} scope={currentScope} href="/app/reports/dues-settlements?view=payable"/></div>
       <Panel title={t('تفصيل المقارنة الشهرية والسنوية','Monthly and annual comparison detail')} scope={t('مقارنة مستقلة عن اختيار فترة الحركات','Comparison independent of selected activity period')} testId="comparison-details">{comparisonContent}</Panel>
     </div></details>
     </>}
