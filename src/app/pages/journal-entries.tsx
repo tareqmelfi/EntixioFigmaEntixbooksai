@@ -383,7 +383,7 @@ export function JournalEntries() {
                   coverage.unposted.payments > 0 ? t("سندات صرف", "Payments") + `: ${coverage.unposted.payments}` : null,
                 ].filter(Boolean).join(" · ")}
                 {" — "}
-                {t("السبب الأغلب: حساب واجهة غير موجود في شجرة الحسابات (مثل 11000 ذمم مدينة أو 21000 ضريبة). راجع شجرة الحسابات ثم أعد حفظ المستند ليُرحَّل.", "Most common cause: a posting account is missing from the chart (e.g. 11000 AR or 21000 VAT). Review the chart of accounts, then re-save the document to post it.")}
+                {t("افتح مراجعة الترحيل في لوحة التحكم لمعرفة سبب كل مستند ومعاينة قيده. تغيير الحساب وحده لا يؤكد اكتمال الترحيل.", "Open posting review on the dashboard to inspect each document and preview its journal. Changing an account alone does not confirm posting.")}
               </div>
             </InlineAlert>
           )
