@@ -5,9 +5,11 @@ import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
 import { SearchableCombobox } from './searchable-combobox';
 import { displayLocale } from '../lib/number-display';
+import { BatchPostingReview } from './batch-posting-review';
 
 export function PostingReview({from,to,onPosted}:{from?:string|null;to?:string;onPosted?:()=>void}) {
   const {t}=useLanguage();
+  const [batch,setBatch]=useState(false);
   const [items,setItems]=useState<PostingReviewItem[]>([]),[accounts,setAccounts]=useState<Account[]>([]);
   const [offset,setOffset]=useState(0),[total,setTotal]=useState(0),[loading,setLoading]=useState(true);
   const [selected,setSelected]=useState<PostingReviewItem|null>(null),[accountId,setAccountId]=useState('');
@@ -34,7 +36,9 @@ export function PostingReview({from,to,onPosted}:{from?:string|null;to?:string;o
     try{await api.postingReview.approve(selected.kind,selected.id,preview.reviewToken);setItems(old=>old.filter(x=>x.id!==selected.id));setTotal(n=>Math.max(0,n-1));setSelected(null);setPreview(null);setNotice(t('اكتمل الترحيل وتحديث الدفاتر.','Posting completed and ledger updated.'));onPosted?.();}
     catch(e:any){setError(t(e.messageAr||e.message,e.message));setPreview(null);setConfirmed(false)}finally{setBusy(false)}
   };
+  if(batch)return <BatchPostingReview from={from} to={to} onClose={()=>setBatch(false)} onPosted={onPosted}/>;
   return <div className="mt-3 border-t border-border pt-3" data-testid="posting-review">
+    <Button className="mb-2" size="sm" variant="outline" disabled={busy} onClick={()=>setBatch(true)}>{t('مراجعة جماعية لجميع المستندات','Batch review all documents')}</Button>
     <p className="text-sm">{t('استكمال قيود المستندات المعتمدة فقط. الحساب المحفوظ أو حساب المنتج أولًا، ثم الافتراضي العام عند غياب التصنيف.','Recover journals for issued documents. Stored or product accounts take priority, followed by the general default when classification is missing.')}</p>
     {error&&<p role="alert" className="my-2 text-sm text-warning">{error} <Link to={selected?`${paths[selected.kind]}${selected.id}`:"/app/settings?tab=control-accounts"} className="underline">{selected?t('فتح المستند للتصحيح','Open document to correct'):t('إعدادات الحسابات','Account settings')}</Link></p>}
     {notice&&<p role="status" className="my-2 text-sm">{notice}</p>}
