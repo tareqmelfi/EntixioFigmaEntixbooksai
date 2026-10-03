@@ -114,7 +114,7 @@ export function PurchaseEntry() {
         assetAccountId: l.isAsset ? l.accountId || null : null };
     });
     const payload = form.paid ? { ...common, date: form.date, status: asDraft ? 'DRAFT' : 'APPROVED',
-      category: t('مصروف عام', 'General expense'), vendorName: supplier?.displayName || null,
+      category: t('مصروف عام', 'General expense'), vendorName: supplier?.displayName || form.extractedSupplier || null,
       documentNumber: form.reference || null, reference: form.reference || null,
       description: valid.map(l => l.description).join(' · '), amount: totals.subtotal, subtotal: totals.subtotal,
       taxAmount: totals.tax, totalAmount: totals.total, paymentMethod: form.method,

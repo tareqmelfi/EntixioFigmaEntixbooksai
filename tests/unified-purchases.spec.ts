@@ -94,6 +94,12 @@ test('extracted historical source survives reload with original attachment and c
  await expect(page.getByRole('textbox',{name:'تاريخ المستند فتح التقويم',exact:true})).toHaveValue('02/08/2016');
  await expect(page.getByText('source.pdf',{exact:true})).toBeVisible();
  await expect(page.getByLabel('العملة',{exact:true})).toHaveValue('SAR');
+ let submitted:any;await page.route('**/api/expenses',r=>{submitted=r.request().postDataJSON();return r.fulfill({json:{id:'imported'}})});
+ await page.getByRole('button',{name:'مدفوع الآن',exact:true}).click();
+ await page.getByRole('textbox',{name:/سعر التحويل/}).fill('0.26666667');
+ await page.getByRole('button',{name:'حفظ كمدفوع',exact:true}).click();
+ await expect.poll(()=>submitted?.vendorName).toBe('Supplier A');
+ expect(submitted).toMatchObject({date:'2016-08-02',currency:'SAR',documentNumber:'SOURCE-2016',autoCreateSupplier:false,sourceFileHash:'a'.repeat(64),attachments:[{name:'source.pdf'}]});
 });
 test('foreign bank payment requires actual charge and retains source currency',async({page})=>{
  await ready(page);let submitted:any;await page.route('**/api/expenses',r=>{submitted=r.request().postDataJSON();return r.fulfill({json:{id:'fx-expense'}})});
