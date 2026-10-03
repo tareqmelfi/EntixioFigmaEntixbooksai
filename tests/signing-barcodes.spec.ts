@@ -39,7 +39,7 @@ for(const kind of ['quotes','invoices'] as const) test(`existing ${kind} signing
  await page.goto(`/app/${kind}`);
  if(kind==='quotes') { await page.goto('/app/quotes/doc-1'); await page.getByTestId('quote-request-signature').click(); } else await page.getByTitle('Send for signing',{exact:true}).first().click();
  await expect(page.getByRole('link',{name:'Open signing link',exact:true})).toHaveAttribute('href','https://sign.ensidex.com/s/synthetic-only');
- await expect(page.getByRole('button',{name:'Send for signing',exact:true})).toBeDisabled();
+ await expect(page.getByRole('button',{name:kind==='quotes'?'Prepare signing link':'Send for signing',exact:true})).toBeDisabled();
  await page.getByRole('region',{name:'Signature tracking'}).getByRole('button',{name:'Refresh',exact:true}).click();
  await expect(page.getByRole('link',{name:'Signed PDF',exact:true})).toHaveAttribute('href','https://sign.ensidex.com/synthetic.pdf');
  await expect(page.getByRole('link',{name:'Signing audit trail',exact:true})).toBeVisible();

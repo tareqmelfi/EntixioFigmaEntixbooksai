@@ -45,6 +45,7 @@ test('proposal route defaults to English for US issuer and switches to Arabic ex
  await page.route('**/api/quotes/quote-test',r=>r.fulfill({json:{...base.doc,id:'quote-test',orgId:visualOrgId,quoteNumber:'EN-QTE-202609-0001'}}));
  await page.route(`**/orgs/${visualOrgId}`,r=>r.fulfill({json:{...base.org,id:visualOrgId}}));
  await page.route('**/api/document-templates/defaults',r=>r.fulfill({json:{QUOTE:template}}));
+ await page.route('**/api/document-templates/render/QUOTE/quote-test?**', r => r.fulfill({contentType:'text/html',body:renderDocument(input('QUOTE', new URL(r.request().url()).searchParams.get('lang') === 'ar' ? 'ar' : 'en')).html}));
  await page.goto('/print/proposal/quote-test?noprint=1');
  await expect(page.locator('.edoc')).toHaveAttribute('lang','en');
  await page.getByLabel('Document language').selectOption('ar');

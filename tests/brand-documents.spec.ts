@@ -1,3 +1,4 @@
+import { renderDocument, partyFromOrg, partyFromContact, docFromQuote } from '../src/app/lib/document-render'
 import { test, expect, type Page } from '@playwright/test'
 import { prepareVisualApp, visualOrgId } from './fixtures/visual-app'
 import { auditOverflow, AUDIT_WIDTHS } from './fixtures/overflow-audit'
@@ -68,6 +69,7 @@ async function mocks(page: Page, lang: 'ar' | 'en') {
     if (pathname === '/api/document-templates' && m === 'POST') return route.fulfill({ status: 201, json: { ...template, id: 'tpl-2' } })
     if (pathname === '/api/document-templates/tpl-1') return route.fulfill({ json: template })
     if (pathname === '/api/bank-accounts') return route.fulfill({ json: { items: [bank], total: 1, totalBalance: 0 } })
+    if (pathname === '/api/document-templates/render/QUOTE/q1') return route.fulfill({ contentType: 'text/html', body: renderDocument({ lang: new URL(route.request().url()).searchParams.get('lang') === 'en' ? 'en' : 'ar', org: partyFromOrg(org), contact: partyFromContact(contact), template: template as any, bank, doc: docFromQuote(quote), fontBase: '/fonts', actions: false }).html })
     if (pathname === '/api/quotes/q1') return route.fulfill({ json: quote })
     if ((pathname === '/api/quotes' || pathname === '/api/quotes/overview')) return route.fulfill({ json: { items: [quote], total: 1 } })
     if (pathname === '/api/quotes/_/next-number') return route.fulfill({ json: { number: 'SP-Q-0002' } })

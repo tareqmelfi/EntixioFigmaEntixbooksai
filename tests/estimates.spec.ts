@@ -1,3 +1,4 @@
+import { renderDocument, partyFromOrg, partyFromContact, docFromQuote } from '../src/app/lib/document-render'
 import { test, expect, type Page } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { prepareVisualApp, visualOrgId } from './fixtures/visual-app'
@@ -94,6 +95,7 @@ async function mocks(page: Page, lang: 'ar' | 'en') {
     if (pathname === '/api/estimates' && m === 'POST') return route.fulfill({ status: 201, json: { ...estimateFull, id: 'est-new', number: 'EST-202609-0044', status: 'DRAFT' } })
     if (pathname === '/api/estimates/est-1') return route.fulfill({ json: estimateFull })
     if (pathname === '/api/payment-plans/templates') return route.fulfill({ json: { items: [planTemplate], total: 1 } })
+    if (pathname === '/api/document-templates/render/QUOTE/q1') return route.fulfill({ contentType: 'text/html', body: renderDocument({ lang: 'ar', org: partyFromOrg(org), contact: partyFromContact(contact), template: null, doc: docFromQuote(quote), fontBase: '/fonts', actions: false }).html })
     if (pathname === '/api/quotes/q1') return route.fulfill({ json: quote })
     if ((pathname === '/api/quotes' || pathname === '/api/quotes/overview') && m === 'GET') return route.fulfill({ json: { items: [quote], total: 1 } })
     if (pathname === '/api/contacts') return route.fulfill({ json: { items: [contact], total: 1, page: 1, limit: 200 } })

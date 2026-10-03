@@ -9,13 +9,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { Loader2, Printer, CheckCircle2, XCircle, BadgeCheck } from "lucide-react";
 import { api, Quote } from "../lib/api";
-import { ProposalDoc, ProposalOrg } from "../components/proposal-doc";
+import { QuoteDocument, parseQuotePresentation, type QuotePresentation } from "../components/quote-document";
+import { safeSignatureLink } from "../components/signature-history";
 
-type PubQuote = Quote & { org?: ProposalOrg };
+type PubQuote = Quote & { org?: { name: string }; signing?: { status: string; matches: boolean; expired: boolean; url: string | null; signedPdfUrl: string | null; auditTrailUrl: string | null; signedAt: string | null } | null };
 
 export function QuotePublic() {
   const { token } = useParams<{ token: string }>();
   const [quote, setQuote] = useState<PubQuote | null>(null);
+  const [presentation, setPresentation] = useState<QuotePresentation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<"view" | "accept" | "reject">("view");
@@ -33,6 +35,11 @@ export function QuotePublic() {
     (async () => {
       try {
         const q = await api.quotes.publicGet(token);
+        const response = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/api/q/${encodeURIComponent(token)}/document`);
+        if (!response.ok) throw new Error("document_unavailable");
+        const document = parseQuotePresentation(await response.text());
+        window.document.title = document.title;
+        setPresentation(document);
         setQuote(q as PubQuote);
         if (q.status === "ACCEPTED" || q.status === "CONVERTED") setDone("accepted");
         if (q.status === "REJECTED") setDone("rejected");
@@ -72,7 +79,7 @@ export function QuotePublic() {
   };
 
   if (loading) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F6F1E8" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
-  if (error || !quote) return (
+  if (error || !quote || !presentation) return (
     <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#F6F1E8", padding: 24 }}>
       <div style={{ background: "#fff", border: "1px solid #D6E4EE", borderRadius: 14, padding: "28px 32px", textAlign: "center", maxWidth: 420 }}>
         <XCircle style={{ width: 40, height: 40, color: "#E84B4B", margin: "0 auto 10px" }} />
@@ -82,7 +89,13 @@ export function QuotePublic() {
     </div>
   );
 
-  const expired = quote.validUntil && new Date(quote.validUntil) < new Date() && !done;
+  const expired = quote.validUntil && new Date(quote.validUntil).getTime() + 86400000 <= Date.now() && !done;
+
+  const signing = quote.signing;
+  const signingUrl = safeSignatureLink(signing?.url);
+  const signedPdf = safeSignatureLink(signing?.signedPdfUrl);
+  const auditUrl = safeSignatureLink(signing?.auditTrailUrl);
+  const signingRequired = !!signing && ["SENDING", "UNKNOWN", "PENDING", "SENT", "VIEWED"].includes(signing.status);
 
   return (
     <div dir="rtl" style={{ minHeight: "100vh", background: "#F6F1E8", fontFamily: "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif" }}>
@@ -91,6 +104,7 @@ export function QuotePublic() {
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }
+          .public-quote-content { padding: 0!important; max-width: none!important; margin: 0!important; }
           .pub-sheet { box-shadow: none !important; border: none !important; margin: 0 !important; max-width: none !important; padding: 0 !important; }
         }
       `}</style>
@@ -106,7 +120,7 @@ export function QuotePublic() {
             <button onClick={() => window.print()} style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "1px solid rgba(255,255,255,.35)", color: "#fff", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, cursor: "pointer" }}>
               <Printer style={{ width: 15, height: 15 }} /> {t("تحميل PDF", "Download PDF")}
             </button>
-            {!done && !expired && (
+            {!done && !expired && !signingRequired && (
               <>
                 <button onClick={() => { setMode("reject"); setFormError(null); }} style={{ background: "transparent", border: "1px solid rgba(255,255,255,.35)", color: "#fff", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, cursor: "pointer" }}>
                   {t("اعتذار عن العرض", "Decline")}
@@ -120,7 +134,17 @@ export function QuotePublic() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 860, margin: "0 auto", padding: "18px 16px 60px" }}>
+      <div className="public-quote-content" style={{ maxWidth: 826, margin: "0 auto", padding: "18px 16px 60px" }}>
+        {signing && <section className="no-print" style={{ background: "white", padding: 16, marginBottom: 16, borderRadius: 8 }}>
+          <strong>{signing.status === "SIGNED" ? "تم التوقيع الإلكتروني" : "توقيع العميل"}</strong>
+          {!signing.matches && <p role="alert">تغير العرض عن نسخة طلب التوقيع؛ تواصل مع المرسل لتحديث الطلب. النسخة الموقعة تخص الإصدار السابق.</p>}
+          {signing.expired && signing.status !== "SIGNED" && <p>انتهت صلاحية طلب التوقيع؛ تواصل مع المرسل.</p>}
+          {signingUrl && !expired && <a href={signingUrl} className="inline-flex rounded-full bg-primary px-5 py-2 text-white" rel="noopener noreferrer">مراجعة وتوقيع العرض</a>}
+          {!signingUrl && signingRequired && signing.matches && !signing.expired && <p>استخدم دعوة التوقيع الخاصة بك أو تواصل مع المرسل للتحقق من الطلب.</p>}
+          {signedPdf && <a href={signedPdf} target="_blank" rel="noopener noreferrer" className="mx-3 underline">تحميل النسخة الموقعة PDF</a>}
+          {auditUrl && <a href={auditUrl} target="_blank" rel="noopener noreferrer" className="mx-3 underline">سجل التوقيع</a>}
+          <button type="button" onClick={() => window.location.reload()} className="mx-3 underline">تحديث حالة التوقيع</button>
+        </section>}
         {/* Result banners */}
         {done === "accepted" && (
           <div className="no-print" style={{ background: "#E8F8EF", border: "1px solid #34C77B", color: "#0B6B3A", borderRadius: 12, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 700 }}>
@@ -141,7 +165,7 @@ export function QuotePublic() {
         {/* Accept / Reject inline panels */}
         {mode === "accept" && !done && (
           <div className="no-print" style={{ background: "#fff", border: "2px solid #5875DB", borderRadius: 14, padding: 18, marginBottom: 14 }}>
-            <div style={{ fontWeight: 800, color: "#1A1E48", marginBottom: 8 }}>{t("تأكيد الموافقة على العرض", "Confirm approval")}</div>
+            <div style={{ fontWeight: 800, color: "#1A1E48", marginBottom: 8 }}>{t("تأكيد الموافقة على العرض · بدون توقيع إلكتروني", "Confirm approval")}</div>
             <div style={{ fontSize: 12.5, color: "#4A5A6E", marginBottom: 10 }}>
               {t(`بالضغط على «تأكيد الموافقة» فإنكم توافقون على عرض السعر ${quote.quoteNumber} بقيمة ${Number(quote.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${quote.currency}.`,
                  `By confirming you approve proposal ${quote.quoteNumber} for ${Number(quote.total).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })} ${quote.currency}.`)}
@@ -178,9 +202,7 @@ export function QuotePublic() {
         )}
 
         {/* The proposal document */}
-        <div className="pub-sheet" style={{ background: "#fff", border: "1px solid #D6E4EE", borderRadius: 14, boxShadow: "0 8px 30px rgba(11,27,73,.06)", padding: "26px 28px" }}>
-          <ProposalDoc quote={quote} org={quote.org || null} lang={lang} />
-        </div>
+        <QuoteDocument presentation={presentation} />
 
         <div className="no-print" style={{ textAlign: "center", marginTop: 18, fontSize: 11, color: "#8CA0B3" }}>
           Powered by <a href="https://entix.io" style={{ color: "#5875DB", textDecoration: "none", fontWeight: 700 }}>Entix Books</a> · entix.io

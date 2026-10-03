@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 import { prepareVisualApp } from './fixtures/visual-app'
+import { renderDocument, sampleInput } from '../src/app/lib/document-render'
 
 const quote = {
   id: 'quote-edg', quoteNumber: 'Q-EDG-01', contactId: 'contact-edg', status: 'DRAFT',
@@ -11,6 +12,7 @@ const quote = {
 
 async function quotesFixture(page: Page, language: 'en' | 'ar' = 'en') {
   await prepareVisualApp(page, language)
+  await page.route('**/api/document-templates/render/QUOTE/**', r => r.fulfill({ contentType: 'text/html', body: renderDocument({ ...sampleInput('QUOTE', language), actions: false }).html.replace('</head>', `<meta name="entix-document-hash" content="${'b'.repeat(64)}"></head>`) }))
   await page.route('https://api.entix.io/api/contacts**', r => r.fulfill({ json: { items: [quote.contact] } }))
   await page.route('https://api.entix.io/api/payment-plans/templates', r => r.fulfill({ json: { items: [] } }))
   await page.route('https://api.entix.io/api/quotes**', r => {
@@ -183,6 +185,7 @@ test('ambiguous signature delivery explains support review without success', asy
   await page.route('https://api.entix.io/api/sign/quotes/quote-edg/send', r => r.fulfill({ status: 502, json: { error: 'signature_delivery_unknown' } }))
   await page.goto('/app/quotes/quote-edg')
   await page.getByTestId('quote-request-signature').click()
+  await page.getByRole('checkbox').check()
   await page.getByRole('button', { name: 'Send for signing', exact: true }).click()
   await expect(page.getByText(/Signature delivery could not be confirmed · ask support to review its status before resending to avoid duplicates/)).toBeVisible()
   await expect(page.getByText(/Quote sent for signing to/)).toHaveCount(0)
@@ -209,7 +212,7 @@ for (const language of ['en', 'ar'] as const) {
     expect(posts).toEqual([])
     await page.goto('/app/quotes/quote-edg')
     await page.getByTestId('quote-request-signature').click()
-    await expect(page.getByRole('button', { name: language === 'ar' ? 'إرسال للتوقيع' : 'Send for signing', exact: true })).toBeEnabled()
+    await expect(page.getByRole('button', { name: language === 'ar' ? 'تجهيز رابط التوقيع' : 'Prepare signing link', exact: true })).toBeEnabled()
     await expect(page.getByTestId('send-compose-submit')).toHaveCount(0)
     expect(posts).toEqual([])
   })

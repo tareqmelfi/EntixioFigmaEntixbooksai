@@ -1,3 +1,4 @@
+import { QuoteSignaturePlacement, type SignatureSelection } from "../components/quote-signature-placement";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { SignatureHistory } from "../components/signature-history";
 import { InvoiceDocuments } from "../components/invoice-documents";
@@ -316,6 +317,8 @@ export function Quotes() {
     return () => { alive = false; };
   }, []);
 
+  const [signatureSelection, setSignatureSelection] = useState<SignatureSelection | null>(null);
+  const [signatureEmail, setSignatureEmail] = useState(false);
   const [signatureRevision, setSignatureRevision] = useState(0);
   const [signatureBlocked, setSignatureBlocked] = useState(true);
   const [signFor, setSignFor] = useState<Quote | null>(null);
@@ -728,6 +731,8 @@ export function Quotes() {
   const openSign = (q: Quote) => {
     const customer = customers.find((c) => c.id === q.contactId);
     setSignatureBlocked(true);
+    setSignatureSelection(null);
+    setSignatureEmail(false);
     setSignFor(q);
     setSignForm({
       name: customer?.displayName || "",
@@ -739,29 +744,37 @@ export function Quotes() {
   const closeSign = () => { setSignFor(null); setSignError(null); };
 
   const handleSignSubmit = async () => {
-    if (!signFor || signatureBlocked) return;
+    if (!signFor || signatureBlocked || !signatureSelection) return;
     setSignError(null);
     if (!signForm.email.trim()) { setSignError(t("البريد الإلكتروني مطلوب", "Email is required")); return; }
     if (!signForm.name.trim()) { setSignError(t("اسم الموقّع مطلوب", "Signer name is required")); return; }
     setBusy(true);
     try {
-      const r = await api.sign.sendQuote(signFor.id, {
-        signers: [{ name: signForm.name, email: signForm.email, role: "Customer" }],
+      const payload = {
+        snapshotHash: signatureSelection.snapshotHash,
+        sendEmail: signatureEmail,
+        signers: [{ name: signForm.name, email: signForm.email, role: "Customer", placement: signatureSelection.placement }],
         message: signForm.message,
         expiresInDays: 30,
-      });
+      };
+      const r = await api.sign.sendQuote(signFor.id, payload);
       if (r.error) {
         push("error", t(`حُفظ الطلب لكن DocuSeal لم يستجب: ${r.error}`, `Request saved but DocuSeal did not respond: ${r.error}`));
       } else {
-        push("success", t(`تم إرسال العرض للتوقيع إلى ${signForm.email}`, `Quote sent for signing to ${signForm.email}`));
-        if (signFor.status === "DRAFT") {
+        push("success", signatureEmail ? t(`تم إرسال العرض للتوقيع إلى ${signForm.email}`, `Quote sent for signing to ${signForm.email}`) : t("تم تجهيز رابط التوقيع — لم يُرسل بريد. يظهر التوقيع أيضًا في رابط العرض المشترك.", "Signing link ready — no email sent. Signing is also available from the shared quote link."));
+        if (signatureEmail && signFor.status === "DRAFT") {
           setItems(prev => prev.map(x => x.id === signFor.id ? { ...x, status: "SENT" } : x));
         }
       }
       setSignatureRevision(n => n + 1);
     } catch (e: any) {
       setSignatureRevision(n => n + 1);
-      setSignError(humanizeError(e, language, { ar: "فشل الإرسال", en: "Send failed" }));
+      const previewErrors: Record<string, string> = {
+        document_changed: t("تغير العرض بعد المعاينة؛ حدّث المعاينة ثم حدد مكان التوقيع مجددًا.", "The quote changed after preview. Refresh the preview and select the signature position again."),
+        preview_required: t("حدّث معاينة العرض قبل تجهيز رابط التوقيع.", "Refresh the quote preview before preparing the signing link."),
+        invalid_signature_placement: t("مكان التوقيع خارج حدود الصفحة؛ اختر مكانًا داخل الصفحة.", "The signature is outside the page. Choose a position within the page."),
+      };
+      setSignError(e instanceof ApiError && previewErrors[e.code || ""] || humanizeError(e, language, { ar: "تعذر تجهيز التوقيع", en: "Could not prepare signing" }));
     } finally { setBusy(false); }
   };
 
@@ -1125,19 +1138,19 @@ export function Quotes() {
       <>
         <FullPageForm
           title={t(`إرسال ${signFor.quoteNumber} للتوقيع`, `Send ${signFor.quoteNumber} for signing`)}
-          subtitle={t("راجع بيانات الموقّع ثم أرسل دعوة التوقيع · صلاحية الرابط 30 يومًا", "Review the signer’s details, then send the signing invitation · link valid for 30 days")}
+          subtitle={t("راجع بيانات الموقّع وحدد مكان توقيعه ثم جهّز الرابط · إرسال الدعوة بالبريد اختياري · صلاحية الرابط 30 يومًا", "Review the signer and signature position, then prepare the link · email invitation is optional · link valid for 30 days")}
           onClose={closeSign}
           disableEscape={busy}
           footer={
             <div className="flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={closeSign} className="border-border">{t("إلغاء", "Cancel")}</Button>
-              <Button type="button" disabled={busy || signatureBlocked} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
-                <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : t("إرسال للتوقيع", "Send for signing")}
+              <Button type="button" disabled={busy || signatureBlocked || !signatureSelection} onClick={handleSignSubmit} className="bg-primary hover:bg-primary/90">
+                <FileSignature className="me-2 h-4 w-4" />{busy ? "..." : signatureEmail ? t("إرسال للتوقيع", "Send for signing") : t("تجهيز رابط التوقيع", "Prepare signing link")}
               </Button>
             </div>
           }
         >
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-4xl mx-auto space-y-4">
             <SignatureHistory key={signFor.id} docId={signFor.id} docType="QUOTE" revision={signatureRevision} onBlocked={setSignatureBlocked} />
             {signError && <div className="rounded-lg border border-danger-border bg-danger-subtle px-3 py-2 text-sm text-danger">{signError}</div>}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1148,7 +1161,9 @@ export function Quotes() {
             </div>
             <div className="space-y-2"><Label>{t("الرسالة المرفقة", "Attached message")}</Label>
               <textarea value={signForm.message} onChange={(e) => setSignForm({ ...signForm, message: e.target.value })} rows={4} className="w-full rounded-md border border-border px-3 py-2 text-sm" /></div>
-            <p className="text-xs text-muted-foreground">{t("سيستلم الموقّع رابطاً عبر البريد لمراجعة العرض وتوقيعه · صلاحية الرابط 30 يوم.", "The signer will receive a link by email to review and sign the quote · link valid for 30 days.")}</p>
+            <label className="flex gap-2 items-center text-sm"><input type="checkbox" checked={signatureEmail} disabled={busy || signatureBlocked} onChange={e => setSignatureEmail(e.target.checked)} />{t("إرسال دعوة التوقيع بالبريد أيضًا", "Also email the signing invitation")}</label>
+            <p className="text-xs text-muted-foreground">{t("يمكنك تجهيز رابط التوقيع ومشاركته بنفسك، أو اختيار إرسال الدعوة بالبريد. لن يُسجل توقيع حتى يكمله العميل.", "Prepare a signing link to share yourself, or email the invitation. A signature is recorded only after the customer completes signing.")}</p>
+            <QuoteSignaturePlacement key={signFor.id} id={signFor.id} disabled={busy || signatureBlocked} onChange={setSignatureSelection} />
           </div>
         </FullPageForm>
         <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -1198,7 +1213,7 @@ export function Quotes() {
         </button>
       )}
       {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
-      <p className="basis-full text-xs leading-relaxed text-content-secondary">{t("شارك الرابط عبر واتساب أو البريد ليوافق العميل أو يرفض. الموافقة تنشئ مشروعًا؛ التوقيع الإلكتروني له طلب منفصل.", "Share the link by WhatsApp or email for the customer to approve or decline. Approval creates a project; electronic signing uses a separate request.")}</p>
+      <p className="basis-full text-xs leading-relaxed text-content-secondary">{t("شارك الرابط عبر واتساب أو البريد ليوافق العميل أو يرفض. الموافقة تنشئ مشروعًا. جهّز طلب التوقيع الإلكتروني ليظهر زر التوقيع في الرابط نفسه.", "Share the link by WhatsApp or email for the customer to approve or decline. Approval creates a project. Prepare a signature request to enable signing from this same link.")}</p>
       )}
       {acceptLink?.quoteId === q.id && (
         <div className="basis-full space-y-1" data-testid="quote-accept-link-result">

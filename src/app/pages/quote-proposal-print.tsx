@@ -1,4 +1,4 @@
-import { resolveDocumentLanguage } from "../lib/document-language";
+import { loadQuotePresentation, QuoteDocument, type QuotePresentation } from "../components/quote-document";
 /**
  * Proposal print view (SPEC-04) · /print/proposal/:id — org-side branded PDF
  * via browser print.
@@ -8,12 +8,12 @@ import { resolveDocumentLanguage } from "../lib/document-language";
  * document engine (src/app/lib/document-render.ts · same as the API render
  * route). ?lang=ar|en · ?templateId= · ?noprint=1 (QA) · ?embed=1 (pane).
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { Loader2, Printer, X } from "lucide-react";
-import { api, Quote, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
-import { BrandDocument, useBrandTemplate } from "../components/brand-document";
-import { partyFromOrg, partyFromContact, docFromQuote, quoteQrPayload, type RenderInput } from "../lib/document-render";
+import { api, Quote, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
+
+
 import { waitForPrintReady } from "../lib/print-image";
 
 export function QuoteProposalPrint() {
@@ -21,8 +21,8 @@ export function QuoteProposalPrint() {
   const [searchParams, setSearchParams] = useSearchParams();
   const langOverride = searchParams.get("lang");
   const [quote, setQuote] = useState<Quote | null>(null);
-  const [org, setOrg] = useState<Org | null>(null);
-  const [contact, setContact] = useState<Contact | null>(null);
+  const [presentation, setPresentation] = useState<QuotePresentation | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const noPrint = searchParams.get("noprint") === "1";
   const embed = searchParams.get("embed") === "1";
@@ -48,48 +48,26 @@ export function QuoteProposalPrint() {
         }
         if (!q) throw new Error("not_found");
         setQuote(q);
-        setOrg(await api.orgs.get(q.orgId));
-        if (q.contactId) { try { setContact(await api.contacts.get(q.contactId)); } catch { /* client block degrades */ } }
+        setPresentation(await loadQuotePresentation(q.id, { templateId: templateParam, lang: langOverride === "ar" || langOverride === "en" ? langOverride : undefined }));
       } catch {
         setError("العرض غير متاح — تأكد من تسجيل الدخول");
       }
     })();
-  }, [id]);
+  }, [id, langOverride, templateParam]);
 
-  // Template: ?templateId= → quote.templateId → org default for QUOTE (BOTH counts)
-  const { template, bank, ready } = useBrandTemplate("QUOTE", templateParam || quote?.templateId || null, !!quote);
-
-  const lang = resolveDocumentLanguage(langOverride, quote ? docFromQuote(quote) : null, template, org);
-
-  const input = useMemo<RenderInput | null>(() => {
-    if (!quote || !org || !ready) return null;
-    const orgParty = partyFromOrg(org);
-    return {
-      lang,
-      template,
-      org: orgParty,
-      contact: partyFromContact(contact) || (quote.contact ? { name: quote.contact.displayName, email: quote.contact.email } : null),
-      // quote QR (identity · showQr) · ZATCA TLV built here, never by the engine
-      doc: docFromQuote(quote, quoteQrPayload(quote, orgParty, template)),
-      bank,
-      fontBase: "/fonts",
-      embed: true,
-    };
-  }, [quote, ready, template, bank, org, contact, lang]);
-
-  // PDF filename = document.title
-  useEffect(() => { if (quote) document.title = `${quote.quoteNumber}${contact?.displayName ? " · " + contact.displayName : ""}`; }, [quote, contact]);
+  const lang = presentation?.lang || "ar";
+  useEffect(() => { if (presentation) document.title = presentation.title; }, [presentation]);
 
   // Auto-print once the sheets are on screen (fonts + images settled)
   useEffect(() => {
-    if (!input || noPrint || embed) return;
+    if (!presentation || noPrint || embed) return;
     let cancelled = false;
     waitForPrintReady().then(() => { if (!cancelled) window.print(); });
     return () => { cancelled = true; };
-  }, [input, noPrint, embed]);
+  }, [presentation, noPrint, embed]);
 
   if (error) return <div dir="rtl" style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>{error}</div>;
-  if (!quote || !input) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
+  if (!quote || !presentation) return <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><Loader2 className="h-8 w-8 animate-spin" style={{ color: "#5875DB" }} /></div>;
 
   return (
     <div style={{ background: embed ? "#fff" : "#E9ECF1", minHeight: "100vh" }}>
@@ -109,7 +87,7 @@ export function QuoteProposalPrint() {
         </span>
       </div>
       <div className="edoc-shell" style={{ padding: embed ? 0 : "16px 0 32px" }}>
-        <BrandDocument input={input} scaleToFit={embed} />
+        <div style={{ maxWidth: 794, margin: "0 auto" }}><QuoteDocument presentation={presentation} /></div>
       </div>
     </div>
   );
