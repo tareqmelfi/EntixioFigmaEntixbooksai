@@ -210,9 +210,9 @@ export function ContactDetail() {
         )}
       />
 
-      {/* Wave-style 2-column · contact card on left + tabs on right */}
+      {/* Profile column follows the reading direction; activity uses the remaining width. */}
       <div className="grid grid-cols-1 gap-5 items-start lg:grid-cols-[280px_minmax(0,1fr)]">
-        {/* Left contact card */}
+        <aside aria-label={t("ملف جهة الاتصال", "Contact profile")} className="min-w-0 space-y-4">
         <Card className="border-border">
           <CardContent className="p-5">
             {/* Entity-aware avatar (UX-201) · click to upload customer logo */}
@@ -296,8 +296,10 @@ export function ContactDetail() {
             </div>
           </CardContent>
         </Card>
+        <ContactInfo contact={contact} />
+        </aside>
 
-        {/* Right column · figures + tabs + tab content (the card stays beside them) */}
+        {/* Figures, tabs and activity beside the complete contact profile. */}
         <div className="min-w-0 space-y-5">
 
       {data.currencyTotals && <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -379,17 +381,10 @@ export function ContactDetail() {
   );
 }
 
-// ── Overview tab ──────────────────────────────────────────────────────────
-function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
+function ContactInfo({ contact }: { contact: ContactSummary["contact"] }) {
   const { t } = useLanguage();
-  const { contact, totals } = data;
-  const recentInvoices = data.invoices.slice(0, 5);
-  const recentBills = data.bills.slice(0, 5);
-
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-      {/* Left col · contact info */}
-      <div className="min-w-0 xl:col-span-1 space-y-4">
+      <div className="min-w-0 space-y-4 break-words">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader title={t("معلومات الاتصال", "Contact info")} />
@@ -469,8 +464,18 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
         )}
       </div>
 
-      {/* Right col · recent activity */}
-      <div className="min-w-0 xl:col-span-2 space-y-4">
+  );
+}
+
+// ── Overview tab ──────────────────────────────────────────────────────────
+function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
+  const { t } = useLanguage();
+  const { contact, totals } = data;
+  const recentInvoices = data.invoices.slice(0, 5);
+  const recentBills = data.bills.slice(0, 5);
+
+  return (
+    <div className="min-w-0 space-y-4">
         <Card className="border-border">
           <CardHeader className="pb-3">
             <SectionHeader
@@ -524,7 +529,6 @@ function OverviewTab({ data, cur }: { data: ContactSummary; cur: string }) {
             )}
           </CardContent>
         </Card>
-      </div>
     </div>
   );
 }
