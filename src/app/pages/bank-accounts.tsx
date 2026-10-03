@@ -196,7 +196,7 @@ export function BankAccounts() {
                         <td className="py-3 px-4 text-start"><time data-testid="bank-transaction-date" dateTime={v.date?.slice(0, 10)} dir="ltr" className="inline-block font-english whitespace-nowrap text-sm font-medium text-foreground tabular-nums">{v.date?.slice(0, 10) || "—"}</time></td>
                         <td className="py-3 px-4 text-sm">
                           <StatusBadge tone={inbound ? "success" : "warning"} icon={inbound ? <ArrowDownToLine className="h-3 w-3" strokeWidth={1.75} /> : <ArrowUpFromLine className="h-3 w-3" strokeWidth={1.75} />}>
-                            {v.kind === "transfer" ? t("تحويل", "Transfer") : v.kind === "expense" ? t("مصروف", "Expense") : inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}
+                            {v.kind === "journal" ? t("قيد", "Journal") : v.kind === "transfer" ? t("تحويل", "Transfer") : v.kind === "expense" ? t("مصروف", "Expense") : inbound ? t("قبض", "Receipt") : t("صرف", "Payment")}
                           </StatusBadge>
                         </td>
                         <td className="py-3 px-4 text-start">
