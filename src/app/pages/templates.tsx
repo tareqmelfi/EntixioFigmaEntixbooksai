@@ -92,6 +92,11 @@ export function Templates() {
         <Button className="bg-primary hover:bg-primary/90" onClick={() => navigate("/app/templates/new")}><Plus className="me-2 h-4 w-4" />{t("قالب جديد", "New Template")}</Button>
       </div>
 
+      <button className="w-full rounded-xl p-5 text-start text-white bg-[#1B2A41]" onClick={() => navigate('/app/templates/design-approvals')}>
+        <span className="text-xs tracking-widest text-[#A7D1EA]">DESIGN APPROVAL · 2D</span>
+        <strong className="block text-lg mt-2">{t('اعتماد المخططات — قوالب ومستندات العملاء', 'Design approvals — templates and client documents')}</strong>
+        <span className="block text-sm mt-1 text-[#DCEFF6]">{t('استخدم هوية شركتك، عدّل البيانات والمخططات، ونزّل PDF جاهزًا للإرسال.', 'Use your company identity, edit details and drawings, and download a client-ready PDF.')}</span>
+      </button>
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />

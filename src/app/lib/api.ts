@@ -1,3 +1,4 @@
+import type { ApprovalRecord, ApprovalContent } from './design-approval'
 import type { HistoricalStatements } from './historical-statements'
 /**
  * Entix Books · API client
@@ -1166,6 +1167,14 @@ export const api = {
 
   // Fixed Assets
   // Document templates (print layouts for invoices / quotes / vouchers / notes)
+  designApprovals: {
+    list: () => request<{items: ApprovalRecord[]}>('/api/design-approvals'),
+    get: (id: string) => request<ApprovalRecord>(`/api/design-approvals/${id}`),
+    create: (body: {name:string;isTemplate:boolean;identityTemplateId:string|null;content:ApprovalContent}) => request<ApprovalRecord>('/api/design-approvals',{method:'POST',body}),
+    update: (id:string, body:{name:string;identityTemplateId:string|null;content:ApprovalContent;version:number}) => request<ApprovalRecord>(`/api/design-approvals/${id}`,{method:'PUT',body}),
+    use: (id:string) => request<ApprovalRecord>(`/api/design-approvals/${id}/use`,{method:'POST'}),
+    remove: (id:string) => request<void>(`/api/design-approvals/${id}`,{method:'DELETE'}),
+  },
   documentTemplates: {
     list: (params?: { type?: string; kind?: 'QUOTE' | 'INVOICE' }) =>
       request<{ items: DocumentTemplate[]; total: number }>('/api/document-templates', { query: params }),
