@@ -48,6 +48,7 @@ const EN_TEXT: Record<string, string> = {
   "سندات القبض": "Receipts",
   "الإشعارات الدائنة": "Credit notes",
   "المشتريات": "Purchases",
+  "المشتريات والمصروفات": "Purchases & expenses",
   "فواتير المشتريات": "Purchase bills",
   "إشعارات الموردين": "Supplier credits",
   "سندات الصرف": "Payment vouchers",
@@ -209,8 +210,7 @@ const sections: MenuSection[] = [
     label: "المشتريات",
     hub: "/app/purchases",
     items: [
-      { title: "فواتير المشتريات", icon: FileText, path: "/app/purchases/bills" },
-      { title: "المصروفات", icon: Receipt, path: "/app/expenses" },
+      { title: "المشتريات والمصروفات", icon: FileText, path: "/app/purchases/records" },
       { title: "سندات الصرف", icon: CreditCard, path: "/app/payments" },
       { title: "إشعارات الموردين", icon: ScrollText, path: "/app/purchases/supplier-credits" },
     ],
@@ -287,10 +287,9 @@ const searchPages = [
   { label: "سندات القبض", path: "/app/receipts" },
   { label: "الإشعارات الدائنة", path: "/app/credit-notes" },
   { label: "المشتريات", path: "/app/purchases" },
-  { label: "فواتير المشتريات", path: "/app/purchases/bills" },
+  { label: "المشتريات والمصروفات", path: "/app/purchases/records" },
   { label: "إشعارات الموردين", path: "/app/purchases/supplier-credits" },
   { label: "سندات الصرف", path: "/app/payments" },
-  { label: "المصروفات النقدية", path: "/app/expenses" },
   { label: "التقاط الإيصالات", path: "/app/scan-receipts" },
   { label: "قائمة الاتصال", path: "/app/contacts" },
   { label: "ميزان المراجعة", path: "/app/reports/trial-balance" },
@@ -413,6 +412,7 @@ export function AppSidebar({
   // (kept generic so a future filtered link lights up independently).
   const isActive = (path?: string) => {
     if (!path) return false;
+    if (path === "/app/purchases/records" && (/^\/app\/expenses(?:\/|$)/.test(location.pathname) || /^\/app\/purchases\/bills(?:\/|$)/.test(location.pathname))) return true;
     const [p, q] = path.split("?");
     return p === location.pathname && (q ? location.search === `?${q}` : !location.search.includes("role="));
   };
@@ -440,7 +440,7 @@ export function AppSidebar({
     (!!section.hub && isActive(section.hub)) ||
     section.items.some(
       (i) =>
-        isParentPathActive(i.path?.split("?")[0]) ||
+        isActive(i.path) || isParentPathActive(i.path?.split("?")[0]) ||
         (i.children?.some((c) => isParentPathActive(c.path.split("?")[0])) ?? false),
     );
 
