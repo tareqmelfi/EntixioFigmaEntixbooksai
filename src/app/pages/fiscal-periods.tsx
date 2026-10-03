@@ -21,6 +21,8 @@ export function FiscalPeriods() {
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<any>(null);
   const [pendingClose, setPendingClose] = useState<string | null>(null);
+  const [pendingReopen, setPendingReopen] = useState<string | null>(null);
+  const [reopenError, setReopenError] = useState('');
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -57,12 +59,19 @@ export function FiscalPeriods() {
 
   const handleUnlock = async (id: string) => {
     setBusy(id);
+    setReopenError('');
     try {
       await api.fiscalPeriods.unlock(id);
       push("success", t("تم فتح الفترة", "Period reopened"));
+      setPendingReopen(null);
       refresh();
     } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل الفتح", "Failed to reopen"));
+      const code = e instanceof ApiError ? e.message : '';
+      const message = code.includes('reopen_later_period_first') ? t('افتح الفترات المقفلة محاسبيًا الأحدث أولًا.', 'Reopen later accounting periods first.')
+        : /closing_entry_mismatch|closing_totals_unavailable/.test(code) ? t('قيد الإقفال لا يطابق سجل الفترة؛ يلزم مراجعته قبل الفتح.', 'The closing entry does not match the period record. Review it before reopening.')
+        : t('تعذر فتح الفترة. لم يُحفظ التغيير؛ أعد المحاولة.', 'Could not reopen the period. No change was saved; retry.');
+      setReopenError(message);
+      push("error", message);
     } finally { setBusy(null); }
   };
 
@@ -106,7 +115,7 @@ export function FiscalPeriods() {
       <PageHeader
         eyebrow={t("المحاسبة", "Accounting")}
         title={t("الفترات المالية", "Fiscal Periods")}
-        description={t("قفل الفترات · إغلاق سنوي · ترحيل الأرباح المحتجزة", "Period locking · year-end close · retained earnings posting")}
+        description={t("قفل مؤقت وفتح دون تغيير الأرقام · الإقفال المحاسبي إجراء مستقل", "Lock and reopen without changing figures · accounting close is a separate action")}
         actions={(
           <>
             <Input type="number" value={year} onChange={(e) => setYear(Number(e.target.value))}
@@ -121,12 +130,19 @@ export function FiscalPeriods() {
         )}
       />
 
+      {reopenError && <p role="alert" className="text-sm text-warning">{reopenError}</p>}
+      {pendingReopen && <Card><CardContent className="space-y-3 p-5">
+        <h2 className="font-semibold">{t('إعادة فتح فترة مقفلة محاسبيًا', 'Reopen an accounting period')}</h2>
+        <p className="text-sm text-muted-foreground">{t('سيُعكس قيد الإقفال مع الاحتفاظ به وبسجل المراجعة. تصبح الفترة مفتوحة للتعديل ويمكن إقفالها مجددًا. لن تتغير الفواتير أو الدفعات.', 'The closing entry will be reversed and retained with its audit history. The period becomes editable and can be closed again. Invoices and payments will not change.')}</p>
+        <Button disabled={!!busy} onClick={()=>handleUnlock(pendingReopen)}>{t('تأكيد إعادة الفتح','Confirm reopen')}</Button>
+        <Button variant="outline" disabled={!!busy} onClick={()=>setPendingReopen(null)}>{t('إلغاء','Cancel')}</Button>
+      </CardContent></Card>}
       {/* Close preview · inline confirmation (UX-1 · no modal) */}
       {preview && pendingClose && (
         <Card className="border-s-[3px] border-s-danger">
           <CardContent className="space-y-4 p-5">
             <h2 className="text-section font-semibold text-foreground">{t("تأكيد إغلاق الفترة", "Confirm Period Close")}</h2>
-            <p className="text-xs text-muted-foreground">{t("سيتم إنشاء قيد إغلاق آلي يصفّر حسابات الإيرادات والمصروفات ويرحّل الصافي إلى الأرباح المحتجزة. هذه العملية", "An automatic closing entry will be created that zeroes the revenue and expense accounts and posts the net to retained earnings. This action is")} <span className="font-bold text-danger">{t("غير قابلة للتراجع", "irreversible")}</span>.</p>
+            <p className="text-xs text-muted-foreground">{t("ينشئ الإقفال قيدًا لتصفير الإيرادات والمصروفات وترحيل الصافي إلى الأرباح المحتجزة. يمكنك إعادة فتح الفترة بعكس قيد الإقفال مع حفظ سجل العملية.", "Closing clears revenue and expenses into retained earnings. You can reopen the period by reversing its closing entry with an audit trail.")}</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border p-3 text-sm">
                 <div className="text-xs text-muted-foreground">{t("إجمالي الإيرادات", "Total Revenue")}</div>
@@ -164,7 +180,7 @@ export function FiscalPeriods() {
         <section className="space-y-3">
           <SectionHeader
             title={<>{t("فترات السنة المالية", "Fiscal year periods")} <span className="font-english tabular-nums">{year}</span></>}
-            description={t("افتح/أقفل/أغلق · الإغلاق ينشئ قيد إغلاق آلي ويرحّل صافي الدخل إلى الأرباح المحتجزة", "Reopen/Lock/Close · closing creates an automatic closing entry and posts net income to retained earnings")}
+            description={t("القفل المؤقت يمنع التعديل حتى تفتح الفترة مجددًا، ولا يضيف أي قيد. الإقفال المحاسبي ينشئ قيد ترحيل الأرباح.", "Temporary locking prevents edits until reopened and creates no journal. Accounting close posts retained earnings.")}
           />
           <div className="ledger-table overflow-x-auto">
             <table className="w-full min-w-[760px] table-fixed text-sm">
@@ -206,7 +222,7 @@ export function FiscalPeriods() {
                       {p.status === "OPEN" && (
                         <Button size="sm" variant="outline" onClick={() => handleLock(p.id)} disabled={busy === p.id}
                           className="border-warning-border text-warning hover:bg-warning-subtle">
-                          <Lock className="h-3 w-3 me-1" /> {t("قفل", "Lock")}
+                          <Lock className="h-3 w-3 me-1" /> {t("قفل مؤقت", "Lock temporarily")}
                         </Button>
                       )}
                       {p.status === "LOCKED" && (
@@ -217,12 +233,12 @@ export function FiscalPeriods() {
                           </Button>
                           <Button size="sm" onClick={() => handlePreview(p.id)} disabled={busy === p.id}
                             className="bg-danger hover:bg-danger text-primary-foreground">
-                            <CheckCircle2 className="h-3 w-3 me-1" /> {t("إغلاق", "Close")}
+                            <CheckCircle2 className="h-3 w-3 me-1" /> {t("إقفال محاسبي", "Accounting close")}
                           </Button>
                         </span>
                       )}
                       {p.status === "CLOSED" && (
-                        <span className="text-xs text-muted-foreground/60">{t("— مُغلقة نهائياً —", "— Permanently closed —")}</span>
+                        <Button size="sm" variant="outline" disabled={!!busy} onClick={()=>{setPendingReopen(p.id);setPendingClose(null);setPreview(null);setReopenError('');}}><Unlock className="h-3 w-3 me-1" />{t('إعادة الفتح','Reopen')}</Button>
                       )}
                     </td>
                   </tr>
