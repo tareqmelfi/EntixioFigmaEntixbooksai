@@ -647,7 +647,7 @@ function smartImportClient(entity: 'accounts' | 'contacts' | 'products') {
 }
 
 // ── Resource clients ──────────────────────────────────────────────────────────
-export interface PostingReviewItem {id:string;kind:string;number:string;date:string;currency:string;total:number;status:string}
+export interface PostingReviewItem {id:string;documentId?:string;kind:string;number:string;date:string;currency:string;total:number;status:string}
 export interface PostingReviewPreview {reviewToken:string;currency:string;lines:Array<{accountCode:string;accountName:string;debit:number;credit:number}>}
 export const api = {
   postingReview: {

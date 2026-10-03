@@ -5,7 +5,7 @@ import { useLanguage } from './LanguageContext';
 import { Button } from './ui/button';
 
 type Review = { item: PostingReviewItem; preview?: PostingReviewPreview; error?: string; posted?: string; selected: boolean };
-const paths: Record<string,string> = {invoice:'/app/invoices/',bill:'/app/purchases/bills/',expense:'/app/expenses/',receipt:'/app/receipts/',payment:'/app/payments/','credit-note':'/app/credit-notes/'};
+const paths: Record<string,string> = {invoice:'/app/invoices/',bill:'/app/purchases/bills/',expense:'/app/expenses/',receipt:'/app/receipts/',payment:'/app/payments/','pos-payment':'/app/invoices/','credit-note':'/app/credit-notes/'};
 
 /** Uses the same signed, transactional review as individual recovery. Never records a payment. */
 export function BatchPostingReview({from,to,onClose,onPosted}:{from?:string|null;to?:string;onClose:()=>void;onPosted?:()=>void}) {
@@ -38,7 +38,7 @@ export function BatchPostingReview({from,to,onClose,onPosted}:{from?:string|null
         setProgress(`${t('معاينة','Preview')} ${result.length+1} / ${items.length}`);
         const row:Review={item,selected:false};
         try {
-          if(!['invoice','bill','expense','receipt','payment'].includes(item.kind))throw new Error(t('راجع القيد من صفحة المستند.','Review the journal from the document page.'));
+          if(!['invoice','bill','expense','receipt','payment','pos-payment'].includes(item.kind))throw new Error(t('راجع القيد من صفحة المستند.','Review the journal from the document page.'));
           row.preview=await api.postingReview.preview(item.kind,item.id);
         }catch(e){row.error=message(e)}
         result.push(row);update(result);
@@ -80,7 +80,7 @@ export function BatchPostingReview({from,to,onClose,onPosted}:{from?:string|null
     {!!eligible.length&&<label className="my-2 flex gap-2 text-sm"><input type="checkbox" disabled={busy} checked={selected===eligible.length} onChange={e=>{setConfirmed(false);setRows(old=>old.map(row=>({...row,selected:!!row.preview&&!row.posted&&e.target.checked})))}}/>{t('تحديد جميع القيود الجاهزة','Select all ready journals')}</label>}
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>{[t('اختيار','Select'),t('المستند','Document'),t('المبلغ','Amount'),t('القيد المقترح أو سبب التعذر','Proposed journal or issue')].map(title=><th key={title} className="p-2 text-start">{title}</th>)}</tr></thead><tbody>{rows.map(row=><tr key={`${row.item.kind}:${row.item.id}`} className="border-t border-border">
       <td className="p-2"><input aria-label={`${t('اختيار','Select')} ${row.item.number}`} type="checkbox" checked={row.selected} disabled={busy||!row.preview||!!row.posted} onChange={e=>{setConfirmed(false);setRows(old=>old.map(r=>r===row?{...r,selected:e.target.checked}:r))}}/></td>
-      <td className="p-2"><Link className="underline" to={`${paths[row.item.kind]}${row.item.id}`}>{row.item.number}</Link><div>{row.item.date.slice(0,10)}</div></td>
+      <td className="p-2"><Link className="underline" to={`${paths[row.item.kind]}${row.item.documentId||row.item.id}`}>{row.item.number}</Link><div>{row.item.date.slice(0,10)}</div></td>
       <td className="p-2"><bdi>{amount(row.item.total)} {row.item.currency}</bdi></td>
       <td className="p-2">{row.posted?<span>{t('مرحّل','Posted')} · <bdi>{row.posted}</bdi></span>:row.error?<span className="text-warning">{row.error}</span>:row.preview?<><div>{t('عملة القيد','Journal currency')}: {row.preview.currency}</div>{row.preview.lines.map((line,i)=><div key={i}>{line.accountCode} · {line.accountName} · {t('مدين','Debit')} {amount(line.debit)} · {t('دائن','Credit')} {amount(line.credit)}</div>)}</>:null}</td>
     </tr>)}</tbody></table></div>
