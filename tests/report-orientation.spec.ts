@@ -51,3 +51,31 @@ test('cash flow catalog link opens its report and export controls',async({page})
  await expect(page).toHaveURL(/cash-flow\/print.*from=2026-01-01/);
  await expect(page.getByTestId('report-download-pdf')).toBeEnabled();
 });
+
+for (const template of ['condensed', 'classic']) test(`split settlement print retains each row currency in every panel (${template})`,async({page})=>{
+ await prepareVisualApp(page,'en');
+ const report=sample('dues-settlements');
+ report.sections[0].columns.splice(1,0,{key:'currency',label:'Currency'});
+ report.sections[0].columns[2]={key:'paid',label:'Collected / paid',kind:'number'};
+ report.sections[0].rows=['SAR','USD'].map((currency,index)=>({id:currency,values:{label:`Invoice ${currency}`,currency,paid:100+index,...Object.fromEntries(Array.from({length:7},(_,i)=>[`metric${i+1}`,101+i+index]))}}));
+ for (const orientation of ['portrait','landscape'] as const) {
+  const panels=reportLayoutSections(report,{orientation});
+  expect(panels.length).toBeGreaterThan(1);
+  expect(panels.every(p=>p.columns.some(c=>c.key==='currency'))).toBe(true);
+  expect(panels.flatMap(p=>p.columns.filter(c=>c.key!=='label'&&c.key!=='currency').map(c=>c.key))).toEqual(['paid',...Array.from({length:7},(_,i)=>`metric${i+1}`)]);
+ }
+ const settings={template,orientation:'landscape',language:'en',bilingual:false};
+ await page.route(`https://api.entix.io/orgs/${visualOrgId}`,r=>r.fulfill({json:{...report.org,paymentSettings:{reports:settings}}}));
+ await page.route('https://api.entix.io/api/reports/dues-settlements*',r=>r.fulfill({json:report}));
+ await page.goto(`/print/report/dues-settlements?orgId=${visualOrgId}&allTime=1`);
+ const output=page.getByTestId('report-output-pages');
+ await expect(output).toHaveAttribute('data-ready','true');
+ const tables=output.locator('table');
+ expect(await tables.count()).toBeGreaterThan(1);
+ for(const table of await tables.all()){
+  await expect(table.locator('thead')).toContainText('Currency');
+  await expect(table.locator('thead')).not.toContainText('(USD)');
+  await expect(table.locator('tbody tr').filter({hasText:'Invoice SAR'}).locator('td').filter({hasText:/^SAR$/})).toHaveCount(1);
+  await expect(table.locator('tbody tr').filter({hasText:'Invoice USD'}).locator('td').filter({hasText:/^USD$/})).toHaveCount(1);
+ }
+});
