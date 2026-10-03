@@ -56,7 +56,19 @@ export function PurchaseEntry() {
   useEffect(() => { if (region.currency) setForm(f => f.currency ? f : { ...f, currency: region.currency }); }, [region.currency]);
   useEffect(() => {
     let active = true; setLoading(true); setLoadError('');
-    Promise.all([api.contacts.list({ limit: 200 }), api.accounts.list(), api.products.list(), api.bankAccounts.list()]).then(([c, a, p, b]) => {
+    const suppliers = async () => {
+      const items: Contact[] = [];
+      for (let page = 1; ; page++) {
+        if (!active || scope !== getOrgId()) throw new Error('Company changed');
+        const next = await api.contacts.list({ page, limit: 200 });
+        const known = new Set(items.map(c => c.id));
+        const fresh = next.items.filter(c => !known.has(c.id));
+        items.push(...fresh);
+        if (items.length >= next.total) return { items };
+        if (!fresh.length) throw new Error('Supplier list incomplete');
+      }
+    };
+    Promise.all([suppliers(), api.accounts.list(), api.products.list(), api.bankAccounts.list()]).then(([c, a, p, b]) => {
       if (!active || scope !== getOrgId()) return;
       setContacts(c.items); setAccounts(a.items); setProducts(p.items); setBanks(b.items);
     }).catch(e => { if (active) setLoadError(humanizeError(e, language)); }).finally(() => { if (active) setLoading(false); });

@@ -108,3 +108,19 @@ test('foreign bank payment requires actual charge and retains source currency',a
  await expect.poll(()=>submitted?.currency).toBe('SAR');expect(submitted.extractedJson.currencySettlement).toMatchObject({sourceCurrency:'SAR',actualPaidCurrency:'USD',actualPaidAmount:27,bankAccountId:'usd-bank',exchangeRate:.27});
  expect(submitted.paymentSplits).toEqual([{method:'BANK_TRANSFER',amount:27,currency:'USD',reference:null}]);
 });
+
+test('supplier picker includes contacts beyond the first page',async({page})=>{
+ await ready(page);
+ await page.route('**/api/contacts?*',r=>r.fulfill({json:{items:new URL(r.request().url()).searchParams.get('page')==='1'?[{id:'supplier',displayName:'Supplier A'}]:[{id:'older',displayName:'Older Supplier'}],total:2}}));
+ await enter(page);await page.getByRole('button',{name:'المورد *',exact:true}).click();
+ await expect(page.getByRole('button',{name:'Older Supplier',exact:true})).toBeVisible();
+});
+
+test('partial payment and linked duplicates never inflate approved totals',async({page})=>{
+ await ready(page);await page.route('**/api/bills?*',r=>r.fulfill({json:{items:[{...bill,status:'PARTIAL',amountPaid:40}],total:1}}));
+ await page.route('**/api/expenses?*',r=>r.fulfill({json:{items:[expense,{...expense,id:'duplicate',number:'EXP-DUP',duplicateOfId:'expense-one'}],total:2}}));
+ await page.goto('/app/purchases/records');await page.getByRole('button',{name:'جزئي',exact:true}).click();
+ await expect(page.getByRole('row').filter({hasText:'BILL-ONE'})).toContainText('60.00 USD');
+ await page.getByRole('button',{name:'مكرر مرتبط',exact:true}).click();await expect(page.getByRole('link',{name:'EXP-DUP',exact:true})).toBeVisible();
+ await expect(page.getByText('الإجمالي المعتمد',{exact:false})).toHaveCount(0);
+});
