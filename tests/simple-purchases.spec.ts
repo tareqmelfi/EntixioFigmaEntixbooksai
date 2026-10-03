@@ -2,6 +2,9 @@ import { expect,test } from '@playwright/test';
 import { prepareVisualApp } from './fixtures/visual-app';
 async function ready(page:any) {
  await prepareVisualApp(page,'ar');
+ // Bank activity fixtures have no pending review rows; keep this independent
+ // source explicit now that its loading errors are shown rather than swallowed.
+ await page.route('**/api/bank-import/transactions?*',(r:any)=>r.fulfill({json:{transactions:[],counts:{UNMATCHED:0}}}));
  await page.route('**/api/expenses**',(r:any)=>r.fulfill({json:{items:[],summary:{sumTotal:0,avgTotal:0},total:0}}));
  await page.route('**/api/accounts',(r:any)=>r.fulfill({json:{items:[{id:'ai',code:'5031',name:'AI Credits',nameAr:'تكاليف أرصدة الذكاء الاصطناعي',type:'EXPENSE',isActive:true}]}}));
  await page.route('**/api/accounts/suggest',(r:any)=>r.fulfill({json:{accountId:'ai'}}));
