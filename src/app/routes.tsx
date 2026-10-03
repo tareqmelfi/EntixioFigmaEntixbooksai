@@ -343,6 +343,8 @@ export const router = createBrowserRouter([
       // Keep it working by redirecting to Settings > ZATCA tab.
       { path: "integrations/zatca", element: <Navigate to="/app/settings?tab=zatca" replace />, errorElement: <ErrorBoundary /> },
       { path: "templates", element: lazyElement(() => import("./pages/templates"), "Templates"), errorElement: <ErrorBoundary /> },
+      { path: "templates/design-approvals", element: lazyElement(() => import("./pages/design-approvals"), "DesignApprovals"), errorElement: <ErrorBoundary /> },
+      { path: "templates/design-approvals/:id", element: lazyElement(() => import("./pages/design-approvals"), "DesignApprovals"), errorElement: <ErrorBoundary /> },
       { path: "templates/new", element: lazyElement(() => import("./pages/template-detail"), "TemplateDetail"), errorElement: <ErrorBoundary /> },
       { path: "templates/:id", element: lazyElement(() => import("./pages/template-detail"), "TemplateDetail"), errorElement: <ErrorBoundary /> },
       // Analytics & Settings
