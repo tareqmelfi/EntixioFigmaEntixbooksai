@@ -74,7 +74,7 @@ function statusToneClass(status: string, lateDays = 0) {
 
 /** Days past the due date for a still-unpaid invoice (0 = not late). */
 function overdueDays(inv: Invoice) {
-  if (!inv.dueDate || inv.status === "PAID" || inv.status === "CANCELLED" || inv.status === "DRAFT") return 0;
+  if (Number(inv.total) - Number(inv.amountPaid || 0) <= 0 || !inv.dueDate || inv.status === "PAID" || inv.status === "CANCELLED" || inv.status === "DRAFT") return 0;
   const due = new Date(String(inv.dueDate).slice(0, 10)).getTime();
   if (Number.isNaN(due)) return 0;
   const days = Math.floor((Date.now() - due) / 86400000);
@@ -364,7 +364,7 @@ export function Invoices() {
     if (contactFilterId && i.contactId !== contactFilterId) return false;
     if (branchFilterId && (branchFilterId === "none" ? !!i.branchId : i.branchId !== branchFilterId)) return false;
     if (projectFilterId && (projectFilterId === "none" ? !!i.projectId : i.projectId !== projectFilterId)) return false;
-    if (filterStatus !== "ALL" && i.status !== filterStatus) return false;
+    if (filterStatus === "OVERDUE" ? overdueDays(i) === 0 : filterStatus !== "ALL" && i.status !== filterStatus) return false;
     if (searchQuery) return i.invoiceNumber.includes(searchQuery) || (i.contact?.displayName || "").includes(searchQuery);
     return true;
   });
@@ -384,8 +384,9 @@ export function Invoices() {
     acc[i.status] = (acc[i.status] || 0) + 1;
     return acc;
   }, {});
+  counts.OVERDUE = items.filter(i => overdueDays(i) > 0).length;
   // Ledger figures strip · derived from the same list, no extra API call.
-  const overdueAmount = items.reduce((s, i) => (overdueDays(i) > 0 || i.status === "OVERDUE" ? s + (Number(i.total) - Number(i.amountPaid || 0)) : s), 0);
+  const overdueAmount = items.reduce((s, i) => (overdueDays(i) > 0 ? s + (Number(i.total) - Number(i.amountPaid || 0)) : s), 0);
   const thisMonth = new Date().toISOString().slice(0, 7);
   const collectedThisMonth = items.reduce((s, i) => (String(i.issueDate || "").slice(0, 7) === thisMonth ? s + Number(i.amountPaid || 0) : s), 0);
   // Filter chips · always the core five, plus any other status actually present.
