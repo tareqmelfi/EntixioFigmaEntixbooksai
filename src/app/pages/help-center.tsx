@@ -8,6 +8,7 @@
  * الصدق: باقة Lite بلا وكيل مُستضاف — تظهر لها الأسئلة الشائعة + قنوات التصعيد.
  */
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { CustomerSupportPortal } from "../components/customer-support-portal";
 import { api, ApiError, API_BASE_URL, getOrgId } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
@@ -24,7 +25,7 @@ const QUICK_PROMPTS: Array<{ ar: string; en: string }> = [
   { ar: "كيف أنقل ملكية شركة أنشأتها لحساب عميل؟", en: "How do I transfer ownership of a company I created to a client's account?" },
 ];
 
-const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string; guide?: boolean }> = [
+const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string; guide?: boolean; billing?: boolean }> = [
   { qAr: "كيف أربط منشأتي بهيئة الزكاة والضريبة والجمارك؟", qEn: "How do I connect my organization to ZATCA?",
     aAr: "يمكن لفريق Entix مساعدتك، أو تدخل بوابة فاتورة بنفسك وتختار تهيئة وحدة/جهاز جديد ثم تصدر رمز الجهاز OTP. الرمز صالح ساعة، ويختلف عن رمز تسجيل الدخول للجوال. جهّز بيانات المنشأة وتأكد من البيئة قبل إصداره. الربط وشهادة الجهاز وحالة إرسال الفواتير تُراجع بشكل منفصل لكل منشأة.",
     aEn: "The Entix team can assist, or you can sign in to Fatoora and onboard a new device to generate a device OTP. It is valid for one hour and differs from the SMS login code. Prepare your organization details and confirm the environment first. Device onboarding, its certificate and invoice submission status are checked separately for each organization.", guide: true },
@@ -55,9 +56,9 @@ const FAQS: Array<{ qAr: string; qEn: string; aAr: string; aEn: string; guide?: 
   { qAr: "كيف أنقل ملكية شركة لعميل؟", qEn: "How do I transfer a company to a client?",
     aAr: "الإعدادات ← منطقة الخطر ← «نقل ملكية الشركة»: أدخل إيميل حساب العميل (يجب أن يسجّل أولًا) — يصبح هو المالك وتبقى أنت مديرًا.",
     aEn: "Settings → danger zone → “Transfer company ownership”: enter the client's account email (they must register first) — they become OWNER and you stay an admin." },
-  { qAr: "ما هي باقة Lite (375 ر.س/سنة)؟", qEn: "What is the Lite plan (375 SAR/yr)?",
-    aAr: "للمشاريع الصغيرة جدًا والبقالات: فواتير ومصروفات وعملاء ومخزون وتقارير ضريبية بلا وكيل ذكاء اصطناعي مُستضاف — مع نقل بيانات مجاني بالذكاء الاصطناعي خلال أول 30 يومًا.",
-    aEn: "For very small businesses & groceries: invoices, expenses, contacts, inventory and tax reports without the hosted AI agent — with free AI-assisted migration during the first 30 days." },
+  { qAr: "ما هي باقة Lite وأين أجد سعرها الحالي؟", qEn: "What is the Lite plan and where can I find its current price?",
+    aAr: "للمشاريع الصغيرة جدًا والبقالات: فواتير ومصروفات وعملاء ومخزون وتقارير ضريبية بلا وكيل ذكاء اصطناعي مُستضاف — مع نقل بيانات مجاني بالذكاء الاصطناعي خلال أول 30 يومًا. راجع الاشتراك والفوترة للسعر الحالي بعملة شركتك ودورة الاشتراك المتاحة.",
+    aEn: "For very small businesses & groceries: invoices, expenses, contacts, inventory and tax reports without the hosted AI agent — with free AI-assisted migration during the first 30 days. See Subscription & billing for the current price in your company currency and available billing cycle.", billing: true },
   { qAr: "بياناتي — من يملكها وكيف أخرجها؟", qEn: "My data — who owns it and how do I export?",
     aAr: "أنت تملك بياناتك 100%. تصدّرها في أي وقت من الإعدادات، ولا نبيع بياناتك لأحد، والنسخ الاحتياطي يومي.",
     aEn: "You own 100% of your data. Export anytime from Settings; we never sell data, and backups run daily." },
@@ -197,6 +198,7 @@ export function HelpCenter() {
               {(openFaq === i || openFaq === -1) && (
                 <div className="px-5 pb-4 text-sm text-muted-foreground leading-relaxed">
                   {t(f.aAr, f.aEn)}
+                  {f.billing && <div className="mt-3"><Link className="text-primary underline" to="/app/billing">{t("عرض الباقات والأسعار الحالية", "View current plans and prices")}</Link></div>}
                   {f.guide && <div className="mt-3 flex flex-wrap gap-4">
                     <a className="text-primary underline" href="/guides/zatca-onboarding-ar.html" target="_blank" rel="noopener noreferrer">{t("الخطوات المصورة", "Illustrated guide (Arabic)")}</a>
                     <a className="text-primary underline" href="/guides/zatca-onboarding-ar.pdf" download>{t("تحميل دليل الربط PDF", "Download the Arabic PDF guide")}</a>
