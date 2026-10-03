@@ -130,7 +130,6 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       </span>
     </div>}
     </div>
-    <Link to="/app/reports/dues-settlements" className="inline-flex text-xs font-semibold text-primary">{t('المستحقات والتحصيل والسداد ←','Dues and settlements ←')}</Link>
     {savedView?<DashboardSavedActivity key={data.org.id} data={data}/>:<>
     <DashboardPostingCoverage key={`${p?.fromDate}-${p?.toDate}`} coverage={data.postingCoverage} source={p?.source} from={p?.fromDate} to={p?.toDate} onPosted={onPosted}/>
     <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
