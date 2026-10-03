@@ -29,13 +29,13 @@ export function reportLayoutSettings<T extends ReportPrintSettings>(report: Repo
   return { ...settings, orientation: wide ? 'landscape' : 'portrait' };
 }
 
-/** Repeat the identity column in each panel; every metric is kept exactly once. */
+/** Repeat identity and row currency in each panel; every metric is kept exactly once. */
 export function reportLayoutSections(report: ReportPayload, settings: ReportPrintSettings): ReportSection[] {
   return report.sections.flatMap(section => {
     const columns = visibleColumns(section, settings);
     const portrait = reportLayoutSettings(report, settings).orientation === 'portrait';
     const trialBalance = report.id === 'trial-balance' && columns.some(c => c.key === 'openingDebit');
-    const identities = trialBalance ? columns.filter(c => c.key === 'label' || c.key === 'type') : columns.slice(0, 1);
+    const identities = columns.filter((column, index) => index === 0 || column.key === 'currency' || (trialBalance && column.key === 'type'));
     const metrics = columns.filter(c => !identities.includes(c));
     const panelSize = portrait ? 4 : isMonthlyReport(report) ? 7 : 6;
     if (columns.length <= (portrait ? identities.length + panelSize : 8)) return [{ ...section, columns }];
