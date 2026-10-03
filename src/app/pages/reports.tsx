@@ -170,6 +170,7 @@ const iconFor = (report: ReportDefinition): ReportIcon =>
   REPORT_ICONS[report.id] || categories.find((item) => item.id === report.category)?.icon || FileText;
 
 const reportCatalog: ReportDefinition[] = [
+  { id: "dues-settlements", category: "financial", title: "المستحقات والتحصيل والسداد", englishTitle: "Dues and Settlements", description: "مستحق لي وعليّ، والمبيعات والمشتريات والمصروفات المسددة؛ تتحدث تلقائيًا.", status: "live", isNew: true, formats: ["PDF", "CSV"], dataSources: ["Invoices", "Bills", "Expenses", "Settlements", "Credits"] },
   {
     id: "income-statement",
     category: "financial",
@@ -690,6 +691,7 @@ const reportCatalog: ReportDefinition[] = [
 ];
 
 const EN_DESCRIPTIONS: Record<string, string> = {
+  "dues-settlements": "Automatic outstanding balances and settled sales, purchases and expenses across all years.",
   "income-statement": "Company revenues, expenses, and net profit for the period.",
   "income-by-branch": "Same income statement with results split by branch.",
   "branch-performance": "Revenue, direct cost, margin, invoice count and average invoice per branch.",
