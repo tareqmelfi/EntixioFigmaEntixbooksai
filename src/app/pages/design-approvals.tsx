@@ -26,7 +26,7 @@ export function DesignApprovals() {
     }).catch(e=>alive&&setError(e.message)).finally(()=>alive&&setLoading(false));
     return ()=>{alive=false;};
   },[id]);
-  useEffect(()=>{const el=preview.current;if(!el)return;const resize=()=>setScale(Math.min(1,el.clientWidth/794));resize();const observer=new ResizeObserver(resize);observer.observe(el);return()=>observer.disconnect();},[record?.id,loading]);
+  useEffect(()=>{const el=preview.current;if(!el)return;const resize=()=>setScale(Math.min(1,el.clientWidth/1123));resize();const observer=new ResizeObserver(resize);observer.observe(el);return()=>observer.disconnect();},[record?.id,loading]);
   const edit=(patch:Partial<ApprovalRecord>)=>{setRecord(r=>r?{...r,...patch}:r);setDirty(true);setSaved(false);};
   const content=(patch:Partial<ApprovalContent>)=>record&&edit({content:{...record.content,...patch}});
   const drawing=(index:number,patch:Partial<ApprovalContent['drawings'][number]>)=>record&&content({drawings:record.content.drawings.map((d,i)=>i===index?{...d,...patch}:d)});
