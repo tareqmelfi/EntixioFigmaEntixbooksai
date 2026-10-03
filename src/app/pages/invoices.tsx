@@ -1,3 +1,4 @@
+import { InvoiceGridEditor } from '../components/invoice-grid-editor';
 import { invoiceStatusLabel } from "../lib/invoice-status-label";
 import { BidiText } from "../components/bidi-text";
 import { ContactProfileLink } from "../components/contact-profile-link";
@@ -12,7 +13,7 @@ import { displayDigits, displayLocale } from "../lib/number-display";
  */
 import { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer, LockKeyhole, Eye } from "lucide-react";
+import { Plus, Search, Trash2, Loader2, FileText, FileSignature, Split, Pencil, Printer } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { EmptyState, InlineAlert, Metric, MetricStrip, PageHeader, PageToolbar } from "../components/product";
@@ -141,6 +142,10 @@ export function Invoices() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const consumingNewQuery = useRef(false);
+  const [selecting, setSelecting] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<string[]>([]);
+  const [gridIds, setGridIds] = useState<string[] | null>(null);
+  const toggleChecked = (id: string) => setCheckedIds(ids => ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
   const [items, setItems] = useState<Invoice[]>([]);
   const [billingTotals, setBillingTotals] = useState<Record<string, { total: number; paid: number; outstanding: number }> | null>(null);
   const [invoiceCount, setInvoiceCount] = useState(0);
@@ -209,6 +214,7 @@ export function Invoices() {
   useEffect(() => {
     if (location.pathname === "/app/invoices" && !searchParams.get("new")) {
       if (consumingNewQuery.current) { consumingNewQuery.current = false; return; }
+      setGridIds(null);
       setCreateOpen(false);
       setEditingInvoice(null);
       setSignFor(null);
@@ -777,6 +783,8 @@ export function Invoices() {
     } finally { setBusy(false); }
   };
 
+  if (gridIds) return <InvoiceGridEditor ids={gridIds} accounts={accounts} onClose={() => { setGridIds(null); setCheckedIds([]); refresh(); }} />;
+
   // Send compose page (W-SEND · 2026-09-08) · takes over the whole page,
   // above every other view — «إرسال» always lands here, never fires silently.
   if (sendComposeFor) {
@@ -883,15 +891,13 @@ export function Invoices() {
                     names the consequence instead of saying "are you sure". */}
                 {pendingEditorApprove ? (
                   <InlineConfirm
-                    label={isUS ? t("اعتماد الفاتورة وترحيلها؟ تُحفظ التعديلات اللاحقة مع سجلها.", "Issue and post this invoice? Later amendments retain their history.") : pendingEditorApprove === "send"
-                      ? t("اعتماد وإرسال؟ الاعتماد يقفل التعديل نهائياً", "Approve and send? Approval locks editing for good")
-                      : t("اعتماد الفاتورة؟ بعدها لا تعديل — التصحيح بإشعار دائن", "Approve? No edits afterwards — corrections need a credit note")}
+                    label={pendingEditorApprove === "send" ? t("اعتماد وترحيل وإرسال الفاتورة؟ التعديل اللاحق حسب حالة الربط والحماية.", "Approve, post and send this invoice? Later edits depend on its integration and protection status.") : t("اعتماد الفاتورة وترحيلها؟ تُحفظ التعديلات المسموحة مع سجلها.", "Approve and post this invoice? Permitted amendments retain their history.")}
                     onConfirm={() => { const mode = pendingEditorApprove; setPendingEditorApprove(null); handleSubmit(mode); }}
                     onCancel={() => setPendingEditorApprove(null)}
                   />
                 ) : (
                   <>
-                    <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("approve")} title={isUS ? t("اعتماد وترحيل الفاتورة", "Issue and post invoice") : t("اعتماد + قفل التعديل", "Approve + lock editing")}>
+                    <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("approve")} title={t("اعتماد وترحيل الفاتورة", "Issue and post invoice")}>
                       {busy ? "..." : t("اعتماد", "Approve")}
                     </Button>
                     <Button type="button" disabled={busy} variant="outline" onClick={() => setPendingEditorApprove("send")} title={t("إرسال للعميل بالبريد", "Send to customer by email")}>
@@ -1425,6 +1431,10 @@ export function Invoices() {
         </div>
       </PageToolbar>
 
+      {filtered.length > 0 && <div className="flex flex-wrap items-center gap-2 text-xs">
+        <Button size="sm" variant="outline" onClick={() => { setSelecting(v => !v); setCheckedIds([]); }}>{selecting ? t('إنهاء التحديد','Finish selection') : t('تحديد فواتير','Select invoices')}</Button>
+        {selecting && <><label className="flex items-center gap-1"><input type="checkbox" checked={!!filtered.length && filtered.every(i => checkedIds.includes(i.id))} onChange={e => setCheckedIds(e.target.checked ? filtered.map(i => i.id) : [])} />{t('تحديد الظاهر','Select visible')}</label><Button size="sm" disabled={!checkedIds.length} onClick={() => setGridIds(checkedIds)}>{t('تعديل المحدد في جدول','Edit selected in table')} ({checkedIds.length})</Button><span>{t('التحديد من الفواتير المعروضة فقط','Selection includes displayed invoices only')}</span></>}
+      </div>}
       {loading ? <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
        filtered.length === 0 ? (
         <EmptyState icon={<FileText className="h-8 w-8" strokeWidth={1.75} />} title={t("لا توجد فواتير", "No invoices")} />
@@ -1436,6 +1446,7 @@ export function Invoices() {
             const late = overdueDays(i);
             return (
               <li key={i.id}>
+                {selecting && <label className="text-xs"><input type="checkbox" aria-label={`${t("تحديد","Select")} ${i.invoiceNumber}`} checked={checkedIds.includes(i.id)} onChange={() => toggleChecked(i.id)} /> {i.invoiceNumber}</label>}
                 <div
                   className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start"
                   title={t("فتح الفاتورة", "Open invoice")}
@@ -1451,6 +1462,7 @@ export function Invoices() {
                       <span className={`ledger-dot${i.status === "DRAFT" ? " hollow" : ""}`} aria-hidden="true" />
                       {invoiceStatusLabel(i, late, language)}
                     </span>
+                    <button className="text-xs text-primary underline" onClick={() => i.status === "DRAFT" ? openEdit(i) : setGridIds([i.id])}>{t("تعديل","Edit")}</button>
                     {isSA && <InvoiceZatcaLink invoice={i} />}
                     </span>
                   </span>
@@ -1462,6 +1474,7 @@ export function Invoices() {
         <div className="ledger-table hidden md:block overflow-x-auto [&_th]:text-[11px] [&_th]:tracking-[0.06em]">
         <Table className={`table-fixed ${compactList ? (isSA ? "min-w-[908px]" : "min-w-[820px]") : (isSA ? "min-w-[1068px]" : "min-w-[980px]")}`}>
           <colgroup>
+            {selecting && <col style={{ width: "40px" }} />}
             <col style={{ width: "200px" }} />{/* الرقم · mono numbers run to 19 chars (ENTIX-XXXXXXXX-0000) — never narrower */}
             <col style={{ minWidth: "110px" }} />{/* العميل · flexible */}
             <col style={{ width: "110px" }} />{/* التاريخ */}
@@ -1472,6 +1485,7 @@ export function Invoices() {
             {isSA && <col style={{ width: "88px" }} />}
           </colgroup>
           <TableHeader><TableRow className="hover:bg-transparent">
+            {selecting && <TableHead>{t("تحديد","Select")}</TableHead>}
             <TableHead>{t("الرقم", "Number")}</TableHead>
             <TableHead>{t("العميل", "Customer")}</TableHead>
             <TableHead>{t("التاريخ", "Date")}</TableHead>
@@ -1494,6 +1508,7 @@ export function Invoices() {
                 className="h-12 cursor-pointer data-[state=selected]:border-b-transparent data-[state=selected]:[&>td:first-child]:rounded-s-lg data-[state=selected]:[&>td:last-child]:rounded-e-lg"
                 title={wideViewport ? t("عرض في اللوحة · نقرتان للفتح", "Show in the panel · double-click to open") : t("فتح الفاتورة", "Open invoice")}
               >
+                {selecting && <TableCell onClick={e => e.stopPropagation()}><input type="checkbox" aria-label={`${t("تحديد","Select")} ${i.invoiceNumber}`} checked={checkedIds.includes(i.id)} onChange={() => toggleChecked(i.id)} /></TableCell>}
                 <TableCell className="text-start whitespace-nowrap overflow-hidden text-ellipsis">
                   <button
                     onClick={() => navigate(`/app/invoices/${i.id}`)}
@@ -1559,7 +1574,7 @@ export function Invoices() {
                         {t("تفكيك", "Split")}
                       </button>
                     )}
-                    {i.status !== "DRAFT" && !isUS && <LockKeyhole className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.75} aria-label={t("فاتورة صادرة ومقفلة", "Issued and locked")} />}
+
                     {i.status !== "PAID" && i.status !== "CANCELLED" && (
                       <button
                         onClick={() => openRecordPayment(i)}
@@ -1580,13 +1595,13 @@ export function Invoices() {
                         row, so the document needed a double-click nobody guessed.
                         The action now carries its word and opens on one click. */}
                     <button
-                      onClick={(e) => { e.stopPropagation(); navigate(`/app/invoices/${i.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); i.status === "DRAFT" ? openEdit(i) : setGridIds([i.id]); }}
                       className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-primary hover:border-border-strong"
                       data-testid="invoice-row-edit"
-                      title={i.status === "DRAFT" ? t("تعديل الفاتورة", "Edit invoice") : t("عرض الفاتورة ورد الهيئة", "View invoice and authority response")}
+                      title={t("تعديل الفاتورة", "Edit invoice")}
                     >
-                      {i.status === "DRAFT" ? <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} /> : <Eye className="h-3.5 w-3.5" strokeWidth={1.75} />}
-                      {i.status === "DRAFT" ? t("تعديل", "Edit") : t("فتح", "Open")}
+                      <Pencil className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      {t("تعديل", "Edit")}
                     </button>
                     {/* طباعة — always available */}
                     <button
@@ -1648,6 +1663,7 @@ export function Invoices() {
               editLabel={selected.status === "DRAFT" ? t("تعديل", "Edit") : t("فتح", "Open")}
             />
             {/* Row actions for the selected invoice · quiet pills under the paper */}
+            <Button size="sm" variant="outline" className="mt-2" onClick={() => selected.status === "DRAFT" ? openEdit(selected) : setGridIds([selected.id])}>{t("تعديل البيانات والحسابات","Edit details and accounts")}</Button>
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               {isSA && <InvoiceZatcaLink invoice={selected} />}
               {selected.status !== "PAID" && selected.status !== "CANCELLED" && (
@@ -1691,7 +1707,7 @@ export function Invoices() {
                 ><FileSignature className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("توقيع", "Sign")}</button>
               )}
               {selected.status !== "DRAFT" && selected.status !== "CANCELLED" && (
-                isUS ? <InvoiceAmendmentActions key={selected.id} invoice={selected} onAction={(action) => openEdit(selected, action)} /> : <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><LockKeyhole className="h-3.5 w-3.5" strokeWidth={1.75} />{t("مقفلة", "Locked")}</span>
+                <InvoiceAmendmentActions key={selected.id} invoice={selected} onAction={(action) => openEdit(selected, action)} />
               )}
               {selected.status === "DRAFT" && (pendingDelete === selected.id ? (
                 <InlineConfirm onConfirm={() => handleDelete(selected.id)} onCancel={() => setPendingDelete(null)} />
