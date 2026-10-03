@@ -9,7 +9,8 @@ export function DesignApprovalDocument({record}:{record:ApprovalRecord}) {
   const pages:string[][]=[[]];
   for(const term of c.terms) {
     // Each bounded text block remains intact; long forms gain pages, never clip text.
-    if(pages[pages.length-1].join('').length+term.length>1100 && pages[pages.length-1].length) pages.push([]);
+    const used=pages[pages.length-1].join('').length+(pages.length===1?c.introduction.length:0);
+    if(used+term.length>1100 && (used>0)) pages.push([]);
     pages[pages.length-1].push(term);
   }
   const registerPages=Array.from({length:Math.max(1,Math.ceil(c.drawings.length/8))},(_,i)=>c.drawings.slice(i*8,i*8+8));

@@ -45,3 +45,14 @@ test('branded preview fits every sheet, embeds drawing, downloads a non-empty PD
 test('English controls and creation stay usable',async({page})=>{
   await prepare(page,'en');await page.goto('/app/templates/design-approvals/new');await expect(page.getByRole('heading',{name:'2D design approvals',exact:true})).toBeVisible();await page.getByLabel('Saved name').fill('EDG 2D template');await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page).toHaveURL(/design-approvals\/created-doc$/);await expect(page.getByLabel('Saved name')).toHaveValue('EDG 2D template');
 });
+
+test('long introduction paginates and uploaded drawings survive reopening',async({page})=>{
+  const f=await prepare(page);f.rows[0].content.introduction='تفاصيل المشروع والمراجعة. '.repeat(35);f.rows[0].content.terms=['الشروط الخاصة بالمخططات. '.repeat(30),...f.rows[0].content.terms];
+  await page.goto('/app/templates/design-approvals/template');const preview=page.getByTestId('approval-document');await expect(preview).toBeVisible();await page.evaluate(()=>document.fonts.ready);
+  expect(await preview.locator('.approval-sheet').count()).toBeGreaterThan(5);
+  const dimensions=await preview.locator('.approval-sheet').evaluateAll(nodes=>nodes.map(node=>({scroll:node.scrollHeight,height:node.clientHeight})));
+  for(const d of dimensions)expect(d.scroll).toBeLessThanOrEqual(d.height+1);
+  const image=await preview.locator('.approval-cover').screenshot();
+  await page.getByLabel('صورة المخطط 1',{exact:true}).setInputFiles({name:'synthetic-drawing.png',mimeType:'image/png',buffer:image});
+  await expect(preview.locator('.drawing-image')).toHaveCount(1);await page.getByRole('button',{name:'حفظ',exact:true}).click();await expect(page.getByRole('status')).toHaveText('تم الحفظ');await page.reload();await expect(page.getByTestId('approval-document').locator('.drawing-image')).toHaveCount(1);expect(f.rows[0].content.drawings[0].image).toMatch(/^data:image\/png;base64,/);
+});
