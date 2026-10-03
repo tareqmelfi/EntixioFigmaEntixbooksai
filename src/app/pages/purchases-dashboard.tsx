@@ -14,7 +14,7 @@ import { useEffect, useState, useCallback, useMemo, type ReactNode } from "react
 import { Link, useNavigate } from "react-router";
 import {
   Loader2, FileText, AlertTriangle,
-  Plus, Download, Trophy, Building2, ArrowLeft, Search, Receipt,
+  Plus, Download, Trophy, Building2, ArrowLeft, Search,
   CreditCard, ScrollText, Camera,
 } from "lucide-react";
 import { Card } from "../components/ui/card";
@@ -216,8 +216,7 @@ export function PurchasesDashboard() {
   const todayLabel = new Date().toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
   const quickLinks = [
-    { to: "/app/purchases/bills", icon: FileText, label: t("فواتير المشتريات", "Purchase bills") },
-    { to: "/app/expenses", icon: Receipt, label: t("المصروفات", "Expenses") },
+    { to: "/app/purchases/records", icon: FileText, label: t("المشتريات والمصروفات", "Purchases & expenses") },
     { to: "/app/payments", icon: CreditCard, label: t("سندات الصرف", "Payment vouchers") },
     { to: "/app/purchases/supplier-credits", icon: ScrollText, label: t("إشعارات الموردين", "Supplier credits") },
     { to: "/app/scan-receipts", icon: Camera, label: t("التقاط الإيصالات", "Capture receipts") },
@@ -259,10 +258,10 @@ export function PurchasesDashboard() {
         description={t("نظرة شاملة على مشترياتك ومصروفاتك", "A complete view of your purchases and expenses")}
         actions={
           <>
-            <Button onClick={() => navigate("/app/purchases/bills?new=1")} className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
+            <Button onClick={() => navigate("/app/purchases/records/new")} className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
               <Plus className="me-1 h-4 w-4" strokeWidth={1.75} /> {t("فاتورة مشتريات", "New Bill")}
             </Button>
-            <Button variant="outline" onClick={() => navigate("/app/expenses?new=1")} className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
+            <Button variant="outline" onClick={() => navigate("/app/purchases/records/new?paid=1")} className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
               <Plus className="me-1 h-4 w-4" strokeWidth={1.75} /> {t("مصروف", "Expense")}
             </Button>
             <Button variant="secondary" onClick={() => navigate("/app/payments?new=1")} className="h-10 px-3.5 text-[13px] xl:px-[18px] xl:text-[14px]">
@@ -287,10 +286,10 @@ export function PurchasesDashboard() {
 
       {/* Figures strip — each drills into the list that answers it (2026-08-28) */}
       <MetricStrip className="compact">
-        <FigureLink to="/app/purchases/bills" title={t("افتح قائمة فواتير المشتريات", "Open the bills list")} label={t("عدد الفواتير", "Bills Count")} value={data.ytd.billCount} hint={t("فاتورة هذه السنة", "bills this year")} />
-        <FigureLink to="/app/purchases/bills" title={t("افتح قائمة فواتير المشتريات", "Open the bills list")} label={t("إجمالي المشتريات", "Total Purchases")} value={<LedgerFigure value={totalAllTime} currency={cur} />} hint={t("فواتير + مصروفات · السنة حتى الآن", "Bills + expenses · year to date")} />
-        <FigureLink to="/app/expenses" title={t("افتح المصروفات النقدية", "Open cash expenses")} label={t("المصروفات النقدية", "Cash Expenses")} value={<span className="text-warning"><LedgerFigure value={Number(data.ytd.expenses)} currency={cur} /></span>} hint={<><span className="tabular-nums">{data.ytd.expenseCount}</span> {t("مصروف", "expenses")}</>} />
-        <FigureLink to="/app/purchases/bills" title={t("افتح فواتير هذا الشهر", "Open this month's bills")} label={t("هذا الشهر", "This Month")} value={<span className="text-success"><LedgerFigure value={Number(data.thisMonth.bills)} currency={cur} /></span>} hint={<><span className="tabular-nums">{data.thisMonth.billCount}</span> {t("فاتورة", "bills")}</>} />
+        <FigureLink to="/app/purchases/records?kind=BILL" title={t("افتح قائمة فواتير المشتريات", "Open the bills list")} label={t("عدد الفواتير", "Bills Count")} value={data.ytd.billCount} hint={t("فاتورة هذه السنة", "bills this year")} />
+        <FigureLink to="/app/purchases/records" title={t("افتح المشتريات والمصروفات", "Open purchases and expenses")} label={t("إجمالي المشتريات", "Total Purchases")} value={<LedgerFigure value={totalAllTime} currency={cur} />} hint={t("فواتير + مصروفات · السنة حتى الآن", "Bills + expenses · year to date")} />
+        <FigureLink to="/app/purchases/records?kind=EXPENSE" title={t("افتح المصروفات النقدية", "Open cash expenses")} label={t("المصروفات النقدية", "Cash Expenses")} value={<span className="text-warning"><LedgerFigure value={Number(data.ytd.expenses)} currency={cur} /></span>} hint={<><span className="tabular-nums">{data.ytd.expenseCount}</span> {t("مصروف", "expenses")}</>} />
+        <FigureLink to="/app/purchases/records?kind=BILL" title={t("افتح فواتير هذا الشهر", "Open this month's bills")} label={t("هذا الشهر", "This Month")} value={<span className="text-success"><LedgerFigure value={Number(data.thisMonth.bills)} currency={cur} /></span>} hint={<><span className="tabular-nums">{data.thisMonth.billCount}</span> {t("فاتورة", "bills")}</>} />
       </MetricStrip>
 
       {/* 3 insight cards */}
@@ -358,7 +357,7 @@ export function PurchasesDashboard() {
         {filtered.length > 0 && (
           <div className="text-center">
             <button
-              onClick={() => navigate("/app/purchases/bills")}
+              onClick={() => navigate("/app/purchases/records?kind=BILL")}
               className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
             >
               {t("عرض جميع الفواتير", "View all bills")} <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-0 ltr:rotate-180" strokeWidth={1.75} />

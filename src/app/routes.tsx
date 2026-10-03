@@ -248,6 +248,8 @@ export const router = createBrowserRouter([
       { path: "credit-notes/new", element: lazyElement(() => import("./pages/credit-notes"), "CreditNotes"), errorElement: <ErrorBoundary /> },
       { path: "credit-notes/:id", element: lazyElement(() => import("./pages/credit-notes"), "CreditNotes"), errorElement: <ErrorBoundary /> },
       // Purchases
+      { path: "purchases/records", element: lazyElement(() => import("./pages/purchase-workspace"), "PurchaseWorkspace"), errorElement: <ErrorBoundary /> },
+      { path: "purchases/records/new", element: lazyElement(() => import("./pages/purchase-entry"), "PurchaseEntry"), errorElement: <ErrorBoundary /> },
       { path: "purchases", element: lazyElement(() => import("./pages/purchases-dashboard"), "PurchasesDashboard"), errorElement: <ErrorBoundary /> },
       { path: "purchases/bills", element: lazyElement(() => import("./pages/purchase-bills"), "PurchaseBills"), errorElement: <ErrorBoundary /> },
       { path: "purchases/bills/new", element: lazyElement(() => import("./pages/purchase-bills"), "PurchaseBills"), errorElement: <ErrorBoundary /> },
