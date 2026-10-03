@@ -51,9 +51,10 @@ test('paid purchase posts once to expense endpoint and preserves failure inputs'
  await ready(page); let writes:any[]=[];
  await page.route('**/api/expenses',r=>{writes.push(r.request().postDataJSON());return writes.length===1?r.fulfill({status:503,json:{error:'unavailable'}}):r.fulfill({json:{id:'saved-expense'}})});
  await page.route('**/api/bills',r=>{throw new Error('Paid entry must not create a second bill')});
- await enter(page); await page.getByLabel('سعر السطر',{exact:true}).first().fill('100');
- await page.getByRole('button',{name:'مدفوع الآن',exact:true}).click();
- await page.getByRole('button',{name:'حفظ كمدفوع',exact:true}).click();
+  await enter(page); await page.getByLabel('سعر السطر',{exact:true}).first().fill('100');
+  await page.getByRole('button',{name:'مدفوع الآن',exact:true}).click();
+  await expect(page.getByRole('button',{name:'خدمات · 6100',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'حفظ كمدفوع',exact:true}).click();
  await expect(page.getByRole('alert')).toBeVisible(); await expect(page.getByLabel('سعر السطر',{exact:true}).first()).toHaveValue('100');
  await page.getByRole('button',{name:'حفظ كمدفوع',exact:true}).click();
  await expect(page).toHaveURL(/purchases\/records$/);
