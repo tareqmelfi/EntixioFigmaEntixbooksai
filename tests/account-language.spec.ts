@@ -7,7 +7,7 @@ for (const lang of ['ar', 'en'] as const) {
     const account = { id: 'general-revenue', code: '400', name: 'General revenue', nameAr: 'إيراد عام', type: 'REVENUE', isActive: true };
     const invoice = { id: 'language-invoice', orgId: visualOrgId, invoiceNumber: 'INV-LANGUAGE', status: 'APPROVED', contactId: 'buyer', issueDate: '2026-10-01', dueDate: '2026-10-30', currency: 'USD', total: 100, amountPaid: 0, lines: [{ id: 'line', description: 'Synthetic service', accountId: account.id, account, quantity: 1, unitPrice: 100, subtotal: 100 }] };
     await page.route('**/api/accounts', r => r.fulfill({ json: { items: [account] } }));
-    await page.route('**/api/invoices?*', r => r.fulfill({ json: { items: [invoice] } }));
+    await page.route('**/api/invoices?*', r => r.fulfill({ json: { items: [invoice], total: 1, page: 1, limit: 200 } }));
     await page.route('**/api/invoices/language-invoice', r => r.fulfill({ json: invoice }));
     await page.goto('/app/invoices/language-invoice');
     await page.getByTestId('invoice-reclassify').getByRole('button', { name: lang === 'ar' ? 'إعادة تصنيف' : 'Reclassify', exact: true }).click();
