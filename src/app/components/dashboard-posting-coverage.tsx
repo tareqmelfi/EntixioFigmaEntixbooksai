@@ -22,6 +22,7 @@ export function DashboardPostingCoverage({coverage,from,to,onPosted}: {coverage?
     expense:['المصروفات','Expenses','/app/expenses'],
     receipt:['سندات القبض','Receipt vouchers','/app/receipts'],
     payment:['سندات الصرف','Payment vouchers','/app/payments'],
+    'pos-payment':['الدفعات المباشرة','Direct payments','/app/invoices'],
     'credit-note':['الإشعارات الدائنة','Credit notes','/app/credit-notes'],
   };
   const amount=(value:number)=>value.toLocaleString(displayLocale('en-US'),{minimumFractionDigits:2,maximumFractionDigits:2});
