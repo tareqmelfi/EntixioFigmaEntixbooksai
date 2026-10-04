@@ -330,6 +330,7 @@ export interface PlatformInvoice {
 export type DocumentSendEntityType = "invoice" | "quote" | "creditNote";
 export type DocumentSendStatus = "DRAFT" | "QUEUED" | "SENT" | "DELIVERED" | "BOUNCED" | "FAILED" | "OPENED";
 export interface DocumentSendRecord {
+  attachments?: { filename:string; sizeBytes:number; sha256:string }[]
   id: string; orgId: string; entityType: DocumentSendEntityType; entityId: string
   to: string[]; cc: string[]; bcc: string[]; subject: string; body: string
   status: DocumentSendStatus; providerMessageId: string | null; error: string | null
@@ -1496,6 +1497,7 @@ export const api = {
 
   // Document send compose page + «سجل الإرسال» (W-SEND · 2026-09-08)
   documentSends: {
+    attachmentOptions: (entityType: DocumentSendEntityType, entityId: string) => request<{items:{id:string;filename:string;sizeBytes:number;available:boolean}[]}>(`/api/document-sends/attachment-options?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`),
     list: (entityType: DocumentSendEntityType, entityId: string) =>
       request<{ items: DocumentSendRecord[] }>(
         `/api/document-sends?entityType=${encodeURIComponent(entityType)}&entityId=${encodeURIComponent(entityId)}`,
@@ -1505,6 +1507,7 @@ export const api = {
       entityType: DocumentSendEntityType; entityId: string
       to: string[]; cc?: string[]; bcc?: string[]; subject: string; body: string
       action: "draft" | "send"
+      requestId?: string; reuseSendId?:string; attachments?: {filename:string;content:string}[]; attachmentIds?:string[]
     }) =>
       request<{ ok: boolean; send: DocumentSendRecord; message?: string }>(
         '/api/document-sends',

@@ -32,11 +32,13 @@ export function QuoteProposalPrint() {
     if (!id) return;
     (async () => {
       try {
-        bootstrapOrgIdFromStorage();
+        const requestedOrg = searchParams.get("orgId");
+        if (requestedOrg) setOrgId(requestedOrg, false); else bootstrapOrgIdFromStorage();
         let q: Quote | null = null;
         try {
           q = await api.quotes.get(id);
-        } catch {
+        } catch (error) {
+          if (requestedOrg) throw error;
           const meRes = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/me`, { credentials: "include" });
           const me = meRes.ok ? await meRes.json() : null;
           for (const m of me?.memberships || []) {
@@ -86,7 +88,7 @@ export function QuoteProposalPrint() {
           </button>
         </span>
       </div>
-      <div className="edoc-shell" style={{ padding: embed ? 0 : "16px 0 32px" }}>
+      <div className="edoc-shell" data-document-ready={!!presentation} style={{ padding: embed ? 0 : "16px 0 32px" }}>
         <div style={{ maxWidth: 794, margin: "0 auto" }}><QuoteDocument presentation={presentation} /></div>
       </div>
     </div>
