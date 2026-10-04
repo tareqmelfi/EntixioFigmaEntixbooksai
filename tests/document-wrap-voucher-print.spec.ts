@@ -19,6 +19,10 @@ for (const lang of ['en', 'ar'] as const) test(`long reference stays within the 
       });
     }))).toBe(true);
   }
+  expect(await page.locator('.sheet.light').evaluateAll(sheets => sheets.flatMap(sheet => {
+    const limit=sheet.querySelector('.ftr')!.getBoundingClientRect().top;
+    return Array.from(sheet.querySelectorAll('.meta-strip,.items,.totals,.tafqit')).filter(el=>el.getBoundingClientRect().bottom>limit-2).map(el=>el.className);
+  }))).toEqual([]);
   await page.pdf({path:info.outputPath('long-reference.pdf'),preferCSSPageSize:true,printBackground:true});
 });
 
