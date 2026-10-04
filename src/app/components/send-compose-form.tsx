@@ -19,12 +19,8 @@ import { Textarea } from "./ui/textarea";
 import { useLanguage } from "./LanguageContext";
 import { api, ApiError, getOrgId, DocumentSendEntityType, DocumentSendRecord } from "../lib/api";
 
+import { prepareSendPdf, emailFile, EMAIL_ATTACHMENT_LIMIT, type EmailFile } from "../lib/send-attachments";
 import { paymentUrl } from "../lib/document-render";
-
-export interface SendComposeAttachment {
-  name: string;
-  size: number; // bytes
-}
 
 interface Props {
   entityType: DocumentSendEntityType;
@@ -37,8 +33,6 @@ interface Props {
   defaultTo: string[];
   defaultSubject: string;
   defaultBody: string;
-  /** The document itself + any file attachments already on it. */
-  attachments?: SendComposeAttachment[];
   /** Set when reopening from «إعادة الإرسال» — prefills every field from a past attempt. */
   prefill?: DocumentSendRecord | null;
   onClose: () => void;
@@ -72,7 +66,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SendComposeForm({
   entityType, entityId, documentNumber, documentLabelAr, documentLabelEn,
-  defaultTo, defaultSubject, defaultBody, attachments, prefill, onClose, onSent, push,
+  defaultTo, defaultSubject, defaultBody, prefill, onClose, onSent, push,
 }: Props) {
   const { t } = useLanguage();
   const [to, setTo] = useState((prefill?.to?.length ? prefill.to : defaultTo).join(", "));
@@ -142,6 +136,23 @@ export function SendComposeForm({
       if (mounted.current && getOrgId() === orgId) setPaymentError(e instanceof ApiError ? e.message : t("تعذر تجهيز رابط الدفع", "Could not prepare the payment link"));
     } finally { if (mounted.current) setBusy(null); }
   };
+  const [includePdf, setIncludePdf] = useState(canPay && !prefill?.attachments?.length);
+  const [includePreviousAttachments, setIncludePreviousAttachments] = useState(!!prefill?.attachments?.length);
+  const [includeReceipts, setIncludeReceipts] = useState(false);
+  const [availableFiles, setAvailableFiles] = useState<{id:string;filename:string;sizeBytes:number;available:boolean}[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
+  const [localFiles, setLocalFiles] = useState<File[]>([]);
+  const [filesError, setFilesError] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [pdfSize, setPdfSize] = useState<number | null>(null);
+  const attempt = useRef<{signature:string;id:string;files:EmailFile[]} | null>(null);
+  useEffect(() => {
+    let cancelled=false; const orgId=getOrgId();
+    api.documentSends.attachmentOptions(entityType,entityId).then(r=>{
+      if (!cancelled && getOrgId()===orgId) setAvailableFiles(r.items);
+    }).catch(()=>{if (!cancelled) setFilesError(true);});
+    return ()=>{cancelled=true;};
+  },[entityType,entityId]);
   const [error, setError] = useState<string | null>(null);
 
   const toList = useMemo(() => parseEmailList(to), [to]);
@@ -161,14 +172,27 @@ export function SendComposeForm({
     }
     paymentTouched.current = true; // Freeze the reviewed message while a default request is still pending.
     setBusy(action);
+    const orgId = getOrgId();
     try {
+      const signature=JSON.stringify([orgId,entityType,entityId,toList,ccList,bccList,subject,body,includePdf,includeReceipts,includePreviousAttachments,selectedFiles,localFiles.map(f=>[f.name,f.size,f.lastModified])]);
+      if (attempt.current?.signature !== signature) {
+        setPreparing(true);
+        const files:EmailFile[]=[];
+        if (includePdf) { const pdf=await prepareSendPdf(entityType,entityId,documentNumber,includeReceipts);files.push({filename:pdf.filename,content:pdf.content});setPdfSize(pdf.sizeBytes); }
+        for (const file of localFiles) files.push(await emailFile(file,file.name));
+        const total=files.reduce((sum,f)=>sum+Math.floor(f.content.length*3/4),0)+availableFiles.filter(f=>selectedFiles.includes(f.id)).reduce((sum,f)=>sum+f.sizeBytes,0);
+        if (total>EMAIL_ATTACHMENT_LIMIT) throw Error('email_attachments_too_large');
+        attempt.current={signature,id:crypto.randomUUID(),files};
+      }
+      if (!mounted.current || getOrgId() !== orgId) throw Error('organization_changed');
+      setPreparing(false);
       const r = await api.documentSends.create({
         entityType, entityId,
         to: toList.length ? toList : defaultTo,
         cc: ccList, bcc: bccList,
         subject: subject.trim() || defaultSubject,
         body,
-        action,
+        action, requestId:attempt.current.id, reuseSendId:includePreviousAttachments ? prefill?.id : undefined, attachments:attempt.current.files, attachmentIds:selectedFiles,
       });
       if (!r.ok) {
         setError(r.message || t("تعذر إرسال البريد", "Could not send the email"));
@@ -176,6 +200,7 @@ export function SendComposeForm({
         onSent(r.send); // still surface the FAILED attempt in the log
         return;
       }
+      if (r.send.status === "QUEUED") { setError(t("الإرسال قيد المعالجة. راجع سجل الإرسال قبل إعادة المحاولة.", "Sending is in progress. Check the delivery log before retrying.")); onSent(r.send); return; }
       push(
         "success",
         action === "draft"
@@ -185,19 +210,17 @@ export function SendComposeForm({
       onSent(r.send);
       onClose();
     } catch (e: any) {
-      const msg = e instanceof ApiError ? e.message : t("تعذر إرسال البريد", "Could not send the email");
+      const failure = e instanceof ApiError ? e.body as {message?:string;send?:DocumentSendRecord} | undefined : undefined;
+      if (failure?.send) onSent(failure.send);
+      const msg = e instanceof ApiError ? failure?.message || e.message : e?.message === 'email_attachments_too_large'
+        ? t("مرفقات الرسالة تتجاوز 20 ميجابايت. قلل الملفات المختارة.", "Email attachments exceed 20 MB. Reduce the selected files.")
+        : t("تعذر تجهيز المرفقات أو إرسال الرسالة. احتفظنا بمدخلاتك؛ لم تُحذف الملفات المختارة.", "Could not prepare attachments or send the message. Your message and selection are preserved.");
       setError(msg);
       push("error", msg);
     } finally {
-      setBusy(null);
+      setBusy(null); setPreparing(false);
     }
   };
-
-  const docAttachment: SendComposeAttachment = {
-    name: `${documentNumber}.pdf`,
-    size: Math.max(6 * 1024, body.length * 3), // representative size until real PDF export exists
-  };
-  const allAttachments = [docAttachment, ...(attachments || [])];
 
   return (
     <FullPageForm
@@ -282,18 +305,18 @@ export function SendComposeForm({
           }} rows={10} data-testid="send-compose-body" />
         </div>
 
-        <div className="grid gap-2">
-          <Label>{t("المرفقات", "Attachments")}</Label>
-          <ul className="flex flex-col gap-1.5">
-            {allAttachments.map((a, i) => (
-              <li key={`${a.name}-${i}`} className="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-surface-subtle px-3 py-2 text-sm">
-                <Paperclip className="h-4 w-4 shrink-0 text-content-secondary" strokeWidth={1.75} />
-                <span className="min-w-0 flex-1 truncate font-code">{a.name}</span>
-                <span className="shrink-0 text-xs text-content-secondary">{fmtSize(a.size)}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <fieldset className="grid gap-2 rounded-lg border border-border p-3" disabled={busy !== null}>
+          <legend className="px-1 text-sm font-medium">{t("المرفقات", "Attachments")}</legend>
+          {!!prefill?.attachments?.length && <label className="flex items-start gap-2 text-sm"><input type="checkbox" checked={includePreviousAttachments} onChange={e=>setIncludePreviousAttachments(e.target.checked)} /> <span>{t("إرفاق نفس ملفات الرسالة السابقة", "Attach the same files as the previous message")}<span className="block break-all text-xs">{prefill.attachments.map(f=>`${f.filename} (${fmtSize(f.sizeBytes)})`).join(" · ")}</span></span></label>}
+          {canPay && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includePdf} onChange={e=>{setIncludePdf(e.target.checked);setPdfSize(null);}} data-testid="send-include-pdf" />{t("إرفاق PDF مطابق للمعاينة", "Attach the PDF shown in preview")}{pdfSize !== null && <span>{fmtSize(pdfSize)}</span>}</label>}
+          {entityType === "invoice" && includePdf && <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={includeReceipts} onChange={e=>{setIncludeReceipts(e.target.checked);setPdfSize(null);}} data-testid="send-include-receipts" />{t("تضمين سندات القبض المرتبطة داخل PDF", "Include linked receipts in the PDF")}</label>}
+          {availableFiles.map(file=><label key={file.id} className="flex min-w-0 items-center gap-2 text-sm"><input type="checkbox" disabled={!file.available} checked={selectedFiles.includes(file.id)} onChange={e=>setSelectedFiles(ids=>e.target.checked ? [...ids,file.id] : ids.filter(id=>id!==file.id))} /><Paperclip className="h-4 w-4 shrink-0" /><span className="min-w-0 break-all">{file.filename}</span><span>{fmtSize(file.sizeBytes)}</span>{!file.available && <span>{t("أعد رفع الملف لإرفاقه", "Upload the file again to attach it")}</span>}</label>)}
+          {filesError && <p className="text-xs text-danger">{t("تعذر تحميل قائمة الملفات المحفوظة. يمكنك إضافة الملفات من جهازك.", "Could not load saved files. You can add files from your device.")}</p>}
+          <Label htmlFor="send-files">{t("إضافة ملفات من الجهاز", "Add files from your device")}</Label>
+          <Input id="send-files" type="file" multiple onChange={e=>{setLocalFiles(Array.from(e.target.files || []));attempt.current=null;}} />
+          {localFiles.map((file,i)=><span key={i} className="break-all text-xs">{file.name} · {fmtSize(file.size)}</span>)}
+          <p role="status" className="text-xs text-muted-foreground">{preparing ? t("جاري تجهيز PDF والمرفقات…", "Preparing PDF and attachments…") : t("تُجهّز الملفات المختارة تلقائيًا قبل الحفظ أو الإرسال. لن تُرسل الرسالة إذا تعذر تجهيز أحدها.", "Selected files are prepared automatically before saving or sending. A preparation failure stops the message.")}</p>
+        </fieldset>
       </div>
     </FullPageForm>
   );

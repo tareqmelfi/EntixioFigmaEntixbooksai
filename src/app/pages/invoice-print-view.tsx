@@ -255,7 +255,7 @@ export function InvoicePrintView() {
         body { margin: 0; background: ${embed ? "#fff" : "#E9ECF1"}; }
         @media print { body { background: white !important; } .no-print { display: none !important; } }
       `}</style>
-      <div className="edoc-shell" style={{ padding: embed ? 0 : "16px 0 32px" }}>
+      <div className="edoc-shell" data-document-ready={!!printImages && tplReady} style={{ padding: embed ? 0 : "16px 0 32px" }}>
         <BrandDocument input={input} scaleToFit={embed} />
       </div>
     </>

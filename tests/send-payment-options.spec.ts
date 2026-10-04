@@ -19,6 +19,7 @@ async function setup(page: Page, lang: 'en' | 'ar' = 'en', options: { savedLink?
   await page.goto('/app/invoices/pay-invoice');
   await page.getByTestId('issued-invoice-send').click();
   await expect(page.getByTestId('send-payment-options')).toBeVisible();
+  await page.getByTestId('send-include-pdf').uncheck(); // These tests isolate payment text; PDF delivery has its own end-to-end tests.
   return { sent, get creates() { return creates; } };
 }
 for (const lang of ['en', 'ar'] as const) test(`payment choice is visible in actual message and survives failure · ${lang}`, async ({ page }, info) => {

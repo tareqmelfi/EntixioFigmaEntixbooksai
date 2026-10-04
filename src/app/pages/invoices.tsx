@@ -806,8 +806,8 @@ export function Invoices() {
         onSent={(record) => {
           setSendLogRefresh((n) => n + 1);
           if (record.status === "SENT") {
-            setItems((prev) => prev.map((x) => (x.id === inv.id ? { ...x, status: "SENT" } as Invoice : x)));
-            setEditingInvoice((prev) => (prev && prev.id === inv.id ? ({ ...prev, status: "SENT" } as Invoice) : prev));
+            setItems((prev) => prev.map((x) => (x.id === inv.id && x.status === "APPROVED" ? { ...x, status: "SENT" } as Invoice : x)));
+            setEditingInvoice((prev) => (prev && prev.id === inv.id && prev.status === "APPROVED" ? ({ ...prev, status: "SENT" } as Invoice) : prev));
           }
         }}
         push={push}

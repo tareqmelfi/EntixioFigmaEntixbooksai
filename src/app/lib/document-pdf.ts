@@ -3,7 +3,7 @@ import { waitForPrintReady } from './print-image';
 
 /** Snapshot all already-paginated document sheets before async export. */
 export type PreparedDocumentPdf = { url: string; filename: string };
-export async function downloadDocumentPdf(root: HTMLElement, selector: string, filename: string, attachments: Array<{ root: HTMLElement; selector: string }> = [], onReady?: (file: PreparedDocumentPdf) => void) {
+export async function prepareDocumentPdf(root: HTMLElement, selector: string, filename: string, attachments: Array<{ root: HTMLElement; selector: string }> = []) {
   await waitForPrintReady();
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
   const pdf = new jsPDF({ unit:'mm', format:'a4', compress:true });
@@ -29,7 +29,7 @@ export async function downloadDocumentPdf(root: HTMLElement, selector: string, f
       const sheet = sheets[index].cloneNode(true) as HTMLElement;
       pageMount.append(sheet); owner.body.append(pageMount);
       sheet.style.setProperty('zoom','1','important'); sheet.style.setProperty('width',`${pageWidth}mm`); sheet.style.setProperty('margin','0');
-      if (sheet.scrollHeight > Math.ceil(pageHeight * 96 / 25.4) + 2) throw Error('document_page_overflow');
+      if (sheet.scrollHeight > Math.ceil(pageHeight * 96 / 25.4) + 2) { pageMount.remove(); throw Error('document_page_overflow'); }
       let canvas: HTMLCanvasElement;
       try { canvas = await html2canvas(pageMount, { foreignObjectRendering:true, scale:2, useCORS:true, backgroundColor:'#ffffff', logging:false,
         onclone(doc, element) {
@@ -54,20 +54,26 @@ export async function downloadDocumentPdf(root: HTMLElement, selector: string, f
 
   } finally { mount.remove(); }
   }
-const safeFilename = `${filename.replace(/[\\/:*?"<>|]/g,'-')}.pdf`;
-if (onReady) {
-  const file = { url: URL.createObjectURL(pdf.output('blob')), filename: safeFilename };
-  onReady(file);
+  return { blob: pdf.output('blob'), filename: `${filename.replace(/[\\/:*?"<>|]/g,'-')}.pdf` };
+}
+
+export async function downloadDocumentPdf(root: HTMLElement, selector: string, filename: string, attachments: Array<{ root: HTMLElement; selector: string }> = [], onReady?: (file: PreparedDocumentPdf) => void) {
+  const prepared = await prepareDocumentPdf(root, selector, filename, attachments);
+  const file = { url: URL.createObjectURL(prepared.blob), filename: prepared.filename };
+  onReady?.(file);
   const link = document.createElement('a'); link.href = file.url; link.download = file.filename;
   document.body.append(link); link.click(); link.remove();
-} else pdf.save(safeFilename);
+  if (!onReady) window.setTimeout(() => URL.revokeObjectURL(file.url), 60000);
 }
 
 /** Same-origin, org-scoped preview frames. No popup, print dialog, or storage mutation. */
-export async function loadReceiptPdfFrame(id: string, orgId: string, language: string) {
+export function loadReceiptPdfFrame(id: string, orgId: string, language: string) {
+  return loadDocumentPdfFrame('voucher', id, orgId, language);
+}
+export async function loadDocumentPdfFrame(kind: 'voucher' | 'invoice' | 'proposal', id: string, orgId: string, language: string) {
   const frame = document.createElement('iframe');
   frame.style.cssText = 'position:fixed;left:-100000px;top:0;width:794px;height:1123px;border:0;';
-  frame.src = `/print/voucher/${encodeURIComponent(id)}?embed=1&orgId=${encodeURIComponent(orgId)}&lang=${encodeURIComponent(language)}`;
+  frame.src = `/print/${kind}/${encodeURIComponent(id)}?embed=1&orgId=${encodeURIComponent(orgId)}&lang=${encodeURIComponent(language)}`;
   try {
     const root = await new Promise<HTMLElement>((resolve, reject) => {
       let observer: MutationObserver | undefined;
@@ -76,7 +82,7 @@ export async function loadReceiptPdfFrame(id: string, orgId: string, language: s
         const doc = frame.contentDocument;
         if (!doc) { clearTimeout(timer); reject(Error('receipt_preview_unavailable')); return; }
         const check = () => {
-          const root = doc.querySelector<HTMLElement>('.voucher-document[data-document-ready="true"]');
+          const root = doc.querySelector<HTMLElement>('[data-document-ready="true"]');
           if (root) { clearTimeout(timer); observer?.disconnect(); resolve(root); }
         };
         observer = new MutationObserver(check); observer.observe(doc, { subtree:true, childList:true, attributes:true }); check();
@@ -85,6 +91,8 @@ export async function loadReceiptPdfFrame(id: string, orgId: string, language: s
     });
     await root.ownerDocument.fonts.ready;
     await Promise.all(Array.from(root.querySelectorAll('img'), img => img.decode()));
-    return { root, selector: '.voucher-page', dispose: () => frame.remove() };
+    const documentRoot = kind === 'voucher' ? root : root.querySelector<HTMLElement>('.edoc');
+    if (!documentRoot) throw Error('document_not_ready');
+    return { root: documentRoot, selector: kind === 'voucher' ? '.voucher-page' : '.sheet', dispose: () => frame.remove() };
   } catch (error) { frame.remove(); throw error; }
 }

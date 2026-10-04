@@ -868,7 +868,7 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 .edoc.idn .cl .facts.cards3 .cd{text-align:start}
 .edoc.idn .cl .facts.cards3 .cd .k{color:var(--chip);font-size:7.5px;letter-spacing:.12em;text-transform:none}
 .edoc.idn .cl .facts.cards3 .cd .v{font-size:10pt;margin-top:0}
-.edoc.idn .cl .facts.cards3 .cd .v .num{font-family:var(--font-latin)}
+.edoc.idn .cl .facts.cards3 .cd .v .num{font-family:var(--font-latin);white-space:normal;overflow-wrap:anywhere;max-width:100%}
 .edoc.idn .sheet{isolation:isolate}
 /* faint bottom-anchored watermark · interior pages only · never on the cover or closing sheet */
 .edoc.idn .wm{position:absolute;left:0;right:0;bottom:0;height:74%;display:flex;align-items:flex-end;justify-content:center;opacity:.05;transform:translateY(9%);pointer-events:none;z-index:-1}

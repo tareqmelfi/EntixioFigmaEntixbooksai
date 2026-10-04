@@ -85,6 +85,7 @@ export function SendLogSection({ entityType, entityId, refreshKey, onResend }: P
                 <TableCell className="min-w-0 max-w-[240px] truncate" dir="ltr" title={r.to.join(", ")}>{r.to.join(", ") || "—"}</TableCell>
                 <TableCell>
                   <StatusBadge tone={TONE[r.status]}>{t(LABEL[r.status][0], LABEL[r.status][1])}</StatusBadge>
+                  {!!r.attachments?.length && <div className="mt-1 max-w-[240px] break-words text-xs text-content-secondary">{r.attachments.map(file => `${file.filename} (${(file.sizeBytes / 1024).toFixed(1)} KB)`).join(" · ")}</div>}
                   {r.status === "FAILED" && r.error ? <div className="mt-1 max-w-[220px] truncate text-xs text-danger" title={r.error}>{r.error}</div> : null}
                 </TableCell>
                 <TableCell>

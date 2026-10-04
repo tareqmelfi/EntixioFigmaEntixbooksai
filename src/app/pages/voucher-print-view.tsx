@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { api, ApiError, Voucher, Org, Contact, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
 import qrcode from "qrcode-generator";
-import { downscaleDataUrl } from "../lib/print-image";
+import { downscaleDataUrl, waitForPrintReady } from "../lib/print-image";
 import { Loader2, Printer, X } from "lucide-react";
 import { BidiText, NumericText } from "../components/bidi-text";
 
@@ -259,27 +259,35 @@ export function VoucherPrintView() {
           font-family: 'IBM Plex Sans Arabic','IBM Plex Sans',system-ui,sans-serif;
         }
         .num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; direction: ltr; display: inline-block; }
+        .voucher-document .voucher-header > div { min-width:0; }
+        .voucher-document .voucher-brand { flex:1; min-width:0; }
+        .voucher-document .voucher-brand > div > div { min-width:0; overflow-wrap:anywhere; }
+        .voucher-document .voucher-brand img { max-width:40% !important; flex-shrink:0; }
+        .voucher-document .document-data .num { white-space:normal; overflow-wrap:anywhere; max-width:100%; }
         @media print {
           body { background: white !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .no-print { display: none !important; }
-          html, body { width: 210mm; }
+          html:has(.voucher-document), body:has(.voucher-document) { width:210mm !important; max-width:none !important; margin:0 !important; padding:0 !important; direction:ltr; }
+          body:has(.voucher-document) #root, .voucher-document { width:210mm !important; margin:0 !important; padding:0 !important; min-height:0 !important; height:auto !important; overflow:visible !important; }
           .voucher-page {
             box-shadow: none !important;
             margin: 0 !important;
             width: 100% !important;
             max-width: 100% !important;
-            padding: 10mm 12mm 14mm !important;
+            padding: 10mm 14mm 14mm !important;
             box-sizing: border-box !important;
+            zoom:1 !important;
           }
         }
         @page { size: A4; margin: 0; }
-        ${embed ? ".voucher-page{ margin:8px auto !important; zoom:0.78; box-shadow:none !important; } body{ background:white; }" : ""}
+        ${embed ? "@media screen{.voucher-page{ margin:8px auto !important; zoom:0.78; box-shadow:none !important; } body{ background:white; }}" : ""}
       `}</style>
 
       <div className="voucher-document" data-document-ready={!!printImages} dir={isRtl ? "rtl" : "ltr"} style={{ color: "#1A1E48", fontSize: 13, lineHeight: 1.5 }}>
         <div className="no-print" style={{ position: "fixed", top: 12, left: 12, zIndex: 99, display: embed ? "none" : "flex", gap: 8 }}>
           <button
-            onClick={() => window.print()}
+            disabled={!printImages}
+            onClick={async () => { await waitForPrintReady(); window.print(); }}
             style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "#5875DB", color: "white", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
           >
             <Printer style={{ display: "inline-block", verticalAlign: "middle", height: 14, width: 14, marginInlineEnd: 6 }} />
@@ -295,13 +303,13 @@ export function VoucherPrintView() {
         </div>
 
         <article className="voucher-page document-paper" style={{ minHeight: "297mm", boxSizing: "border-box", display: "flex", flexDirection: "column", maxWidth: "210mm", margin: "20px auto", background: "white", padding: "10mm 14mm 14mm", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+          <div className="voucher-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
             <div>
               <h1 className="document-title" style={{ margin: "0 0 4px 0" }}>{docTitle}</h1>
               {docSubtitle && <div style={{ fontSize: 13, color: "#6B7280" }}>{docSubtitle}</div>}
             </div>
 
-            <div style={{ textAlign: "end" }}>
+            <div className="voucher-brand" style={{ textAlign: "end" }}>
               <div style={{ display: "flex", gap: 12, alignItems: "flex-start", justifyContent: "flex-end" }}>
                 <div style={{ textAlign: "start", paddingTop: 2 }}>
                   <div style={{ fontWeight: 800, fontSize: 16, color: "#5875DB", lineHeight: 1.35 }}>{org.name}</div>
@@ -310,8 +318,8 @@ export function VoucherPrintView() {
                   )}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
-                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{T("الرقم الضريبي:", "VAT No.:")} <span className="num">{org.vatNumber}</span></div>}
-                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{T("السجل التجاري:", "CR No.:")} <span className="num">{org.crNumber}</span></div>}
+                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{org.country === "US" ? "EIN:" : T("الرقم الضريبي:", "VAT No.:")} <span className="num">{org.vatNumber}</span></div>}
+                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{org.country === "US" ? T("معرّف المنشأة:", "Entity ID:") : T("السجل التجاري:", "CR No.:")} <span className="num">{org.crNumber}</span></div>}
                   </div>
                 </div>
                 {printLogo ? (
