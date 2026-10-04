@@ -1117,7 +1117,9 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .party .n{font-size:10.5pt;font-weight:700;line-height:1.4}
 .edoc .party .n2{font-family:var(--font-latin);font-size:8.5pt;color:var(--muted);direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
 .edoc .party .d{font-size:8pt;color:var(--muted);line-height:1.55;margin-top:1.5mm;overflow-wrap:break-word}
-.edoc .meta-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:0 0 5mm}
+.edoc .meta-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3mm;margin:0 0 5mm}
+.edoc .meta-strip > *{min-width:0}
+.edoc .meta-strip .v .num{white-space:normal;overflow-wrap:anywhere}
 .edoc .meta-strip .tile{background:var(--soft);border-radius:2mm;padding:3mm 4mm}
 .edoc .meta-strip .k{font-size:7.5pt;color:var(--muted);margin-bottom:.5mm}
 .edoc .meta-strip .v{font-size:10pt;font-weight:700}
@@ -1520,8 +1522,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
     return `<div class="party"><div class="k">${esc(label)}</div><div class="n">${bdi(name)}</div>${alt ? `<div class="n2">${esc(alt)}</div>` : ""}<div class="d">${d.join("<br>")}</div></div>`;
   };
 
+  // Wrapped metadata consumes real vertical space; reserve it before pagination.
+  const metadataExtraHeight = Math.max(0, ...[doc.number, doc.reference || cur, issue, end || "—"].map(value => textHeight(value, 33, 5.5, 2.1) - 5.5));
   const headerBlock = (): Block => themed ? ({
-    kind: "html", h: isQuote ? 84 : 78, html: `<div class="st"><div class="a">${esc(docType)}</div><div class="e">${docEyebrow}</div></div>
+    kind: "html", h: (isQuote ? 84 : 78) + metadataExtraHeight, html: `<div class="st"><div class="a">${esc(docType)}</div><div class="e">${docEyebrow}</div></div>
 <div class="doc-head two">
   ${partyHtml(isQuote ? t("المورد · الجهة المُقدِّمة", "Supplier · issued by") : t("المورد · الجهة المُصدِرة", "Supplier · issued by"), orgName, orgAlt, org, true)}
   ${partyHtml(t("العميل", "Client"), clientName, clientAlt, contact, false)}
@@ -1532,7 +1536,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   <div class="tile"><div class="k">${esc(endLabel)}</div><div class="v">${num(end || "—")}</div></div>
   <div class="tile"><div class="k">${doc.reference ? t("المرجع", "Reference") : t("العملة", "Currency")}</div><div class="v">${doc.reference ? num(doc.reference) : num(cur)}</div></div>
 </div>` }) : ({
-    kind: "html", h: 76, html: `<div class="doc-head">
+    kind: "html", h: 76 + metadataExtraHeight, html: `<div class="doc-head">
   <div><div class="eyebrow">${docEyebrow}</div><div class="title">${esc(docType)}</div></div>
   ${partyHtml(isQuote ? t("المورد · الجهة المُقدِّمة", "Supplier · issued by") : t("المورد · الجهة المُصدِرة", "Supplier · issued by"), orgName, orgAlt, org, true)}
   ${partyHtml(t("العميل", "Client"), clientName, clientAlt, contact, false)}

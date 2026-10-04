@@ -2,6 +2,30 @@ import { test, expect } from '@playwright/test';
 import { renderDocument, sampleInput } from '../src/app/lib/document-render';
 import { prepareVisualApp, visualOrgId } from './fixtures/visual-app';
 
+for (const lang of ['en', 'ar'] as const) test(`long reference stays within the document header · ${lang}`, async ({ page }, info) => {
+  const input = sampleInput('INVOICE', lang, { themePreset:'custom', theme:{navy:'#191d48'}, headerStyle:'centered' });
+  input.doc.reference = 'Stripe pi_syntheticLongPaymentIdentifier123456789 · Apple order W1234567890';
+  const output = renderDocument(input);
+  await page.route('**/reference-test', r => r.fulfill({contentType:'text/html', body:output.html}));
+  await page.goto('/reference-test');
+  await page.evaluate(() => document.fonts.ready);
+  for (const media of ['screen', 'print'] as const) {
+    await page.emulateMedia({media});
+    expect(await page.locator('.meta-strip').evaluateAll(strips => strips.every(strip => {
+      const bounds=strip.getBoundingClientRect();
+      return Array.from(strip.children).every(tile => {
+        const box=tile.getBoundingClientRect(); const range=document.createRange();range.selectNodeContents(tile);
+        return box.left>=bounds.left-1 && box.right<=bounds.right+1 && Array.from(range.getClientRects()).every(r=>r.left>=box.left-1&&r.right<=box.right+1);
+      });
+    }))).toBe(true);
+  }
+  expect(await page.locator('.sheet.light').evaluateAll(sheets => sheets.flatMap(sheet => {
+    const limit=sheet.querySelector('.ftr')!.getBoundingClientRect().top;
+    return Array.from(sheet.querySelectorAll('.meta-strip,.items,.totals,.tafqit')).filter(el=>el.getBoundingClientRect().bottom>limit-2).map(el=>el.className);
+  }))).toEqual([]);
+  await page.pdf({path:info.outputPath('long-reference.pdf'),preferCSSPageSize:true,printBackground:true});
+});
+
 for (const lang of ['en','ar'] as const) test(`closing facts wrap inside cards · ${lang}`, async ({ page }, info) => {
   const input = sampleInput('INVOICE', lang, { themePreset:'custom', theme:{navy:'#191d48'}, headerStyle:'centered', closingFacts:[{label:'Entity',value:'ENSIDEX LLC · Wyoming, United States'}, {label:'Address',value:'30 N GOULD ST STE R, SHERIDAN, WY 82801, UNITED STATES'}] });
   const output = renderDocument(input);
