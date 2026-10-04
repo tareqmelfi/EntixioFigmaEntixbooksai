@@ -59,3 +59,26 @@ for (const kind of ['INVOICE', 'QUOTE'] as const) test(`single oversized clause 
   expect(await page.locator('.payment-card').evaluate(el => !!(document.querySelector('.terms-flow:last-of-type')!.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
   await expect(page.locator('.payment-card')).toHaveCount(1);
 });
+
+const terms = [
+'Acceptance | Signature, written approval or payment of the deposit constitutes acceptance of this document and the terms below.',
+'Scope of work | Only the deliverables listed in the items table above are included. Additional work is quoted separately before it is started.',
+'Fees and payment | Amounts are in US dollars. Invoices are due Net 30 from the invoice date unless the items table states a different schedule.',
+'Change requests | Any change to scope, schedule or specification is priced and approved in writing before it is executed.',
+'Intellectual property | On receipt of payment in full, the client owns the final deliverables produced for it. Pre-existing tools remain the property of the issuer.',
+'Confidentiality | Each party keeps the other’s commercial and technical information confidential and uses it only for this engagement.',
+'Late payment | Payment terms are agreed in the accepted proposal. Please contact the issuer before the due date if a payment needs review.'
+].join('\n');
+test('normal terms and payment share a sheet without footer collision', async ({page},info)=>{
+ const input=sampleInput('INVOICE','en',{headerStyle:'centered',coverStyle:'NONE',termsEn:terms,outOfScopeEn:'Anything not listed in the items table; third-party licences, hosting and API usage; additional work requested outside the accepted scope.',sections:[{id:'closing',enabled:false}],paymentLinkUrl:'https://payments.example.com/checkout/preview'},{name:'Example Company',country:'US',address:'Company address',email:'accounts@example.invalid'});
+ input.doc.paymentLinkUrl='https://payments.example.com/checkout/preview';
+ const output=renderDocument({...input,qr:qrSvg});
+ await page.route('**/payment-example',r=>r.fulfill({contentType:'text/html',body:output.html}));await page.goto('/payment-example');await page.evaluate(()=>document.fonts.ready);
+ const termsSheet=page.locator('.sheet').filter({has:page.getByText('Payment terms',{exact:true})}).first();
+ await termsSheet.screenshot({path:info.outputPath('compact-payment-layout.png')});
+ const collisions = await page.locator('.sheet').evaluateAll(sheets => sheets.flatMap(sheet => Array.from(sheet.querySelectorAll('.cards,.term-row,.oos')).filter(el => el.getBoundingClientRect().bottom > sheet.querySelector('.ftr')!.getBoundingClientRect().top).map(el => el.className)));
+ expect(collisions).toEqual([]);
+ expect(output.sheetCount).toBe(2);
+ await expect(termsSheet.locator('.payment-card')).toBeVisible();
+ await page.pdf({path:info.outputPath('after.pdf'),preferCSSPageSize:true,printBackground:true});
+});

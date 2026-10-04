@@ -1708,7 +1708,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       rows: content.flatMap(item => {
         const c = clause(item);
         return textFragments(c.text).map((part, index) => ({
-          h: 3 + textHeight(part, 160, 5.2, 1.9) + (index === 0 && c.title ? textHeight(c.title, 160, 5.2, 1.9) : 0),
+          h: 2.5 + textHeight(part, 160, 5, 1.45) + (index === 0 && c.title ? textHeight(c.title, 160, 5, 1.45) : 0),
           html: `<div class="term-row">${index === 0 && c.title ? `<b>${bdi(c.title)}</b>` : ""}<span>${bdi(part)}</span></div>`,
         }));
       }),
