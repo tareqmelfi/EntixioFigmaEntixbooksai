@@ -22,7 +22,6 @@ for(const lang of ['ar','en'] as const)test(`invoice spreadsheet selection, part
     return r.fulfill({json:{notes:data.notes,termsConditions:data.termsConditions,updatedAt:inv.updatedAt}});
   });
   await page.goto('/app/invoices');
-  await page.getByRole('button',{name:lang==='ar'?'تحديد فواتير':'Select invoices',exact:true}).click();
   await page.getByRole('checkbox',{name:lang==='ar'?'تحديد الظاهر':'Select visible',exact:true}).check();
   await page.getByRole('button',{name:/Edit selected in table|تعديل المحدد في جدول/}).click();
   const note=(id:string)=>page.getByRole('textbox',{name:(lang==='ar'?'الملاحظات':'Notes')+' '+id,exact:true});
@@ -46,10 +45,10 @@ for(const lang of ['ar','en'] as const)test(`invoice spreadsheet selection, part
   await page.screenshot({path:`/tmp/entix-grid-${lang}.png`,fullPage:true});
 });
 
-test('single edit opens directly, invalid historical dates retain input and no write',async({page})=>{
+test('spreadsheet invalid historical dates retain input and no write',async({page})=>{
   await setup(page,'en');let writes=0;
   await page.route('**/api/invoices/EDIT-1/amend',r=>{writes++;return r.fulfill({status:409,json:{error:'stale_invoice'}});});
-  await page.goto('/app/invoices');await page.getByRole('row').filter({hasText:'EDIT-1'}).getByTestId('invoice-row-edit').click();
+  await page.goto('/app/invoices');await page.getByRole('checkbox',{name:'Select EDIT-1',exact:true}).check();await page.getByRole('button',{name:/Edit selected in table/}).click();
   const issue=page.getByRole('textbox',{name:'Issue date EDIT-1',exact:true});
   await issue.fill('30/02/2016');await page.getByRole('button',{name:/Save changes/}).click();
   await expect(page.getByRole('alert')).toContainText('Review the dates');expect(writes).toBe(0);await expect(issue).toHaveValue('30/02/2016');
@@ -59,7 +58,7 @@ test('single edit opens directly, invalid historical dates retain input and no w
 
 test('Excel paste updates the visible rectangle and cannot overwrite signed dates',async({page})=>{
   await setup(page,'en');await page.goto('/app/invoices');
-  await page.getByRole('button',{name:'Select invoices',exact:true}).click();await page.getByRole('checkbox',{name:'Select visible',exact:true}).check();await page.getByRole('button',{name:/Edit selected in table/}).click();
+  await page.getByRole('checkbox',{name:'Select visible',exact:true}).check();await page.getByRole('button',{name:/Edit selected in table/}).click();
   const first=page.getByRole('textbox',{name:'Issue date EDIT-1',exact:true});
   await first.evaluate(el=>{const data=new DataTransfer();data.setData('text/plain','2016-02-29\t2016-02-29\t2016-08-02\n2016-03-01\t2016-03-01\t2016-08-02\n2016-03-02\t2016-03-02\t2016-08-02');el.dispatchEvent(new ClipboardEvent('paste',{clipboardData:data,bubbles:true,cancelable:true}));});
   await expect(first).toHaveValue('2016-02-29');await expect(page.getByRole('textbox',{name:'Issue date EDIT-2',exact:true})).toHaveValue('2016-03-01');await expect(page.getByRole('textbox',{name:'Issue date SIGNED',exact:true})).toHaveValue('2016-08-02');
@@ -68,7 +67,7 @@ test('Excel paste updates the visible rectangle and cannot overwrite signed date
 test('chart loading failure blocks editing and retry restores account choices',async({page})=>{
   await setup(page,'en');await page.goto('/app/invoices');
   await page.route('**/api/accounts',r=>r.fulfill({status:503,json:{error:'temporary_failure'}}));
-  await page.getByRole('row').filter({hasText:'EDIT-1'}).getByTestId('invoice-row-edit').click();
+  await page.getByRole('checkbox',{name:'Select EDIT-1',exact:true}).check();await page.getByRole('button',{name:/Edit selected in table/}).click();
   await expect(page.getByRole('alert')).toBeVisible();await expect(page.getByRole('button',{name:/Save changes/})).toHaveCount(0);
   await page.unroute('**/api/accounts');await page.route('**/api/accounts',r=>r.fulfill({json:{items:[{id:'rev',name:'Revenue',code:'4000',type:'REVENUE'}]}}));
   await page.getByRole('button',{name:'Retry',exact:true}).click();await expect(page.getByRole('textbox',{name:'Issue date EDIT-1',exact:true})).toBeVisible();

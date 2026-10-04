@@ -19,8 +19,9 @@ import { InvoiceReclassifyPanel } from './invoice-reclassify-panel';
 import { CheckCircle2, Clock3, Mail } from 'lucide-react';
 
 /** Issued document view: amendments use the server-authorized, audited workflow. */
-export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey, accounts, initialAction }: {
+export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, onSend, sendLogRefreshKey, accounts, initialAction, onRemove }: {
   initialAction?: InvoiceAction;
+  onRemove?: () => void;
   invoice: Invoice; onClose: () => void; onRefresh: () => Promise<void>; onPayment: () => void;
   /** Chart of accounts · enables the limited post-issue reclassification. */
   accounts?: Array<{ id: string; code?: string | null; name: string; nameAr?: string | null; type?: string }>;
@@ -56,12 +57,14 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
     subtitle={<ContactProfileLink id={invoice.contactId || invoice.contact?.id} name={invoice.contact?.displayName} />} onClose={onClose}
     footer={<div className="flex flex-wrap justify-end gap-2">
       <Button variant="outline" onClick={onClose}>{t('رجوع', 'Back')}</Button>
+      {onRemove && <Button variant="outline" onClick={onRemove}>{t('حذف / إلغاء', 'Delete / void')}</Button>}
       {canCorrect && !stripeManaged && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={() => navigate(`/app/credit-notes?correctInvoice=${encodeURIComponent(invoice.id)}`)}>{t('تصحيح الفاتورة', 'Correct invoice')}</Button>}
       {!stripeManaged && remaining > 0 && invoice.status !== 'CANCELLED' && <Button variant="outline" onClick={onPayment}>{t('تسجيل تحصيل', 'Record receipt')}</Button>}
       <Button disabled={!canRelease} onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank', 'noopener,noreferrer')}>{t('طباعة / تنزيل', 'Print / download')}</Button>
       {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}
     </div>}>
     <div className="space-y-4 w-full">
+      <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} initialAction={initialAction} />
       {remaining > 0 && invoice.status !== 'CANCELLED' && <section className="rounded-lg border border-border bg-card p-4 space-y-2">
         <h2 className="font-semibold">{t('دفع العميل عبر الإنترنت', 'Customer online payment')}</h2>
         {(invoice as any).paymentLinkUrl ? <a className="text-primary underline" href={(invoice as any).paymentLinkUrl} target="_blank" rel="noopener noreferrer">{t('فتح رابط الدفع', 'Open payment link')} · {(invoice as any).paymentLinkProvider}</a> : <p className="text-sm text-muted-foreground">{t('لم يتم تجهيز رابط دفع لهذه الفاتورة بعد.', 'A payment link has not been prepared for this invoice yet.')}</p>}
@@ -69,7 +72,6 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         {paymentError && <p role="alert" className="text-sm text-warning">{paymentError}</p>}
       </section>}
       <InvoiceNotesPanel key={invoice.id} invoice={invoice} onDone={onRefresh} />
-      <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} initialAction={initialAction} />
       {/* An issued invoice is locked for its MONEY, not for its bookkeeping —
           the account a line landed on can still be corrected (2026-09-21). */}
       {!stripeManaged && invoice.status !== 'CANCELLED' && !!accounts?.length && (
