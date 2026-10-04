@@ -22,10 +22,12 @@ for (const lang of ['en','ar'] as const) test(`closing facts wrap inside cards Â
 
 for (const lang of ['en','ar'] as const) test(`voucher screen and native A4 print preserve all fields Â· ${lang}`, async ({ page }, info) => {
   await prepareVisualApp(page,'ar'); // Arabic app hosting either document language reproduces the RTL clipping.
-  await page.route(`**/orgs/${visualOrgId}`,r=>r.fulfill({json:{id:visualOrgId,name:'Synthetic Company',legalName:'Synthetic Company LLC',country:'US',baseCurrency:'USD',address:'30 N Gould St Ste R, Sheridan, Wyoming, United States',defaultInvoiceLanguage:lang}}));
+  await page.route(`**/orgs/${visualOrgId}`,r=>r.fulfill({json:{id:visualOrgId,name:'Synthetic Company',legalName:'Synthetic Company LLC',country:'US',baseCurrency:'USD',vatNumber:'00-1234567',crNumber:'SYNTHETIC-ID',address:'30 N Gould St Ste R, Sheridan, Wyoming, United States',defaultInvoiceLanguage:lang}}));
   await page.route('**/api/vouchers/qa-voucher',r=>r.fulfill({json:{id:'qa-voucher',orgId:visualOrgId,number:'QA-RCP-202610-0001',type:'RECEIPT',date:'2026-08-02',amount:'163',currency:'USD',paymentMethod:'CASH',notes:'Synthetic receipt print test'}}));
   await page.goto(`/print/voucher/qa-voucher?noprint=1&lang=${lang}`);
   await expect(page.locator('[data-document-ready="true"]')).toBeVisible();
+  await expect(page.locator('.voucher-page')).toContainText('EIN:');
+  await expect(page.locator('.voucher-page')).not.toContainText('VAT No.:');
   const screen = await page.locator('.voucher-page').boundingBox();
   await page.emulateMedia({media:'print'});
   const paper=await page.locator('.voucher-page').boundingBox();

@@ -318,8 +318,8 @@ export function VoucherPrintView() {
                   )}
                   <div style={{ marginTop: 4 }}>
                     {orgAddress && <div style={{ color: "#6B7280", fontSize: 10 }}>{orgAddress}</div>}
-                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{T("الرقم الضريبي:", "VAT No.:")} <span className="num">{org.vatNumber}</span></div>}
-                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{T("السجل التجاري:", "CR No.:")} <span className="num">{org.crNumber}</span></div>}
+                    {org.vatNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{org.country === "US" ? "EIN:" : T("الرقم الضريبي:", "VAT No.:")} <span className="num">{org.vatNumber}</span></div>}
+                    {org.crNumber && <div style={{ color: "#6B7280", fontSize: 10 }}>{org.country === "US" ? T("معرّف المنشأة:", "Entity ID:") : T("السجل التجاري:", "CR No.:")} <span className="num">{org.crNumber}</span></div>}
                   </div>
                 </div>
                 {printLogo ? (
