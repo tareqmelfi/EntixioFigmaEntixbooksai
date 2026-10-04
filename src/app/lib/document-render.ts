@@ -1117,7 +1117,9 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .party .n{font-size:10.5pt;font-weight:700;line-height:1.4}
 .edoc .party .n2{font-family:var(--font-latin);font-size:8.5pt;color:var(--muted);direction:ltr;text-align:${lang === "ar" ? "right" : "left"}}
 .edoc .party .d{font-size:8pt;color:var(--muted);line-height:1.55;margin-top:1.5mm;overflow-wrap:break-word}
-.edoc .meta-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:3mm;margin:0 0 5mm}
+.edoc .meta-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3mm;margin:0 0 5mm}
+.edoc .meta-strip > *{min-width:0}
+.edoc .meta-strip .v .num{white-space:normal;overflow-wrap:anywhere}
 .edoc .meta-strip .tile{background:var(--soft);border-radius:2mm;padding:3mm 4mm}
 .edoc .meta-strip .k{font-size:7.5pt;color:var(--muted);margin-bottom:.5mm}
 .edoc .meta-strip .v{font-size:10pt;font-weight:700}
