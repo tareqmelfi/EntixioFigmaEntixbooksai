@@ -26,6 +26,7 @@ async function setup(page: Page, lang: 'ar' | 'en' = 'en') {
       country: id === 'SIGNED' ? 'SA' : 'US', reason: id === 'SIGNED' ? 'zatca_record' : null,
       voidReason: id === 'PAID' ? 'receipts_exist' : id === 'SIGNED' ? 'zatca_record' : null } });
   });
+  await page.route('**/api/invoices/*/deletion-policy', route => route.fulfill({ json: { canDeletePermanently: false, reason: 'role_required' } }));
   await page.route('**/api/invoices/*/void-admin', route => {
     const id = route.request().url().split('/').at(-2)!; writes.push(id);
     expect(route.request().postDataJSON()).toEqual({ reason: 'Duplicate synthetic invoice', expectedUpdatedAt: '2026-10-04T00:00:00.000Z' });
@@ -44,7 +45,7 @@ for (const width of [390, 1400, 1920]) for (const lang of ['ar', 'en'] as const)
     const row = width < 768 ? page.getByRole('listitem').filter({ hasText: 'TEST-APPROVED' }) : page.getByRole('row').filter({ hasText: 'TEST-APPROVED' });
     const edit = row.getByRole('button', { name: lang === 'ar' ? 'تعديل' : 'Edit', exact: true });
     await expect(edit).toBeInViewport();
-    await expect(row.getByRole('button', { name: lang === 'ar' ? (width < 768 ? 'إلغاء الفاتورة' : 'إلغاء') : (width < 768 ? 'Void invoice' : 'Void'), exact: true })).toBeInViewport();
+    await expect(row.getByRole('button', { name: lang === 'ar' ? 'حذف / إلغاء' : 'Delete / void', exact: true })).toBeInViewport();
     await page.screenshot({ path: `/tmp/entix-visible-actions-${width}-${lang}.png`, fullPage: true });
     await edit.click();
     await expect(page.getByLabel(lang === 'ar' ? 'سعر الوحدة 1' : 'Unit price 1', { exact: true })).toHaveValue('100');
@@ -56,6 +57,7 @@ test('bulk removal reviews blockers, retains failed input, and retries only fail
   const { writes } = await setup(page);
   await page.goto('/app/invoices'); await page.getByRole('checkbox', { name: 'Select visible', exact: true }).check();
   await page.getByRole('button', { name: 'Delete / void selected', exact: true }).click();
+  await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await expect(page.getByTestId('removal-PAID')).toContainText('Linked payments or settlements');
   await expect(page.getByTestId('removal-SIGNED')).toContainText('protected e-invoicing record');
   await expect(page.getByRole('button', { name: 'Apply available (2)', exact: true })).toBeDisabled();
@@ -80,6 +82,7 @@ test('filtering removes hidden selection and changed draft cannot be deleted', a
   await page.getByPlaceholder('Search by number or customer...').fill('TEST-DRAFT');
   await expect(page.getByRole('button', { name: 'Edit selected in table (1)', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Delete / void selected', exact: true }).click();
+  await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await expect(page.getByTestId('removal-DRAFT')).toContainText('Delete draft');
   changed.add('DRAFT');
   await page.getByRole('button', { name: 'Apply available (1)', exact: true }).click();
@@ -92,6 +95,7 @@ test('failed permission check allows retry but no mutation', async ({ page }) =>
   const { writes } = await setup(page);
   await page.route('**/api/invoices/DRAFT/amendment-policy', route => route.fulfill({ status: 503, json: { error: 'unavailable' } }));
   await page.goto('/app/invoices'); await page.getByRole('row').filter({ hasText: 'TEST-DRAFT' }).getByTestId('invoice-row-remove').click();
+  await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Apply available (0)', exact: true })).toBeDisabled();
   await page.unroute('**/api/invoices/DRAFT/amendment-policy');
@@ -105,10 +109,12 @@ test('review links return to the selected invoice and double confirmation cannot
   const { writes } = await setup(page);
   await page.goto('/app/invoices');
   await page.getByRole('row').filter({ hasText: 'TEST-PAID' }).getByTestId('invoice-row-remove').click();
+  await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await page.getByRole('link', { name: 'Open invoice', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Invoice TEST-PAID', exact: true })).toBeVisible();
   await page.goto('/app/invoices');
   await page.getByRole('row').filter({ hasText: 'TEST-DRAFT' }).getByTestId('invoice-row-remove').click();
+  await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await page.getByRole('button', { name: 'Apply available (1)', exact: true }).click();
   await page.getByRole('button', { name: 'Yes', exact: true }).evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
   await expect(page.getByTestId('removal-DRAFT')).toContainText('Completed');

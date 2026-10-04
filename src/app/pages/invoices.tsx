@@ -1463,7 +1463,7 @@ export function Invoices() {
                       {invoiceStatusLabel(i, late, language)}
                     </span>
                     <button className="text-xs text-primary underline" onClick={() => openEdit(i, i.status === "DRAFT" ? undefined : "amend")}>{t("تعديل","Edit")}</button>
-                    <button className="text-xs text-danger underline" onClick={() => setRemovalIds([i.id])}>{i.status === "DRAFT" ? t("حذف", "Delete") : t("إلغاء الفاتورة", "Void invoice")}</button>
+                    <button className="text-xs text-danger underline" onClick={() => setRemovalIds([i.id])}>{["DRAFT", "CANCELLED"].includes(i.status) ? t("حذف", "Delete") : t("حذف / إلغاء", "Delete / void")}</button>
                     {isSA && <InvoiceZatcaLink invoice={i} />}
                     </span>
                   </span>
@@ -1608,8 +1608,8 @@ export function Invoices() {
                       className="rounded-full p-1.5 text-content-secondary hover:bg-surface-hover"
                       title={t("طباعة الفاتورة", "Print invoice")}
                     ><Printer className="h-4 w-4" strokeWidth={1.75} /></button>}
-                    <button onClick={() => setRemovalIds([i.id])} data-testid="invoice-row-remove" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-danger hover:border-border-strong">
-                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />{i.status === "DRAFT" ? t("حذف", "Delete") : t("إلغاء", "Void")}
+                    <button onClick={() => setRemovalIds([i.id])} data-testid="invoice-row-remove" aria-label={["DRAFT", "CANCELLED"].includes(i.status) ? t("حذف", "Delete") : t("حذف / إلغاء", "Delete / void")} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-danger hover:border-border-strong">
+                      <Trash2 className="h-3.5 w-3.5" strokeWidth={1.75} />{compactList || ["DRAFT", "CANCELLED"].includes(i.status) ? t("حذف", "Delete") : t("حذف / إلغاء", "Delete / void")}
                     </button>
                   </div>
                 </TableCell>
