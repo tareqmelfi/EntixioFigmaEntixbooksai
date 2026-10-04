@@ -790,7 +790,6 @@ export function Invoices() {
     const payLink = ((inv as any).__payLink || (inv as any).paymentLinkUrl) as string | undefined;
     const emailT = (ar: string, en: string) => ((inv as any).language || language) === "en" ? en : ar;
     return <>
-      <div role="status" className="mb-3 rounded-lg border border-border bg-card p-3 text-sm">{payLink ? t('رابط الدفع مرفق في الرسالة أدناه.', 'The payment link is included in the message below.') : t('هذه الرسالة بدون رابط دفع. يمكنك الرجوع وتجهيز الرابط من شاشة الفاتورة.', 'This message has no payment link. Go back to the invoice to prepare one.')}</div>
       <SendComposeForm
         entityType="invoice"
         entityId={inv.id}
