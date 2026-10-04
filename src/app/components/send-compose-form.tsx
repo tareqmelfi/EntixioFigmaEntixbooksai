@@ -9,7 +9,7 @@
  * Used from invoices.tsx / quotes.tsx / credit-notes.tsx — pass the entity
  * identity + sensible ar/en defaults, this component owns the rest.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Mail, Paperclip, Plus } from "lucide-react";
 import { FullPageForm } from "./full-page-form";
 import { Button } from "./ui/button";
@@ -17,7 +17,9 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { useLanguage } from "./LanguageContext";
-import { api, ApiError, DocumentSendEntityType, DocumentSendRecord } from "../lib/api";
+import { api, ApiError, getOrgId, DocumentSendEntityType, DocumentSendRecord } from "../lib/api";
+
+import { paymentUrl } from "../lib/document-render";
 
 export interface SendComposeAttachment {
   name: string;
@@ -58,6 +60,14 @@ function parseEmailList(raw: string): string[] {
     .filter(Boolean);
 }
 
+// The composer owns only its labelled payment line; other links and authored text stay intact.
+const PAYMENT_LINE = /^(?:Payment link|رابط الدفع):[ \t]*(.*)$/m;
+function messagePaymentLink(body: string) { return paymentUrl(body.match(PAYMENT_LINE)?.[1]); }
+function withPaymentLink(body: string, url: string, label: string): string {
+  const line = url ? `${label}: ${url}` : "";
+  return PAYMENT_LINE.test(body) ? body.replace(PAYMENT_LINE, () => line) : line ? `${body.trimEnd()}\n\n${line}` : body;
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function SendComposeForm({
@@ -71,7 +81,67 @@ export function SendComposeForm({
   const [bcc, setBcc] = useState((prefill?.bcc || []).join(", "));
   const [subject, setSubject] = useState(prefill?.subject ?? defaultSubject);
   const [body, setBody] = useState(prefill?.body ?? defaultBody);
-  const [busy, setBusy] = useState<"send" | "draft" | null>(null);
+  const [busy, setBusy] = useState<"send" | "draft" | "payment" | null>(null);
+  const canPay = entityType === "invoice" || entityType === "quote";
+  const initialLink = messagePaymentLink(prefill?.body ?? defaultBody);
+  const [paymentLink, setPaymentLink] = useState(initialLink);
+  const [includePayment, setIncludePayment] = useState(!!initialLink);
+  const [paymentDefault, setPaymentDefault] = useState(initialLink);
+  const [paymentLoading, setPaymentLoading] = useState(canPay);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paymentRevision, setPaymentRevision] = useState(0);
+  const paymentTouched = useRef(!!prefill);
+  const mounted = useRef(true);
+  const paymentLabel = /[\u0600-\u06ff]/.test(defaultBody) ? "رابط الدفع" : "Payment link";
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    if (!canPay) return;
+    let cancelled = false;
+    const orgId = getOrgId();
+    const current = () => !cancelled && getOrgId() === orgId;
+    setPaymentLoading(true); setPaymentError(null);
+    (async () => {
+      try {
+        const doc = entityType === "invoice" ? await api.invoices.get(entityId) : await api.quotes.get(entityId);
+        if (!current()) return;
+        let url = paymentUrl((doc as { paymentLinkUrl?: string }).paymentLinkUrl);
+        if (!url) {
+          const resolved = await api.documentTemplates.resolve(entityType === "invoice" ? "INVOICE" : "QUOTE", doc.lines || [], doc.templateId);
+          if (!current()) return;
+          if (resolved.templateId) url = paymentUrl((await api.documentTemplates.get(resolved.templateId)).paymentLinkUrl);
+        }
+        if (!current()) return;
+        setPaymentDefault(url);
+        if (!paymentTouched.current) {
+          setPaymentLink(url); setIncludePayment(!!url);
+          setBody(value => withPaymentLink(value, url, paymentLabel));
+        }
+      } catch {
+        if (current()) setPaymentError(t("تعذر تحميل رابط الدفع الافتراضي. يمكنك إعادة المحاولة أو إدخال رابطك.", "Could not load the default payment link. Retry or enter your own link."));
+      } finally { if (current()) setPaymentLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [entityType, entityId, canPay, paymentRevision, paymentLabel, t]);
+  const choosePayment = (url: string, include = true) => {
+    paymentTouched.current = true;
+    setPaymentLink(url); setIncludePayment(include);
+    setBody(value => withPaymentLink(value, include ? url : "", paymentLabel));
+  };
+  const createPaymentLink = async () => {
+    if (busy) return;
+    paymentTouched.current = true;
+    const orgId = getOrgId();
+    setBusy("payment"); setPaymentError(null);
+    try {
+      const result = await api.paymentLinks.create(entityId, "auto");
+      if (!mounted.current || getOrgId() !== orgId) return;
+      const url = paymentUrl(result.url);
+      if (!url) throw Error("Invalid payment URL");
+      setPaymentDefault(url); choosePayment(url);
+    } catch (e) {
+      if (mounted.current && getOrgId() === orgId) setPaymentError(e instanceof ApiError ? e.message : t("تعذر تجهيز رابط الدفع", "Could not prepare the payment link"));
+    } finally { if (mounted.current) setBusy(null); }
+  };
   const [error, setError] = useState<string | null>(null);
 
   const toList = useMemo(() => parseEmailList(to), [to]);
@@ -80,13 +150,16 @@ export function SendComposeForm({
   const invalidTo = toList.filter((e) => !EMAIL_RE.test(e));
 
   const submit = async (action: "send" | "draft") => {
+    if (busy) return;
     setError(null);
+    if (canPay && includePayment && !paymentUrl(paymentLink)) { setError(t("أدخل رابط دفع صالحًا أو ألغِ تضمين الرابط", "Enter a valid payment URL or turn off the payment link")); return; }
     if (action === "send") {
       if (toList.length === 0) { setError(t("أضف مستلماً واحداً على الأقل", "Add at least one recipient")); return; }
       if (invalidTo.length > 0) { setError(t(`بريد غير صالح: ${invalidTo.join(", ")}`, `Invalid email address: ${invalidTo.join(", ")}`)); return; }
       if (!subject.trim()) { setError(t("أضف عنواناً للرسالة", "Add a subject")); return; }
       if (!body.trim()) { setError(t("أضف نص الرسالة", "Add a message body")); return; }
     }
+    paymentTouched.current = true; // Freeze the reviewed message while a default request is still pending.
     setBusy(action);
     try {
       const r = await api.documentSends.create({
@@ -98,6 +171,7 @@ export function SendComposeForm({
         action,
       });
       if (!r.ok) {
+        setError(r.message || t("تعذر إرسال البريد", "Could not send the email"));
         push("error", r.message || t("تعذر إرسال البريد", "Could not send the email"));
         onSent(r.send); // still surface the FAILED attempt in the log
         return;
@@ -182,8 +256,30 @@ export function SendComposeForm({
         </div>
 
         <div className="grid gap-2">
+          {canPay && <fieldset className="space-y-2 rounded-lg border border-border p-3" disabled={busy !== null} data-testid="send-payment-options">
+            <legend className="px-1 text-sm font-medium">{t("الدفع في الرسالة", "Payment in this message")}</legend>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={includePayment} onChange={e => choosePayment(paymentLink, e.target.checked)} data-testid="send-payment-include" />
+              {t("تضمين رابط الدفع", "Include a payment link")}
+            </label>
+            {includePayment && <div className="space-y-1">
+              <Label htmlFor="send-payment-url">{t("رابط الدفع", "Payment link")}</Label>
+              <Input id="send-payment-url" dir="ltr" value={paymentLink} onChange={e => choosePayment(e.target.value)} placeholder="https://…" data-testid="send-payment-url" />
+            </div>}
+            <div className="flex flex-wrap gap-2">
+              {paymentDefault && <Button type="button" variant="outline" size="sm" onClick={() => choosePayment(paymentDefault)} data-testid="send-payment-default">{t("استخدام الرابط الافتراضي", "Use default link")}</Button>}
+              {entityType === "invoice" && <Button type="button" variant="outline" size="sm" onClick={createPaymentLink} data-testid="send-payment-online">{busy === "payment" ? "…" : t("تجهيز رابط دفع للفاتورة", "Prepare invoice payment link")}</Button>}
+              {paymentError && <Button type="button" variant="outline" size="sm" onClick={() => setPaymentRevision(value => value + 1)}>{t("إعادة تحميل الافتراضي", "Reload default")}</Button>}
+            </div>
+            {paymentLoading && <p role="status" className="text-xs text-muted-foreground">{t("جاري تحميل الرابط الافتراضي…", "Loading the default link…")}</p>}
+            {paymentError && <p role="alert" className="text-xs text-danger">{paymentError}</p>}
+            <p className="text-xs text-muted-foreground">{t("التغيير هنا يخص هذه الرسالة. تجهيز رابط للفاتورة يحفظه عليها ولا يرسل الرسالة.", "Changes here apply to this message. Preparing an invoice link saves it on the invoice without sending the message.")}</p>
+          </fieldset>}
           <Label htmlFor="send-body">{t("نص الرسالة", "Message")}</Label>
-          <Textarea id="send-body" value={body} onChange={(e) => setBody(e.target.value)} rows={10} data-testid="send-compose-body" />
+          <Textarea id="send-body" value={body} onChange={(e) => {
+            paymentTouched.current = true; setBody(e.target.value);
+            const url = messagePaymentLink(e.target.value); setPaymentLink(url); setIncludePayment(!!url);
+          }} rows={10} data-testid="send-compose-body" />
         </div>
 
         <div className="grid gap-2">

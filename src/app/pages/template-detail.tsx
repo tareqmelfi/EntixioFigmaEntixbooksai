@@ -24,7 +24,7 @@ import { downscaleDataUrl } from "../lib/print-image";
 import { TemplateIdentitySection, EMPTY_IDENTITY, identityFromTemplate, identityPayload, type IdentityValues } from "../components/template-identity-section";
 import { TemplateAutoRuleSection, EMPTY_AUTO_RULE, autoRuleFromTemplate, autoRulePayload, type AutoRuleValues } from "../components/template-auto-rule";
 import {
-  sampleInput, partyFromOrg, normalizeSections, SECTION_META,
+  sampleInput, partyFromOrg, normalizeSections, SECTION_META, paymentUrl,
   DEFAULT_BRAND_COLOR, DEFAULT_COVER_COLOR, LEGACY_PRIMARY_COLOR, LEGACY_ACCENT_COLOR,
   type DocKind, type DocLang, type SectionSetting, type BankSpec, type RenderOutput,
 } from "../lib/document-render";
@@ -52,7 +52,7 @@ const EMPTY_FORM = {
   brandColor: DEFAULT_BRAND_COLOR, coverColor: DEFAULT_COVER_COLOR,
   sections: normalizeSections(null) as SectionSetting[],
   termsEn: "", closingTerms: "", closingTermsEn: "",
-  bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryTitleAr: "", signatoryEmail: "", signatoryPhone: "",
+  paymentLinkUrl: "", bankAccountId: "", signatoryName: "", signatoryTitle: "", signatoryTitleAr: "", signatoryEmail: "", signatoryPhone: "",
   stampUrl: "", footerText: "", classification: "", classificationEn: "", wordmarkAccent: "",
 };
 
@@ -130,6 +130,7 @@ export function TemplateDetail() {
         brandColor: tpl.brandColor || tpl.accentColor || DEFAULT_BRAND_COLOR, coverColor: tpl.coverColor || tpl.primaryColor || DEFAULT_COVER_COLOR,
         sections: normalizeSections(tpl.sections),
         termsEn: tpl.termsEn || "", closingTerms: tpl.closingTerms || "", closingTermsEn: tpl.closingTermsEn || "",
+        paymentLinkUrl: tpl.paymentLinkUrl || "",
         bankAccountId: tpl.bankAccountId || "", signatoryName: tpl.signatoryName || "", signatoryTitle: tpl.signatoryTitle || "", signatoryTitleAr: (tpl as any).signatoryTitleAr || "",
         signatoryEmail: tpl.signatoryEmail || "", signatoryPhone: tpl.signatoryPhone || "",
         stampUrl: tpl.stampUrl || "", footerText: tpl.footerText || "", classification: tpl.classification || "", classificationEn: tpl.classificationEn || "", wordmarkAccent: (tpl as any).wordmarkAccent || "",
@@ -155,6 +156,7 @@ export function TemplateDetail() {
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!form.name.trim()) { setError(t("اسم القالب مطلوب", "Template name is required")); return; }
+    if (form.paymentLinkUrl.trim() && !paymentUrl(form.paymentLinkUrl)) { setError(t("أدخل رابط دفع صالحًا يبدأ بـ https://", "Enter a valid payment URL starting with https://")); return; }
     setBusy(true); setError(null);
     try {
       const payload = {
@@ -166,6 +168,7 @@ export function TemplateDetail() {
         coverTitleEn: form.coverTitleEn || null, coverIntroEn: form.coverIntroEn || null,
         brandColor: form.brandColor, coverColor: form.coverColor, sections: form.sections,
         termsEn: form.termsEn || null, closingTerms: form.closingTerms || null, closingTermsEn: form.closingTermsEn || null,
+        paymentLinkUrl: paymentUrl(form.paymentLinkUrl) || null,
         bankAccountId: form.bankAccountId || null,
         signatoryName: form.signatoryName || null, signatoryTitle: form.signatoryTitle || null, signatoryTitleAr: form.signatoryTitleAr || null,
         signatoryEmail: form.signatoryEmail || null, signatoryPhone: form.signatoryPhone || null,
@@ -394,7 +397,12 @@ export function TemplateDetail() {
               <textarea rows={7} value={form.closingTermsEn} onChange={(e) => set("closingTermsEn", e.target.value)} className={field} dir="ltr" placeholder={DEFAULT_CLOSING_EN} data-testid="closing-en" /></div>
           </Section>
 
-          <Section title={t("الحساب البنكي", "Bank account")}>
+          <Section title={t("طريقة الدفع", "Payment method")}>
+            <div className="space-y-2">
+              <Label htmlFor="template-payment-link">{t("رابط الدفع الافتراضي (اختياري)", "Default payment link (optional)")}</Label>
+              <Input id="template-payment-link" data-testid="template-payment-link" dir="ltr" value={form.paymentLinkUrl} onChange={e => set("paymentLinkUrl", e.target.value)} placeholder="https://…" />
+              <p className="text-xs text-muted-foreground">{t("يظهر الرابط وQR أسفل الشروط بدل التحويل البنكي. يمكنك تغييره أو إزالته من رسالة الإرسال؛ رابط الفاتورة الخاص له الأولوية.", "The link and QR appear below the terms instead of bank details. You can change or omit it in the send message; an invoice-specific link takes precedence.")}</p>
+            </div>
             <SearchableCombobox
               value={form.bankAccountId}
               onChange={(v) => set("bankAccountId", v)}

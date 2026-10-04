@@ -216,6 +216,8 @@ export interface TemplateSpec {
   showLogo?: boolean | null;
   showTaxBreakdown?: boolean | null;
   showTerms?: boolean | null;
+  /** Reusable payment destination; a document-specific link takes precedence. */
+  paymentLinkUrl?: string | null;
   /** Template note (the stored record's `notes`) · identity quote: the tax note under the QR card */
   notes?: string | null;
   // ── identity (all optional · null = Ledger behaviour) ──
@@ -665,6 +667,30 @@ function textHeight(text: string, colMm: number, lineMm = 5.2, charMm = 1.75): n
   return Math.max(1, n) * lineMm;
 }
 
+/** Payment destinations are web links, never image/data URLs or credential-bearing URLs. */
+export function paymentUrl(value: unknown): string {
+  const text = String(value ?? "").trim();
+  if (!/^https?:\/\//i.test(text) || text.length > 2000 || /[\s<>"']/u.test(text)) return "";
+  try {
+    const url = new URL(text);
+    return url.hostname && !url.username && !url.password ? text : "";
+  } catch { return ""; }
+}
+
+/** Bounded text fragments keep a single long clause from exceeding an A4 sheet.
+ * Whitespace at the split is retained, so no authored text disappears. */
+function textFragments(text: string, max = 900): string[] {
+  const out: string[] = [];
+  while (text.length > max) {
+    const space = text.lastIndexOf(" ", max);
+    const cut = space >= max / 2 ? space + 1 : max;
+    out.push(text.slice(0, cut));
+    text = text.slice(cut);
+  }
+  if (text || !out.length) out.push(text);
+  return out;
+}
+
 // ─── paginator ──────────────────────────────────────────────────────────────
 
 type Block =
@@ -672,7 +698,7 @@ type Block =
    *  (a note «near the footer») · never overlaps the footer band because it is part of the budget. */
   | { kind: "html"; h: number; html: string; keepWithNext?: boolean; forceBreak?: boolean; bottom?: boolean; optional?: boolean }
   /** `cont` · continuation caption («يتبع») printed under a table that splits to the next sheet · budgeted 6mm */
-  | { kind: "table"; open: string; head: string; headH: number; rows: Array<{ h: number; html: string }>; close: string; cont?: string };
+  | { kind: "table" | "flow"; open: string; head: string; headH: number; rows: Array<{ h: number; html: string }>; close: string; cont?: string };
 
 interface Sheet { flow: string; bottom: string; used: number }
 
@@ -735,7 +761,8 @@ function identityCss(idn: CssIdentity, lang: DocLang): string {
 /* corners · one token for every box in identity mode (ink-white = 2px) · chips stay pills */
 .edoc.idn .card,.edoc.idn .totals,.edoc.idn .nb,.edoc.idn .flag,.edoc.idn .qr-side .qr,.edoc.idn .epay .qr,.edoc.idn .notes,.edoc.idn .expl,.edoc.idn .meta-strip .tile,.edoc.idn .tile2,.edoc.idn .note,.edoc.idn .pg-note,.edoc.idn .pg-fig img{border-radius:var(--radius)}
 /* Word-like sheet: a flex column so bottom-slot blocks sit above the footer band, inside the budget */
-.edoc.idn .pgflow{display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden}
+.edoc.idn .pgflow{display:flex;flex-direction:column;height:100%;min-height:0}
+.edoc.idn .pgflow>*{flex-shrink:0}
 .edoc.idn .pgbottom{margin-top:auto;padding-top:4mm}
 .edoc.idn .cont{font-size:7.5pt;color:var(--muted);text-align:end;padding:1.5mm 0 0;font-style:italic}
 /* section heading · Arabic bold + Latin caption · start-aligned */
@@ -1131,13 +1158,18 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc .qr-side{display:flex;flex-direction:column;align-items:flex-start;gap:2mm;font-size:7.5pt;color:var(--muted);max-width:60mm}
 .edoc .qr-side .qr{width:26mm;height:26mm;border:.5pt solid var(--rule);border-radius:1.5mm;padding:1.5mm;background:#fff}
 .edoc .qr-side .qr svg{width:100%;height:100%;display:block}
+.edoc .terms-flow{margin:0 0 6mm}
+.edoc .terms-flow .term-row{font-size:8.5pt;line-height:1.65;margin:0 0 2mm;white-space:pre-wrap;overflow-wrap:anywhere}
+.edoc .terms-flow .term-row bdi{overflow-wrap:anywhere}
+.edoc .terms-flow .term-row b{display:block;color:var(--ink)}
+.edoc .terms-flow .term-row span{color:var(--muted)}
 .edoc .cards{display:grid;grid-template-columns:1fr 1fr;gap:5mm;margin:0 0 6mm}
 .edoc .card{border:.5pt solid var(--rule);border-radius:2.5mm;padding:4mm 5mm;min-height:20mm;break-inside:avoid}
 .edoc .card .t{font-weight:700;font-size:10pt;margin-bottom:2.5mm}
 .edoc .card ul{margin:0;padding:0;list-style:none}
 .edoc .card li{position:relative;padding-inline-start:4mm;font-size:8.5pt;line-height:1.65;color:var(--ink);margin-bottom:1.2mm;overflow-wrap:break-word}
 .edoc .card li::before{content:"";position:absolute;inset-inline-start:0;top:2.6mm;width:1.6mm;height:1.6mm;border-radius:50%;background:var(--brand)}
-.edoc .epay{display:grid;grid-template-columns:24mm 1fr;gap:4mm;align-items:start}
+.edoc .epay{display:grid;grid-template-columns:24mm minmax(0,1fr);gap:4mm;align-items:start}
 .edoc .epay .qr{width:24mm;height:24mm;border:.5pt solid var(--rule);border-radius:1.5mm;padding:1.5mm;background:#fff}
 .edoc .epay .qr svg{width:100%;height:100%;display:block}
 .edoc .epay p{margin:0 0 2mm;font-size:8.5pt;line-height:1.6}
@@ -1665,29 +1697,38 @@ export function renderDocument(input: RenderInput): RenderOutput {
     return { kind: "html", h, html: `<div class="totals-row"><div>${side}</div>${words ? `<div><div class="totals">${rows.join("")}</div>${words}</div>` : `<div class="totals">${rows.join("")}</div>`}</div>` };
   };
 
-  const termsBlock = (): Block | null => {
+  const termsBlocks = (): Block[] => {
     const raw = ar ? (doc.termsConditions || tpl.terms || "") : (doc.termsConditions || tpl.termsEn || tpl.terms || "");
     const items = tpl.showTerms === false ? [] : lines(raw);
-    const link = safeUrl(doc.paymentLinkUrl);
-    // «خارج نطاق هذا العرض» · mandatory boxed block · document override → template default
-    const oosRaw = identity ? String(doc.outOfScope || (ar ? tpl.outOfScope : (tpl.outOfScopeEn || tpl.outOfScope)) || "") : "";
-    const oos = lines(oosRaw);
-    if (!items.length && !link && !oos.length) return null;
-    const oosBox = oos.length ? `<div class="nb oos"><div class="t">${isQuote ? t("خارج نطاق هذا العرض:", "Outside the scope of this offer:") : t("خارج نطاق هذا المستند:", "Outside the scope of this document:")}</div><ul>${oos.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
-    const termsCard = identity
-      ? ((items.length || oosBox) ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div>${items.length ? `<div class="terms2">${items.map((i) => { const c = clause(i); return `<div class="ti">${c.title ? `<b>${bdi(c.title)}</b>` : ""}<span>${bdi(c.text)}</span></div>`; }).join("")}</div>` : ""}${oosBox}</div>` : "")
-      : items.length ? `<div class="card"><div class="t">${isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms")}</div><ul>${items.map((i) => `<li>${bdi(i)}</li>`).join("")}</ul></div>` : "";
-    const payAmount = `${cur} ${money(isQuote ? doc.total : Math.max(due, 0))}`;
+    const oos = identity ? lines(doc.outOfScope || (ar ? tpl.outOfScope : (tpl.outOfScopeEn || tpl.outOfScope)) || "") : [];
+    const card = (title: string, content: string[], scope = false): Block => ({
+      // A flow repeats its card heading on continuation sheets, just as tables repeat their head.
+      kind: "flow", open: `<div class="card terms-flow${scope ? " oos" : ""}">`,
+      head: `<div class="t">${esc(title)}</div>`, headH: 23, close: "</div>",
+      rows: content.flatMap(item => {
+        const c = clause(item);
+        return textFragments(c.text).map((part, index) => ({
+          h: 2.5 + textHeight(part, 160, 5, 1.45) + (index === 0 && c.title ? textHeight(c.title, 160, 5, 1.45) : 0),
+          html: `<div class="term-row">${index === 0 && c.title ? `<b>${bdi(c.title)}</b>` : ""}<span>${bdi(part)}</span></div>`,
+        }));
+      }),
+    });
+    const result: Block[] = [];
+    if (items.length) result.push(card(isQuote ? t("شروط العرض", "Terms of this offer") : t("شروط السداد", "Payment terms"), items));
+    if (oos.length) result.push(card(isQuote ? t("خارج نطاق هذا العرض:", "Outside the scope of this offer:") : t("خارج نطاق هذا المستند:", "Outside the scope of this document:"), oos, true));
+    return result;
+  };
+
+  const link = paymentUrl(doc.paymentLinkUrl) || paymentUrl(tpl.paymentLinkUrl);
+  const paymentBlock = (): Block | null => {
+    if (!link) return null;
     const settled = !isQuote && due <= 0;
+    const payAmount = `${cur} ${money(isQuote ? doc.total : Math.max(due, 0))}`;
     const payNote = settled
       ? t("هذه الفاتورة مسددة بالكامل. افتح الرابط لمراجعة المستند الأصلي وإثبات السداد.", "This invoice is fully paid. Open the link to review the original invoice and payment confirmation.")
-      : orgTaxRegistered
-      ? t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — المبلغ شامل الضريبة، بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — tax included, no extra fees.`)
-      : t(`امسح الرمز أو افتح الرابط وادفع الإجمالي ${payAmount} بخطوة واحدة — بلا رسوم إضافية.`, `Scan the code or open the link and pay ${payAmount} in one step — no extra fees.`);
-    const payCard = link ? `<div class="card"><div class="t">${settled ? t("الفاتورة الأصلية وإثبات السداد", "Original invoice and payment confirmation") : t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${payNote}</p><a href="${esc(link)}">${esc(link)}</a>${settled ? "" : `<div class="chips"><span class="chip">Apple Pay ✓</span><span class="chip">${t("بطاقة ائتمانية / مدى", "Credit card / mada")} ✓</span><span class="chip">${t("بوابة دفع مؤمَّنة", "Secure gateway")} 🔒</span></div>`}</div></div></div>` : "";
-    const h = 20 + Math.max(items.reduce((s, i) => s + textHeight(i, 70, 5.2, 1.7), 0) / (identity && !payCard ? 2 : 1) + (oos.length ? 12 + oos.reduce((s, i) => s + textHeight(i, payCard ? 70 : 160, 5, 1.7), 0) : 0), link ? 42 : 0);
-    const html = termsCard && payCard ? `<div class="cards">${termsCard}${payCard}</div>` : `<div class="cards" style="grid-template-columns:1fr">${termsCard || payCard}</div>`;
-    return { kind: "html", h, html };
+      : t(`امسح الرمز أو افتح الرابط للدفع. المتبقي: ${payAmount}.`, `Scan the code or open the link to pay. Amount due: ${payAmount}.`);
+    return { kind: "html", h: 27 + Math.max(24, 12 + textHeight(link, 134, 4.5, 1.65)),
+      html: `<div class="cards" style="grid-template-columns:1fr"><div class="card payment-card"><div class="t">${settled ? t("الفاتورة الأصلية وإثبات السداد", "Original invoice and payment confirmation") : t("الدفع الإلكتروني المباشر", "Pay online")}</div><div class="epay"><div class="qr">${qrSvg(link)}</div><div><p>${payNote}</p><a href="${esc(link)}">${esc(link)}</a></div></div></div></div>` };
   };
 
   const planBlock = (): Block | null => {
@@ -1731,6 +1772,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   };
 
   const bankBlock = (): Block | null => {
+    if (link) return paymentBlock();
     const b = input.bank;
     if (!b || (!b.iban && !b.accountNumber)) return null;
     const dl: string[] = [];
@@ -1960,13 +2002,15 @@ export function renderDocument(input: RenderInput): RenderOutput {
   /** Delivery & bank page · facts table · note · bank card · beneficiary rows · stamp bottom-start */
   const identityDeliveryPage = () => {
     const facts = (Array.isArray(tpl.deliveryFacts) ? tpl.deliveryFacts : []).filter((f) => f && (f.label || f.value)).slice(0, 10);
-    const b = on("bank") ? input.bank : null;
+    const online = (on("bank") || on("terms")) ? paymentBlock() : null;
+    const b = on("bank") && !online ? input.bank : null;
     const hasBank = !!(b && (b.iban || b.accountNumber));
     const dn = String(tpl.deliveryNote || "").trim();
-    if (!facts.length && !hasBank && !dn) return;
-    blocks.push(pageTitle(t("مدة التنفيذ والحساب البنكي", "Delivery & bank details"), "DELIVERY & BANK DETAILS"));
+    if (!facts.length && !hasBank && !dn && !online) return;
+    blocks.push(pageTitle(online ? t("التنفيذ والدفع", "Delivery & payment") : t("مدة التنفيذ والحساب البنكي", "Delivery & bank details"), online ? "DELIVERY & PAYMENT" : "DELIVERY & BANK DETAILS"));
     if (facts.length) blocks.push(kvTable(facts.map((f) => [f.label, bdi(f.value)])));
     if (dn) blocks.push(noteBox(bdi(dn), dn));
+    if (online) blocks.push(online);
     if (hasBank && b) {
       blocks.push(sectionHead(t("الحساب البنكي", "Bank details"), "BANK DETAILS", t("التحويل باسم المنشأة فقط", "transfers in the company's name only")));
       const bankLogo = safeUrl(tpl.bankLogoUrl);
@@ -1999,6 +2043,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const oos = lines(oosRaw);
     if (!items.length && !oos.length) return;
     blocks.push(pageTitle(t("الشروط والأحكام", "Terms & conditions"), "TERMS & CONDITIONS"));
+    if (items.some(it => it.body.length > 900 || it.title.length > 160) || oos.join(" ").length > 900) {
+      blocks.push(...termsBlocks());
+      return;
+    }
     // column order like the reference (1-4 start column · 5-8 end column) · each grid row is one
     // paginator block, so a term never splits across a column or a page
     const cell = (it: { title: string; body: string } | undefined, i: number) => it ? `<div class="ti"><b><span class="no">${i + 1}.</span> ${it.title ? bdi(it.title) : ""}</b><span>${bdi(it.body)}</span></div>` : `<div class="ti"></div>`;
@@ -2047,9 +2095,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
       case "header": b = headerBlock(); break;
       case "items": b = itemsBlock(); break;
       case "totals": b = totalsBlock(); break;
-      case "terms": b = termsBlock(); break;
+      case "terms": blocks.push(...termsBlocks()); if (!on("bank") || order.indexOf("bank") < order.indexOf("terms")) b = paymentBlock(); break;
       case "paymentPlan": b = planBlock(); break;
-      case "bank": b = bankBlock(); break;
+      case "bank": if (!(link && on("terms") && order.indexOf("bank") < order.indexOf("terms"))) b = bankBlock(); break;
       case "company": b = hasClosing || identity ? null : companyBlock(); break;
       case "signatory": b = hasClosing ? null : signatoryBlock(); break;
       default: b = null;
@@ -2120,15 +2168,16 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // داعي أو انه يتوسع» — no sheet is ever emitted mostly empty).
   if (identityQuote) {
     if (on("paymentPlan")) identityPlanPage();
+    if (link && (on("terms") || on("closing"))) identityTermsPage();
     identityDeliveryPage();
-    if (on("terms") || on("closing")) identityTermsPage();
+    if (!link && (on("terms") || on("closing"))) identityTermsPage();
     identityApprovalPage();
   } else if (hasClosing) {
     const clauses = closingLines.map(clause);
-    const rows = clauses.map((c, i) => ({
-      h: 4 + textHeight(c.text, 118, 4.5, 1.42),
-      html: `<tr><td class="idx">${String(i + 1).padStart(2, "0")}</td><td class="ttl">${bdi(c.title || "—")}</td><td>${bdi(c.text)}</td></tr>`,
-    }));
+    const rows = clauses.flatMap((c, i) => textFragments(c.text).map((part, fragment) => ({
+      h: 5 + textHeight(part, 118, 4.8, 1.7),
+      html: `<tr><td class="idx">${String(i + 1).padStart(2, "0")}</td><td class="ttl">${bdi(fragment ? t("يتبع", "continued") : c.title || "—")}</td><td>${bdi(part)}</td></tr>`,
+    })));
     const intro: Block = { kind: "html", h: 26, forceBreak: true, html: `<div class="h2">${t("الشروط والأحكام", "Terms & conditions")}</div><p class="lead">${isQuote
       ? t(`تسري هذه الشروط على عرض السعر ${doc.number} والفاتورة الصادرة بموجبه، وتُعد جزءًا لا يتجزأ من الاتفاق بين الطرفين.`, `These terms apply to quotation ${doc.number} and any invoice issued under it, and form an integral part of the agreement between the parties.`)
       : t(`تسري هذه الشروط على الفاتورة ${doc.number}${doc.reference ? ` بمرجع ${doc.reference}` : ""}.`, `These terms apply to invoice ${doc.number}${doc.reference ? ` (ref. ${doc.reference})` : ""}.`)}</p>` };
@@ -2424,7 +2473,7 @@ export function sampleInput(kind: DocKind, lang: DocLang, template: TemplateSpec
     taxTotal: tax,
     total: subtotal + tax,
     amountPaid: 0,
-    paymentLinkUrl: "https://buy.stripe.com/cNiaEWcmM6RR5iVg0n7Vm0H",
+    paymentLinkUrl: paymentUrl(template?.paymentLinkUrl) || null,
     paymentPlan: kind === "QUOTE" ? [1, 2, 3, 4, 5].map((y) => ({ label: y === 1 ? (ar ? "عند قبول العرض — تفعيل الحساب" : "On acceptance — account activation") : (ar ? `مقدّمًا قبل بداية سنة الاشتراك ${y}` : `In advance before subscription year ${y}`), net: 1200, tax: 180, total: 1380 })) : null,
     qrPayload: kind === "INVOICE" ? "AQ9TYW1wbGUgU2VsbGVyAg8zMTE2OTE3NzUyMDAwMDMDFDIwMjYtMDktMDdUMDA6MDA6MDBaBAc0NDg1LjAwBQY1ODUuMDA=" : null,
   };

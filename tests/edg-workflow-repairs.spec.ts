@@ -12,6 +12,7 @@ const quote = {
 
 async function quotesFixture(page: Page, language: 'en' | 'ar' = 'en') {
   await prepareVisualApp(page, language)
+  await page.route('**/api/document-templates/resolve', r => r.fulfill({ json: { templateId: null, reason: 'none' } }))
   await page.route('**/api/document-templates/render/QUOTE/**', r => r.fulfill({ contentType: 'text/html', body: renderDocument({ ...sampleInput('QUOTE', language), actions: false }).html.replace('</head>', `<meta name="entix-document-hash" content="${'b'.repeat(64)}"></head>`) }))
   await page.route('https://api.entix.io/api/contacts**', r => r.fulfill({ json: { items: [quote.contact] } }))
   await page.route('https://api.entix.io/api/payment-plans/templates', r => r.fulfill({ json: { items: [] } }))
@@ -209,11 +210,13 @@ for (const language of ['en', 'ar'] as const) {
     await page.getByRole('button', { name: language === 'ar' ? 'إرسال' : 'Send', exact: true }).first().click()
     await expect(page.getByTestId('send-compose-to')).toHaveValue('customer@example.test')
     await expect(page.getByTestId('send-compose-submit')).toBeVisible()
-    expect(posts).toEqual([])
+    // Resolving the default template is a read-only POST; no send/sign mutation is allowed.
+    await expect.poll(() => posts).toEqual(['/api/document-templates/resolve'])
     await page.goto('/app/quotes/quote-edg')
     await page.getByTestId('quote-request-signature').click()
     await expect(page.getByRole('button', { name: language === 'ar' ? 'تجهيز رابط التوقيع' : 'Prepare signing link', exact: true })).toBeEnabled()
     await expect(page.getByTestId('send-compose-submit')).toHaveCount(0)
-    expect(posts).toEqual([])
+    // Resolving the default template is a read-only POST; no send/sign mutation is allowed.
+    await expect.poll(() => posts).toEqual(['/api/document-templates/resolve'])
   })
 }

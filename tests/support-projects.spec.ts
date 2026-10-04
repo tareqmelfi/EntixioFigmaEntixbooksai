@@ -37,5 +37,9 @@ test('issued invoices visibly prepare a payment link and include it when composi
  await page.route('**/api/payment-links/invoice/inv-payment',r=>{prepared++;inv.paymentLinkUrl='https://checkout.stripe.com/c/pay/cs_test_example';inv.paymentLinkProvider='stripe';return r.fulfill({json:{url:inv.paymentLinkUrl,id:'cs_test_example',provider:'stripe'}})});
  await page.goto('/app/invoices/inv-payment');await page.getByRole('button',{name:'Prepare / refresh payment link',exact:true}).click();
  await expect(page.getByRole('link',{name:/Open payment link/})).toHaveAttribute('href',inv.paymentLinkUrl);expect(prepared).toBe(1);
- await page.getByTestId('issued-invoice-send').click();await expect(page.getByText(/payment link is included/i)).toBeVisible();
+ await page.getByTestId('issued-invoice-send').click();
+ await expect(page.getByTestId('send-payment-include')).toBeChecked();
+ await expect(page.getByTestId('send-payment-url')).toHaveValue(inv.paymentLinkUrl);
+ await expect(page.getByTestId('send-compose-body')).toHaveValue(new RegExp(inv.paymentLinkUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+ expect(prepared).toBe(1);
 });
