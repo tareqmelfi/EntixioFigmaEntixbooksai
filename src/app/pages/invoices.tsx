@@ -1447,7 +1447,7 @@ export function Invoices() {
             const late = overdueDays(i);
             return (
               <li key={i.id}>
-                {<label className="text-xs"><input type="checkbox" aria-label={`${t("تحديد","Select")} ${i.invoiceNumber}`} checked={checkedIds.includes(i.id)} onChange={() => toggleChecked(i.id)} /> {i.invoiceNumber}</label>}
+                {<label className="text-xs"><input type="checkbox" aria-label={`${t("تحديد","Select")} ${i.invoiceNumber}`} checked={checkedIds.includes(i.id)} onChange={() => toggleChecked(i.id)} /> {t("تحديد الفاتورة", "Select invoice")}</label>}
                 <div
                   className="flex w-full min-h-11 items-center justify-between gap-3 border-b border-border py-3 text-start"
                   title={t("فتح الفاتورة", "Open invoice")}
