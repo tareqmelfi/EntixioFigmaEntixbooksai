@@ -151,6 +151,18 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
   }
 
+  # The API-hosted OAuth consent page uses the same public brand fonts.
+  location ^~ /fonts/ {
+    try_files $uri =404;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    add_header Access-Control-Allow-Origin "https://api.entix.io" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  }
+
   # Cache hashed assets aggressively
   location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$ {
     expires 1y;

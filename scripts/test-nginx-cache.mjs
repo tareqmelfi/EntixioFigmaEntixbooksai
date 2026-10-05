@@ -20,6 +20,8 @@ for (const route of routes) {
 }
 writeFileSync(join(html, 'app-shell.html'), '<!doctype html><title>Synthetic app</title>');
 writeFileSync(join(html, 'sw.js'), '// synthetic worker');
+mkdirSync(join(html, 'fonts'));
+writeFileSync(join(html, 'fonts', 'synthetic.woff2'), 'synthetic font');
 mkdirSync(join(html, 'assets'));
 writeFileSync(join(html, 'assets/index-abc123.js'), '// synthetic hashed bundle');
 
@@ -57,6 +59,11 @@ try {
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff', route);
       assert.equal(response.headers.get('x-frame-options'), 'SAMEORIGIN', route);
     }
+    const font = await fetch(`${base}/fonts/synthetic.woff2`);
+    assert.equal(font.status, 200);
+    assert.equal(font.headers.get('access-control-allow-origin'), 'https://api.entix.io');
+    assert.equal(font.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal((await fetch(`${base}/fonts/missing.woff2`)).status, 404);
     const asset = await fetch(`${base}/assets/index-abc123.js`);
     assert.equal(asset.status, 200);
     assert.match(asset.headers.get('cache-control'), /immutable/);
