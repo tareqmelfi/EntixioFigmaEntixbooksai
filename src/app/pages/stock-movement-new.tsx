@@ -23,7 +23,7 @@ type Mode = "receipt" | "issue" | "transfer";
 const COST_METHODS = ["WAC", "FIFO", "LIFO"] as const;
 
 export function StockMovementNew() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toasts, push, dismiss } = useToasts();
@@ -49,8 +49,8 @@ export function StockMovementNew() {
   useEffect(() => { load(); }, [load]);
 
   const productOptions = useMemo(() => products.map((p) => ({
-    id: p.id, label: p.nameAr || p.name, sublabel: [p.sku, p.type].filter(Boolean).join(" · "),
-  })), [products]);
+    id: p.id, label: displayName(p, language), sublabel: [p.sku, p.type].filter(Boolean).join(" · "),
+  })), [products, language]);
   const warehouseOptions = useMemo(() => warehouses.map((w) => ({ id: w.id, label: w.name, sublabel: w.code })), [warehouses]);
 
   const createProductInline = async (name: string) => {

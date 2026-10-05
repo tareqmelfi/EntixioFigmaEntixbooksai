@@ -3,6 +3,18 @@ import { parsePublicPath, type PublicLocale } from "../public-site-manifest";
 export const LANGUAGE_STORAGE_KEY = "entix-language";
 export const MARKET_STORAGE_KEY = "entix-marketing-region";
 export const PUBLIC_LOCATION_EVENT = "entix:public-location";
+// Explicit app choices are user-scoped and separate from URL-driven public
+// locales. An old /me response or an Arabic marketing tab must not undo them.
+export function appLanguageKey(userId: string) { return `entix-app-language:${userId}`; }
+export function preferredAppLanguage(user: { id: string; locale?: unknown } | null): PublicLocale | null {
+  if (!user) return null;
+  try {
+    const saved = accountLocale(localStorage.getItem(appLanguageKey(user.id)));
+    if (saved) return saved;
+  } catch { /* Storage may be unavailable; account preference still works. */ }
+  return accountLocale(user.locale);
+}
+
 
 export function storedLanguage(): PublicLocale {
   try {
