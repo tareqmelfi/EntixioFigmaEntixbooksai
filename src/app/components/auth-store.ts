@@ -68,6 +68,7 @@ function writeCachedUser(user: User | null) {
 class AuthStore {
   private state: AuthState
   private listeners = new Set<(state: AuthState) => void>()
+  private localeWrite: Promise<void> = Promise.resolve()
 
   constructor() {
     // SECURITY: Do NOT optimistically hydrate from cache. The cached user
@@ -112,20 +113,27 @@ class AuthStore {
   }
 
   async updateLocale(locale: 'ar' | 'en'): Promise<void> {
-    if (!this.state.isAuthenticated || this.state.user?.locale === locale) return
+    const userId = this.state.user?.id
+    if (!this.state.isAuthenticated || !userId) return
     if (this.state.user) {
       this.state = { ...this.state, user: { ...this.state.user, locale } }
       writeCachedUser(this.state.user)
       this.notify()
     }
-    try {
-      await fetch(`${API_BASE}/me/preferences`, {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locale }),
-      })
-    } catch {}
+    // Do not skip based on this tab's cached locale: another tab may have
+    // changed the account since /me. Serialize rapid choices in this tab.
+    this.localeWrite = this.localeWrite.then(async () => {
+      if (!this.state.isAuthenticated || this.state.user?.id !== userId) return
+      try {
+        await fetch(`${API_BASE}/me/preferences`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locale }),
+        })
+      } catch { /* The explicit local choice survives an unavailable API. */ }
+    })
+    return this.localeWrite
   }
 
   /** Reload session from /api/auth/get-session */

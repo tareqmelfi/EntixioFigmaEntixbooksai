@@ -19,7 +19,7 @@ import { authStore } from "./auth-store";
 import { api } from "../lib/api";
 import { OrgSwitcher } from "./org-switcher";
 import { useLanguage } from "./LanguageContext";
-import { accountLocale, applyDocumentLocale, LANGUAGE_STORAGE_KEY } from "./public-preferences";
+import { preferredAppLanguage, applyDocumentLocale, LANGUAGE_STORAGE_KEY } from "./public-preferences";
 
 // localStorage (NOT sessionStorage) so the hint survives across tabs and browser restarts.
 // The hint is just a UX nicety — the auth-store still revalidates the actual session
@@ -86,7 +86,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // 4. Authenticated → apply the already-fetched account locale before the shell mounts.
-  const locale = accountLocale(state.user?.locale);
+  const locale = preferredAppLanguage(state.user);
   if (locale) {
     try { localStorage.setItem(LANGUAGE_STORAGE_KEY, locale); } catch {}
     applyDocumentLocale(locale);

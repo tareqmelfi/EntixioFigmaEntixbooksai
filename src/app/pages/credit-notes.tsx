@@ -459,7 +459,7 @@ export function CreditNotes() {
                 currency={form.currency}
                 products={products.map((p: any) => ({
                   id: p.id,
-                  name: p.nameAr || p.name,
+                  name: displayName(p, language),
                   sku: p.sku,
                   unitPrice: Number(p.unitPrice) || 0,
                   taxRate: normalizeTaxRate(p.taxRate, defaultTaxRate).rate,
@@ -468,8 +468,8 @@ export function CreditNotes() {
                 onCreateProduct={async (name) => {
                   const p = await (api as any).products.create({ name, type: "GOOD", unitPrice: 0, isActive: true });
                   setProducts((prev) => [p, ...prev]);
-                  push("success", t(`تم إنشاء الصنف ${displayName(p)}`, `Created item ${displayName(p)}`));
-                  return { id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, taxRate: normalizeTaxRate(p.taxRate, defaultTaxRate).rate, accountId: p.incomeAccountId };
+                  push("success", t(`تم إنشاء الصنف ${displayName(p, language)}`, `Created item ${displayName(p, language)}`));
+                  return { id: p.id, name: displayName(p, language), sku: p.sku, unitPrice: Number(p.unitPrice) || 0, taxRate: normalizeTaxRate(p.taxRate, defaultTaxRate).rate, accountId: p.incomeAccountId };
                 }}
                 minRows={Math.max(5, lines.length)}
                 direction="sales"

@@ -177,7 +177,7 @@ useEffect(() => {
     } finally {
       if (generation === requestGeneration.current) setLoading(false);
     }
-  }, [period]);
+  }, [period, t]);
 
   useEffect(() => { void refresh(); return () => { requestGeneration.current++; }; }, [refresh]);
 

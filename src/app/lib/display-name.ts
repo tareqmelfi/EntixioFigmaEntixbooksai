@@ -6,12 +6,13 @@
  * «النقد في الصندوق» with "Cash on Hand" as the tiny subtitle.
  *
  * Rule: Arabic UI → Arabic first, English subtitle. English UI → English
- * first, Arabic subtitle. Always fall back to whichever name exists.
+ * first, with no Arabic subtitle. Fall back to the saved name if untranslated.
  */
 export type BilingualNamed = { name?: string | null; nameAr?: string | null };
 
-/** UI locale without a hook — LanguageContext persists it as `entix-language`. */
-function uiLang(): string {
+/** Use this document’s locale: another tab can have a different public URL. */
+export function uiLang(): string {
+  if (typeof document !== "undefined" && ["ar", "en"].includes(document.documentElement.lang)) return document.documentElement.lang;
   try { return localStorage.getItem("entix-language") === "ar" ? "ar" : "en"; } catch { return "en"; }
 }
 
