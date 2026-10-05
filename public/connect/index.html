@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>اربط Claude بـ Entix Books · Connect Claude to Entix Books</title>
+<meta name="description" content="اربط حساب Claude الخاص بك بدفاتر Entix Books خلال دقيقة: وكيل محاسبي حي يقرأ الدفاتر ويسجّل المصروفات ويطابق كشوف البنك — بصلاحيات تختارها أنت وتلغيها متى شئت. Connect Claude (claude.ai · Claude Code · any MCP host) to Entix Books.">
+<link rel="icon" href="/favicon.svg">
+<link rel="canonical" href="https://entix.io/connect/">
+<meta property="og:title" content="Connect Claude to Entix Books">
+<meta property="og:description" content="A live accounting agent on your own books — read, record, reconcile — with permissions you choose.">
+<meta property="og:image" content="https://entix.io/entix-og-2026.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Tajawal:wght@400;500;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#06102B;--blue:#1276E3;--beige:#E8E1D3;--ink:#0B1B49;--muted:#5A6A80;--line:#DBE4ED;--sheet:#FFFFFF;--bg:#F4FCFF;--good:#12855C;--warn:#B5780F}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Tajawal,"Noto Sans Arabic",system-ui,sans-serif;line-height:1.65}
+.en,[lang=en],code,kbd,.mono{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif}
+code,kbd,.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;font-size:.92em}
+header{background:var(--navy);color:#fff;padding:56px 16px 48px}
+.wrap{max-width:920px;margin:0 auto;padding:0 16px}
+.brand{font-family:"Plus Jakarta Sans",sans-serif;font-weight:800;letter-spacing:.2px;font-size:14px;opacity:.85}
+h1{font-size:clamp(28px,4.5vw,44px);line-height:1.2;margin:14px 0 10px;font-weight:800}
+h1 .en{display:block;font-size:.55em;font-weight:700;opacity:.8;margin-top:8px}
+.lead{font-size:18px;max-width:720px;opacity:.92;margin:0}
+.cta{display:inline-flex;gap:10px;align-items:center;margin-top:22px;background:var(--blue);color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:700}
+.cta.ghost{background:transparent;border:1px solid rgba(255,255,255,.35);margin-inline-start:8px}
+main{padding:36px 0 64px}
+section{margin:0 0 34px}
+h2{font-size:22px;margin:0 0 12px;color:var(--navy)}h2 .en{color:var(--muted);font-size:14px;font-weight:600;margin-inline-start:8px}
+.card{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:20px 22px}
+.steps{counter-reset:s;display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.steps li{position:relative;padding:14px 56px 14px 16px;background:var(--sheet);border:1px solid var(--line);border-radius:8px}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;inset-inline-start:14px;top:12px;width:30px;height:30px;border-radius:999px;background:var(--blue);color:#fff;display:grid;place-items:center;font-weight:800;font-family:"Plus Jakarta Sans",sans-serif}
+.steps li{padding-inline-start:58px;padding-inline-end:16px}
+.steps small{display:block;color:var(--muted);margin-top:4px}
+pre{background:#0B1B49;color:#E8F1FF;padding:14px 16px;border-radius:8px;overflow:auto;direction:ltr;text-align:left;font-size:13px;line-height:1.55;margin:10px 0 0}
+.url{display:inline-block;direction:ltr;background:#EEF5FF;border:1px solid #CFE0FA;color:#0B1B49;padding:4px 10px;border-radius:8px;font-weight:600}
+table{width:100%;border-collapse:collapse;background:var(--sheet);border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:15px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:start;vertical-align:top}th{background:#F6F9FC;color:var(--navy);font-weight:700;font-size:13px}tr:last-child td{border-bottom:0}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--line);background:#F6F9FC;color:var(--navy);direction:ltr}
+.pill.w{border-color:#F3DFB5;background:#FFF7E6;color:var(--warn)}.pill.r{border-color:#CDEBDD;background:#EEF9F3;color:var(--good)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.kv b{display:block;color:var(--navy)}
+footer{border-top:1px solid var(--line);padding:22px 16px;color:var(--muted);font-size:13px;background:var(--beige)}
+details{background:var(--sheet);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin-bottom:8px}summary{cursor:pointer;font-weight:700;color:var(--navy)}
+a{color:var(--blue)}
+@media (max-width:640px){header{padding:40px 0 34px}.cta{display:flex;justify-content:center}.cta.ghost{margin:10px 0 0}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="brand">ENTIX BOOKS · by ENSIDEX</div>
+  <h1>وكيلك المحاسبي الحي داخل Claude<span class="en" lang="en">Connect Claude to your Entix Books company — in one minute, no code.</span></h1>
+  <p class="lead">اربط اشتراكك في Claude بدفاترك: يقرأ الحسابات والفواتير، يسجّل المصروفات وفواتير المشتريات، يستورد كشوف البنك ويطابقها بند بند — بالصلاحيات التي تختارها أنت فقط، وتلغيها بضغطة.</p>
+  <a class="cta" href="#claude-ai">ابدأ الربط من claude.ai</a><a class="cta ghost" href="#claude-code">Claude Code / أي عميل MCP</a>
+</div></header>
+
+<main class="wrap">
+
+<section id="claude-ai">
+  <h2>الربط من claude.ai <span class="en" lang="en">Add as a custom connector</span></h2>
+  <ol class="steps">
+    <li>افتح <b>الإعدادات ← الموصّلات (Connectors)</b> ثم <b>Add custom connector</b>.<small lang="en">Settings → Connectors → Add custom connector</small></li>
+    <li>الاسم: <span class="url">Entix Books</span> · عنوان الخادم: <span class="url">https://api.entix.io/mcp</span> ثم <b>Continue</b>.<small lang="en">Name: Entix Books · MCP server URL: https://api.entix.io/mcp</small></li>
+    <li>سجّل الدخول بحساب Entix Books (نفس حساب entix.io) — تظهر صفحة الموافقة.<small lang="en">You are sent to Entix to sign in; the consent page follows.</small></li>
+    <li>اختر <b>الشركة</b> و<b>الصلاحيات</b> (قراءة فقط · تسجيل مصروفات · فواتير · مطابقة البنك …) واضغط <b>السماح بالربط</b>.<small lang="en">Pick one company and tick only the permissions you want this connection to have.</small></li>
+    <li>ارجع إلى Claude واسأله: «ما المصروفات غير المصنّفة هذا الشهر؟» أو «سجّل فاتورة المورد المرفقة».<small lang="en">Done — Claude now has a live, scoped agent on your books.</small></li>
+  </ol>
+</section>
+
+<section id="claude-code">
+  <h2>Claude Code وأي عميل MCP آخر <span class="en" lang="en">Streamable HTTP · OAuth 2.1 or API key</span></h2>
+  <div class="card">
+    <p style="margin:0 0 6px">نفس العنوان يعمل مع أي عميل يدعم MCP عبر HTTP. مع OAuth تُفتح صفحة الموافقة نفسها؛ أو استخدم مفتاح API مباشرة (<b>الإعدادات ← مفاتيح API</b>) كـ Bearer.</p>
+<pre lang="en">claude mcp add --transport http entix-books https://api.entix.io/mcp
+# or with an API key from Settings → API keys
+claude mcp add --transport http entix-books https://api.entix.io/mcp \
+  --header "Authorization: Bearer ek_live_…"</pre>
+    <p style="margin:10px 0 0;color:var(--muted)" lang="en">Discovery: <code>/.well-known/oauth-protected-resource</code> · <code>/.well-known/oauth-authorization-server</code> · PKCE S256 · dynamic client registration · stateless JSON-RPC (POST /mcp).</p>
+  </div>
+</section>
+
+<section>
+  <h2>ماذا يقدر الوكيل أن يفعل <span class="en" lang="en">Tools · gated by the permissions you tick</span></h2>
+  <table>
+    <thead><tr><th>الأداة</th><th>تعمل على</th><th>الصلاحية</th></tr></thead>
+    <tbody>
+      <tr><td><code>get_company</code> · <code>list_accounts</code> · <code>list_contacts</code></td><td>الشركة · دليل الحسابات · العملاء والموردون</td><td><span class="pill r">read</span></td></tr>
+      <tr><td><code>list_invoices</code> · <code>list_bills</code> · <code>list_expenses</code> · <code>list_journals</code></td><td>المبيعات · المشتريات · المصروفات · القيود</td><td><span class="pill r">read</span></td></tr>
+      <tr><td><code>get_report</code> · <code>get_dashboard_summary</code></td><td>قائمة الدخل · المركز المالي · ميزان المراجعة · التدفق النقدي · الأرصدة</td><td><span class="pill r">read</span></td></tr>
+      <tr><td><code>list_bank_accounts</code> · <code>list_bank_transactions</code> · <code>suggest_bank_match</code></td><td>قائمة البنوك وبنود الكشف غير المطابقة واقتراحات المطابقة</td><td><span class="pill r">read</span></td></tr>
+      <tr><td><code>create_contacts</code></td><td>إضافة عميل/مورد (idempotent على <code>externalId</code>)</td><td><span class="pill w">write:contacts</span></td></tr>
+      <tr><td><code>create_expenses</code> · <code>create_bills</code></td><td>تسجيل مصروف · فاتورة مشتريات — مع <code>dryRun</code> للتحقق قبل الكتابة</td><td><span class="pill w">write:expenses</span> <span class="pill w">write:bills</span></td></tr>
+      <tr><td><code>create_invoices</code> · <code>create_journals</code></td><td>فواتير مبيعات · قيود يومية متوازنة</td><td><span class="pill w">write:invoices</span> <span class="pill w">write:journals</span></td></tr>
+      <tr><td><code>import_bank_lines</code> · <code>reconcile_bank_transaction</code></td><td>استيراد بنود كشف البنك ثم تصنيف/ربط/تحويل/تسديد كل بند (مطابقة بأسلوب Xero)</td><td><span class="pill w">write:bank</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>الأمان — ما الذي يحدث فعلاً عند الربط <span class="en" lang="en">Security model</span></h2>
+  <div class="grid">
+    <div class="card kv"><b>شركة واحدة لكل ربط</b>الموافقة تُنشئ مفتاح API مقيّدًا بالشركة التي اخترتها. لا يستطيع الوكيل رؤية أي شركة أخرى، حتى لو كنت عضوًا فيها.</div>
+    <div class="card kv"><b>صلاحيات بالحد الأدنى</b>الأدوات التي لم تمنحها لا تظهر أصلاً للوكيل. «قراءة فقط» تعني أن كل مسارات الكتابة ترد بـ 405/403 على مستوى الخادم.</div>
+    <div class="card kv"><b>مالك أو مدير فقط</b>صفحة الموافقة لا تقبل إلا عضوية OWNER أو ADMIN — نفس قاعدة إنشاء مفتاح API من الإعدادات.</div>
+    <div class="card kv"><b>إلغاء بضغطة</b>الإعدادات ← مفاتيح API ← إلغاء. المفتاح ينتهي تلقائيًا بعد 365 يومًا، ويُخزَّن مجزّأً (sha256) ولا يُعرض مرة أخرى.</div>
+    <div class="card kv"><b>كل عملية مسجّلة</b>كل كتابة تحمل <code>source=api_key</code> ورقم المفتاح في سجل التدقيق. الكتابات مكرّرة الأمان (idempotent) فلا يتكرر قيد لو أعاد الوكيل المحاولة.</div>
+    <div class="card kv"><b>OAuth 2.1 · PKCE · بلا تخزين أسرار</b>تسجيل العميل والأكواد موقّعة HMAC وصالحة 5 دقائق لمرة واحدة. حد 300 طلب/دقيقة لكل مفتاح. لا وصول مباشر لقاعدة البيانات — كل أداة تمر عبر <code>/api/v1</code> نفسه.</div>
+  </div>
+</section>
+
+<section>
+  <h2>أسئلة شائعة <span class="en" lang="en">FAQ</span></h2>
+  <details><summary>هل أحتاج مبرمجًا؟</summary><p>لا. الربط من claude.ai هو عنوان واحد وضغطة موافقة. المطوّرون يجدون الواجهة البرمجية الكاملة في <a href="/docs">التوثيق</a>.</p></details>
+  <details><summary>هل يستطيع Claude حذف بيانات أو إغلاق فترة؟</summary><p>لا. لا توجد أدوات حذف أو إقفال فترات أو تغيير إعدادات عبر الموصّل. حتى <code>reconcile_bank_transaction</code> تعمل داخل قفل دفتر الأستاذ نفسه الذي يستخدمه التطبيق.</p></details>
+  <details><summary>عندي عدة شركات؟</summary><p>اربط كل شركة كموصّل مستقل (اسم مختلف لكل ربط). كل موصّل يرى شركته فقط.</p></details>
+  <details><summary>العملات الأجنبية؟</summary><p>الوكيل لا يفترض سعر صرف أبدًا؛ عند تصنيف بند من حساب بعملة غير عملة الشركة يجب تمرير <code>baseAmount</code> صراحة — نفس قاعدة التطبيق.</p></details>
+  <details><summary>كيف أوقف الربط فورًا؟</summary><p>الإعدادات ← مفاتيح API ← إلغاء المفتاح الذي اسمه يبدأ بـ <code>MCP ·</code>. ينقطع الوصول في اللحظة نفسها.</p></details>
+</section>
+
+</main>
+<footer><div class="wrap">© 2026 ENSIDEX LLC · Wyoming, United States. All rights reserved. · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/docs">API docs</a></div></footer>
+</body>
+</html>
