@@ -13,6 +13,14 @@ const LEGACY_PRERENDER_ROUTES = [
   '/solutions/restaurants', '/solutions/ecommerce', '/solutions/contracting', '/solutions/freelancers', '/solutions/agencies',
   '/login', '/register', '/forgot-password', '/reset-password',
 ] as const
+const STATIC_PUBLIC_ROUTES = ['/connect'] as const
+
+test('static connect document is published with its own canonical URL', async () => {
+  const html = await readFile(artifact('/connect'), 'utf8')
+  expect(html).toContain('<link rel="canonical" href="https://entix.io/connect">')
+  expect(html).toContain('Connect Claude to Entix Books')
+  expect(html).not.toContain('data-page="market-locale-chooser"')
+})
 
 for (const market of PUBLIC_MARKETS) {
   for (const locale of PUBLIC_LOCALES) {
@@ -90,7 +98,8 @@ test('generated sitemap includes supported localized and industry pages without 
   expect(new Set(locations).size).toBe(locations.length)
   for (const url of expected) expect(locations).toContain(url)
   for (const route of LEGACY_PRERENDER_ROUTES.filter(route => !['/forgot-password', '/reset-password'].includes(route))) expect(locations).toContain(`https://entix.io${route}`)
-  for (const url of locations) expect([...expected, ...LEGACY_PRERENDER_ROUTES.map(route => `https://entix.io${route}`)]).toContain(url)
+  for (const route of STATIC_PUBLIC_ROUTES) expect(locations).toContain(`https://entix.io${route}`)
+  for (const url of locations) expect([...expected, ...[...LEGACY_PRERENDER_ROUTES, ...STATIC_PUBLIC_ROUTES].map(route => `https://entix.io${route}`)]).toContain(url)
   expect(sitemap).not.toContain('/marketplace/accountants')
 })
 
@@ -104,7 +113,7 @@ test('production routing serves exact artifacts and rejects unsupported localize
   expect(dockerfile).toContain('absolute_redirect off;')
   expect(dockerfile).toContain('if ($host = "www.entix.io")')
   expect(dockerfile).toContain('return 308 https://entix.io$request_uri;')
-  expect(dockerfile).toContain('location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)/$')
+  expect(dockerfile).toContain('location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password|connect)/$')
   expect(dockerfile).toContain('return 308 /$1$is_args$args;')
   expect(dockerfile).toContain('location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce|contracting|freelancers|agencies)|support/ios)/$')
   expect(dockerfile).toContain('location ~ ^/(?:sa|us)/(?:ar|en)(?:/|$) { return 404; }')
