@@ -123,7 +123,9 @@ for (const lang of ['ar','en'] as const) test(`unconnected Saudi invoice correct
 
 for (const lang of ['ar', 'en'] as const) test(`invoice document stays left of editor on desktop and stacks on mobile (${lang})`, async ({ page }, info) => {
   await prepareVisualApp(page, lang);
-  const inv = { id: 'split', invoiceNumber: 'SPLIT-1', status: 'APPROVED', currency: 'USD', total: 100, amountPaid: 0, issueDate: '2026-10-05', updatedAt: '2026-10-05T00:00:00Z', lines: [{ id: 'l', description: 'Synthetic service', quantity: 1, unitPrice: 100 }] };
+  const inv = { id: 'split', orgId: 'org-visual-system', invoiceNumber: 'SPLIT-1', status: 'APPROVED', currency: 'USD', total: 100, amountPaid: 0, issueDate: '2026-10-05', updatedAt: '2026-10-05T00:00:00Z', lines: [{ id: 'l', description: 'Synthetic service', quantity: 1, unitPrice: 100 }] };
+  await page.route('**/orgs/org-visual-system', r => r.fulfill({ json: { id: 'org-visual-system', name: 'Synthetic US company', country: 'US', baseCurrency: 'USD' } }));
+  await page.route('**/api/document-templates**', r => r.fulfill({ json: { items: [] } }));
   await page.route('**/api/invoices/split', r => r.fulfill({ json: inv }));
   await page.route('**/api/invoices/split/amendment-policy', r => r.fulfill({ json: { canAmend: true, country: 'US' } }));
   await page.setViewportSize({ width: 1920, height: 1080 });
@@ -131,6 +133,7 @@ for (const lang of ['ar', 'en'] as const) test(`invoice document stays left of e
   await page.getByRole('button', { name: lang === 'ar' ? 'تعديل الفاتورة' : 'Edit invoice', exact: true }).click();
   const doc = page.getByTestId('invoice-document-column'), editor = page.getByTestId('invoice-editor-column');
   await expect(doc.locator('iframe')).toBeVisible();
+  await expect(page.frameLocator('iframe[title]').first().locator('[data-document-ready="true"]')).toBeVisible();
   const d = (await doc.boundingBox())!, e = (await editor.boundingBox())!;
   expect(d.x + d.width).toBeLessThanOrEqual(e.x);
   expect(Math.abs(d.y - e.y)).toBeLessThan(50);
