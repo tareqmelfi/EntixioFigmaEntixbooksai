@@ -14,6 +14,7 @@ for (const language of ['ar','en'] as const) test(`historical file preview is lo
     monthlyTrend:[], cashFlowTrend:[], profitLoss:[], expenseBreakdown:[], incomeBreakdown:[], overdueInvoices:[], bankAccounts:[], periodCompare: { thisMonth:{revenue:0,expenses:0,net:0}, lastMonth:{revenue:0,expenses:0,net:0}, yearAgo:{revenue:0,expenses:0,net:0} },
   } }));
   await page.goto('/app?__qa_auth=1');
+  await page.getByTestId('dashboard-history').locator('summary').first().click();
   await page.getByRole('button', {name: language === 'ar' ? 'عرض القوائم التاريخية' : 'View historical statements',exact:true}).click();
   const input = page.locator('input[type=file]');
   await input.setInputFiles({ name:'history.json', mimeType:'application/json', buffer: Buffer.from(JSON.stringify(historicalFixture)) });
@@ -29,6 +30,7 @@ for (const language of ['ar','en'] as const) test(`historical file preview is lo
   await expect(page.getByText('synthetic-statements.pdf',{exact:true})).toHaveCount(0);
   await input.setInputFiles({ name:'history.json', mimeType:'application/json', buffer:Buffer.from(JSON.stringify(historicalFixture)) });
   await page.getByRole('button', {name:language==='ar'?'العودة إلى لوحة الدفاتر':'Return to ledger dashboard',exact:true}).click();
+  await page.getByTestId('dashboard-history').locator('summary').first().click();
   await page.getByRole('button', {name:language==='ar'?'عرض القوائم التاريخية':'View historical statements',exact:true}).click();
   await expect(page.getByText('synthetic-statements.pdf',{exact:true})).toHaveCount(0);
   expect(writes).toEqual([]);
