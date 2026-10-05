@@ -333,10 +333,17 @@ function writeSitemap() {
         `    <changefreq>${changefreq}</changefreq>`, `    <priority>${priority}</priority>`, '  </url>',
       ].join('\n')
     })
+  // Static public documents that live in public/ (not prerendered routes).
+  // /connect = "Connect Claude to Entix Books" (MCP connector guide · 2026-10-05).
+  const staticDocs = [['/connect', 'monthly', '0.6']].map(([route, changefreq, priority]) => [
+    '  <url>', `    <loc>${SITE_ORIGIN}${route}</loc>`,
+    `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`,
+    `    <changefreq>${changefreq}</changefreq>`, `    <priority>${priority}</priority>`, '  </url>',
+  ].join('\n'))
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
-    root, ...localized, ...legacy, '</urlset>', '',
+    root, ...localized, ...legacy, ...staticDocs, '</urlset>', '',
   ].join('\n'))
 }
 function jsonLd(value) { return JSON.stringify(value).replace(/</g, '\\u003c') }
