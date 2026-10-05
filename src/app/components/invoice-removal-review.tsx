@@ -12,8 +12,8 @@ type Policy = Awaited<ReturnType<typeof api.invoices.amendmentPolicy>> & {
   canEditDraft?: boolean; voidReason?: string | null;
   relatedCreditNote?: { id: string; noteNumber: string } | null;
 };
-type Row = { id: string; invoice?: Invoice; policy?: Policy; deletion?: Awaited<ReturnType<typeof api.invoices.deletionPolicy>>; error?: string; done?: boolean };
-const rowAction = (row: Row, mode: 'permanent' | 'void') => row.done ? null : mode === 'permanent' ? row.deletion?.canDeletePermanently ? 'permanent' : null : row.invoice?.status === 'DRAFT'
+type Row = { id: string; invoice?: Invoice; policy?: Policy; deletion?: Awaited<ReturnType<typeof api.invoices.deletionPolicy>>; error?: string; done?: boolean; includeCredits?: boolean };
+const rowAction = (row: Row, mode: 'permanent' | 'void') => row.done ? null : mode === 'permanent' ? (row.deletion?.canDeletePermanently || (row.includeCredits && row.deletion?.linkedCreditDeletion?.canDelete)) ? 'permanent' : null : row.invoice?.status === 'DRAFT'
   ? row.policy?.canEditDraft ? 'delete' : null
   : row.policy?.canVoidAdmin ? 'void' : null;
 
@@ -33,6 +33,7 @@ export function InvoiceRemovalReview({ ids, onClose }: { ids: string[]; onClose:
   const orgId = useRef(getOrgId());
   const messages: Record<string, [string, string]> = {
     credit_note: ['راجع الإشعار الدائن المرتبط قبل الحذف أو الإلغاء.', 'Review the linked credit note before deletion or voiding.'],
+    credit_settlement: ['الإشعار مطبّق أو له بيانات تسوية مختلفة؛ راجع تسويته أولًا.', 'The credit is applied or its settlement details differ; review its settlement first.'],
     receipts_exist: ['توجد دفعات أو تسويات مرتبطة؛ راجعها وفكّ تخصيصها قبل الحذف أو الإلغاء.', 'Linked payments or settlements must be reviewed and unapplied before deletion or voiding.'],
     payment_link: ['أوقف رابط الدفع النشط قبل الحذف أو الإلغاء.', 'Retire the active payment link before deletion or voiding.'],
     period_closed: ['الفترة مقفلة؛ راجع إعدادات الفترات المالية.', 'The period is closed; review fiscal period settings.'],
@@ -62,7 +63,7 @@ export function InvoiceRemovalReview({ ids, onClose }: { ids: string[]; onClose:
     return () => { alive = false; };
   }, [ids]);
   const eligible = rows.filter(row => action(row));
-  const needsReason = eligible.some(row => action(row) === 'void');
+  const needsReason = eligible.some(row => action(row) === 'void' || row.includeCredits);
   const execute = async () => {
     if (running.current || !eligible.length || (needsReason && reason.trim().length < 5)) return;
     running.current = true; setBusy(true); setConfirming(false);
@@ -72,16 +73,16 @@ export function InvoiceRemovalReview({ ids, onClose }: { ids: string[]; onClose:
         let result = row;
         try {
           if (getOrgId() !== orgId.current) { result = { ...row, error: t('تغيّرت الشركة؛ أعد فتح المراجعة.', 'Company changed; reopen this review.') }; setRows(current => current.map(item => item.id === row.id ? result : item)); break; }
-          const fresh = await readRow(row.id);
+          const fresh = { ...await readRow(row.id), includeCredits: row.includeCredits };
           if (fresh.error) { setRows(current => current.map(item => item.id === row.id ? { ...row, error: fresh.error } : item)); continue; }
           if (!mounted.current) break;
           if (getOrgId() !== orgId.current) throw new Error(t('تغيّرت الشركة؛ أعد فتح المراجعة.', 'Company changed; reopen this review.'));
           // Do not silently turn a reviewed draft deletion into an issued void.
-          if (action(fresh) !== action(row) || fresh.invoice?.updatedAt !== row.invoice?.updatedAt) {
+          if (action(fresh) !== action(row) || fresh.invoice?.updatedAt !== row.invoice?.updatedAt || (row.includeCredits && JSON.stringify(fresh.deletion?.linkedCreditDeletion) !== JSON.stringify(row.deletion?.linkedCreditDeletion))) {
             setRows(current => current.map(item => item.id === row.id ? { ...row, error: t('تغيّرت الفاتورة أو صلاحية الإجراء؛ أعد التحقق قبل التأكيد.', 'Invoice or action access changed; recheck before confirming.') } : item)); continue;
           }
           if (action(row) === 'permanent') {
-            const deleted = await api.invoices.deletePermanently(row.id, { expectedUpdatedAt: row.invoice!.updatedAt!, confirmInvoiceNumber: row.invoice!.invoiceNumber, ...(reason.trim() ? { reason: reason.trim() } : {}) });
+            const deleted = await api.invoices.deletePermanently(row.id, { expectedUpdatedAt: row.invoice!.updatedAt!, confirmInvoiceNumber: row.invoice!.invoiceNumber, ...(row.includeCredits ? { linkedCredits: row.deletion!.linkedCreditDeletion!.notes.map(({ id, expectedUpdatedAt }) => ({ id, expectedUpdatedAt })) } : {}), ...(reason.trim() ? { reason: reason.trim() } : {}) });
             if (!deleted.deleted || deleted.id !== row.id) throw new Error(t('لم يتأكد الحذف؛ أعد التحقق.', 'Deletion was not confirmed; recheck.'));
           } else if (action(row) === 'delete') await api.invoices.remove(row.id);
           else await api.invoices.voidInvoiceAdmin(row.id, { reason: reason.trim(), expectedUpdatedAt: row.invoice!.updatedAt! });
@@ -95,24 +96,31 @@ export function InvoiceRemovalReview({ ids, onClose }: { ids: string[]; onClose:
     onClose={onClose} disableEscape={busy}
     footer={<div className="flex flex-wrap items-center gap-3">
       <Button variant="outline" disabled={busy} onClick={onClose}>{t('رجوع', 'Back')}</Button>
-      {confirming ? <InlineConfirm label={mode === 'permanent' ? t(`حذف ${eligible.length} فاتورة نهائيًا؟ لا يمكن التراجع.`, `Permanently delete ${eligible.length} invoice(s)? This cannot be undone.`) : t(`تنفيذ الإجراء على ${eligible.length} فاتورة؟`, `Apply actions to ${eligible.length} invoice(s)?`)} onConfirm={execute} onCancel={() => setConfirming(false)} />
-        : <Button disabled={loading || busy || !eligible.length || (needsReason && reason.trim().length < 5)} onClick={() => setConfirming(true)}>{busy ? t('جارٍ التنفيذ…', 'Applying…') : t(`تنفيذ المتاح (${eligible.length})`, `Apply available (${eligible.length})`)}</Button>}
+      {confirming ? <InlineConfirm label={mode === 'permanent' ? t(`حذف ${eligible.length} فاتورة وأي إشعارات مرتبطة اخترتها صراحةً نهائيًا؟ لا يمكن التراجع.`, `Permanently delete ${eligible.length} invoice(s) and any explicitly selected linked credits? This cannot be undone.`) : t(`تنفيذ الإجراء على ${eligible.length} فاتورة؟`, `Apply actions to ${eligible.length} invoice(s)?`)} onConfirm={execute} onCancel={() => setConfirming(false)} />
+        : <Button disabled={loading || busy || !eligible.length || (needsReason && reason.trim().length < 5)} onClick={() => setConfirming(true)}>{busy ? t('جارٍ التنفيذ…', 'Applying…') : (mode === 'permanent' ? t(`حذف المحدد (${eligible.length})`, `Delete selected (${eligible.length})`) : t(`إلغاء المحدد (${eligible.length})`, `Void selected (${eligible.length})`))}</Button>}
     </div>}>
     <div className="space-y-4">
       <fieldset className="flex flex-wrap gap-4" disabled={busy || rows.some(row => row.done)}><legend className="mb-2 text-sm">{t('الإجراء', 'Action')}</legend>
         <label className="flex items-center gap-2"><input type="radio" name="removal-mode" checked={mode === 'permanent'} onChange={() => { setMode('permanent'); setConfirming(false); }} />{t('حذف نهائي', 'Permanent deletion')}</label>
         <label className="flex items-center gap-2"><input type="radio" name="removal-mode" checked={mode === 'void'} onChange={() => { setMode('void'); setConfirming(false); }} />{t('إلغاء مع الاحتفاظ بالفاتورة', 'Void and retain invoice')}</label>
       </fieldset>
-      <p className="text-sm">{mode === 'permanent' ? t('تُحذف الفاتورة وبنودها ومرفقاتها من النظام، بما فيها الملغاة. يُعكس أثر الصادرة المؤهلة قبل الحذف؛ يبقى سجل التدقيق والقيود المحاسبية. لا تُحذف دفعات أو مستندات مرتبطة. المتعذر يبقى دون تغيير.', 'The invoice, its lines and attachments are permanently removed, including cancelled invoices. Eligible issued invoices are reversed before deletion; audit history and journals remain. Related payments and documents are not deleted. Blocked invoices remain unchanged.') : t('المسودة تُحذف. الفاتورة الصادرة تُلغى مع عكس أثرها وحفظ تاريخها.', 'Drafts are deleted. Issued invoices are voided with their accounting effect reversed and history retained.')}</p>
+      <p className="text-sm">{mode === 'permanent' ? t('تُحذف الفاتورة وبنودها ومرفقاتها من النظام، بما فيها الملغاة. يُعكس أثر الصادرة المؤهلة قبل الحذف؛ يبقى سجل التدقيق والقيود المحاسبية. لا تُحذف دفعات. حذف الإشعارات المرتبطة يتطلب اختيارًا صريحًا أدناه. المتعذر يبقى دون تغيير.', 'The invoice, its lines and attachments are permanently removed, including cancelled invoices. Eligible issued invoices are reversed before deletion; audit history and journals remain. Payments are not deleted. Removing linked credits requires an explicit selection below. Blocked invoices remain unchanged.') : t('المسودة تُحذف. الفاتورة الصادرة تُلغى مع عكس أثرها وحفظ تاريخها.', 'Drafts are deleted. Issued invoices are voided with their accounting effect reversed and history retained.')}</p>
       {loading && <p role="status">{t('جارٍ التحقق من الفواتير والصلاحيات…', 'Checking invoices and permissions…')}</p>}
+      {!loading && !eligible.length && rows.some(row => !row.done) && <p role="status" className="text-sm text-muted-foreground">{t('لم تُحذف أي فاتورة. راجع السبب والخيار المتاح أدناه؛ زر الحذف يتفعّل بعد استكمال الاختيار.', 'No invoice has been deleted. Review the reason and available option below; deletion becomes available after your selection.')}</p>}
       {!loading && rows.map(row => {
         const code = (mode === 'permanent' ? row.deletion?.reason : row.policy?.voidReason || row.policy?.reason) || 'invoice_state';
+        const linked = row.deletion?.linkedCreditDeletion;
         return <section key={row.id} data-testid={`removal-${row.id}`} className="rounded-lg border border-border p-4 space-y-2">
           <div className="flex flex-wrap justify-between gap-2"><bdi className="font-semibold">{row.invoice?.invoiceNumber || row.id}</bdi>
             <span role="status">{row.done ? mode === 'permanent' ? t('تم الحذف النهائي', 'Permanently deleted') : t('تم التنفيذ', 'Completed') : action(row) === 'permanent' ? t('حذف نهائي', 'Permanent deletion') : action(row) === 'delete' ? t('حذف المسودة', 'Delete draft') : action(row) === 'void' ? t('إلغاء الفاتورة', 'Void invoice') : t('تحتاج مراجعة', 'Review required')}</span></div>
           {mode === 'permanent' && action(row) && row.deletion?.reversesLedger && <p className="text-sm">{t('سيُعكس القيد ثم تُحذف الفاتورة في عملية واحدة.', 'The journal will be reversed and the invoice deleted in one transaction.')}</p>}
           {row.invoice && <p className="text-sm"><bdi>{row.invoice.contact?.displayName} · {row.invoice.total} {row.invoice.currency}</bdi></p>}
           {!row.done && !action(row) && !row.error && <p className="text-sm">{t(...(messages[code] || [ 'راجع حالة الفاتورة والصلاحيات من صفحة الفاتورة.', 'Review invoice state and permissions from the invoice page.' ] as [string, string]))}</p>}
+          {!row.done && mode === 'permanent' && linked && <div className="space-y-2 border-t border-border pt-3">
+            <p className="text-sm font-medium">{t('الإشعارات المرتبطة التي تمنع الحذف المنفرد', 'Linked credits preventing invoice-only deletion')}</p>
+            <ul className="space-y-1 text-sm">{linked.notes.map(note => <li key={note.id}><Link className="text-primary underline" to={`/app/credit-notes/${note.id}`}><bdi>{note.noteNumber}</bdi></Link> · <bdi>{note.total} {note.currency}</bdi></li>)}</ul>
+            {linked.canDelete ? <label className="flex items-start gap-2 text-sm"><input type="checkbox" disabled={busy} checked={!!row.includeCredits} onChange={e => { setConfirming(false); setRows(current => current.map(item => item.id === row.id ? { ...item, includeCredits: e.target.checked, error: undefined } : item)); }} />{t('احذف الفاتورة وهذه الإشعارات معًا. تُعكس قيودها الفعلية مرة واحدة وتُحفظ في سجل التدقيق.', 'Delete the invoice and these credits together. Their actual postings are reversed once and retained in audit history.')}</label> : <p className="text-sm">{t(...(messages[linked.reason || 'related_document'] || messages.related_document))}</p>}
+          </div>}
           {row.error && <p role="alert" className="text-sm text-danger">{row.error}</p>}
           {!row.done && <div className="flex flex-wrap gap-3 text-sm">
             {row.invoice && <Link className="text-primary underline" to={`/app/invoices/${row.id}`}>{t('فتح الفاتورة', 'Open invoice')}</Link>}
@@ -123,7 +131,7 @@ export function InvoiceRemovalReview({ ids, onClose }: { ids: string[]; onClose:
           </div>}
         </section>;
       })}
-      {needsReason && <label className="block text-sm space-y-2">{t('سبب إلغاء الفواتير الصادرة', 'Reason for voiding issued invoices')}<Textarea value={reason} disabled={busy} onChange={e => { setReason(e.target.value); setConfirming(false); }} /></label>}
+      {needsReason && <label className="block text-sm space-y-2">{t('سبب الحذف أو الإلغاء', 'Reason for deletion or voiding')}<Textarea value={reason} disabled={busy} onChange={e => { setReason(e.target.value); setConfirming(false); }} /></label>}
     </div>
   </FullPageForm>;
 }
