@@ -1839,6 +1839,8 @@ export const api = {
 
   // Vouchers (سند قبض / سند صرف)
   vouchers: {
+    correctionReview: (id: string) => request<any>(`/api/vouchers/${id}/correction-review`),
+    correct: (id: string, body: any) => request<{ id: string; deleted: boolean }>(`/api/vouchers/${id}/correct`, { method: "POST", body }),
     allocationPreview: (id: string, invoiceId?: string) => request<any>(`/api/vouchers/${id}/allocation-preview`, { query: { invoiceId } }),
     allocate: (id: string, data: { invoiceId: string; amount: number; appliedAt: string; requestKey: string }) => request<any>(`/api/vouchers/${id}/allocations`, { method: 'POST', body: data }),
     cancelAllocation: (id: string, allocationId: string, reason: string) => request<any>(`/api/vouchers/${id}/allocations/${allocationId}/cancel`, { method: 'POST', body: { reason } }),
