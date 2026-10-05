@@ -1,4 +1,5 @@
 import { displayLocale } from "./number-display";
+import { taxLabel } from "./tax-label";
 /**
  * POS v2 · thermal receipt (58 mm / 80 mm) · prints through a hidden iframe so the
  * cashier screen never re-renders for print. Works fully offline (store block is
@@ -96,7 +97,7 @@ ${logo ? `<img class="logo" src="${esc(logo)}" alt="">` : ""}
 ${store?.legalName && store.legalName !== store.name ? `<div class="muted">${esc(store.legalName)}</div>` : ""}
 ${addr ? `<div class="muted">${esc(addr)}</div>` : ""}
 ${store?.phone ? `<div class="muted" dir="ltr">${esc(store.phone)}</div>` : ""}
-${store?.vatNumber ? `<div class="muted">${store.country === "US" ? "EIN" : t("الرقم الضريبي", "VAT No.")}: <span dir="ltr">${esc(store.vatNumber)}</span></div>` : ""}
+${store?.vatNumber ? `<div class="muted">${store.country === "US" ? "EIN" : store.country === "SA" ? t("الرقم الضريبي", "VAT No.") : t("الرقم الضريبي", "Tax ID")}: <span dir="ltr">${esc(store.vatNumber)}</span></div>` : ""}
 ${store?.crNumber ? `<div class="muted">${t("س.ت", "CR")}: <span dir="ltr">${esc(store.crNumber)}</span></div>` : ""}
 </div>
 <hr>
@@ -112,8 +113,8 @@ ${sale.customerName ? `<tr><td class="n">${t("العميل", "Customer")}</td><t
 <table>${lines}</table>
 <hr>
 <table class="tot">
-<tr><td class="n">${t("الإجمالي قبل الضريبة", "Subtotal (excl. VAT)")}</td><td class="a">${money(sale.totals.net)}</td></tr>
-<tr><td class="n">${t("ضريبة القيمة المضافة", "VAT")}</td><td class="a">${money(sale.totals.vat)}</td></tr>
+<tr><td class="n">${t("الإجمالي قبل الضريبة", "Subtotal (excl. tax)")}</td><td class="a">${money(sale.totals.net)}</td></tr>
+<tr><td class="n">${taxLabel(store?.country, opts.lang)}</td><td class="a">${money(sale.totals.vat)}</td></tr>
 <tr class="grand"><td class="n">${t("الإجمالي", "TOTAL")}</td><td class="a">${money(sale.totals.grand)} ${esc(opts.currency)}</td></tr>
 <tr><td class="n">${t("طريقة الدفع", "Paid by")}</td><td class="a">${method}</td></tr>
 ${sale.paymentMethod === "CASH" ? `<tr><td class="n">${t("المدفوع", "Tendered")}</td><td class="a">${money(sale.amountTendered)}</td></tr><tr><td class="n">${t("الباقي", "Change")}</td><td class="a">${money(sale.totals.change)}</td></tr>` : ""}
