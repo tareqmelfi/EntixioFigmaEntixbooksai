@@ -15,6 +15,11 @@ export function Login() {
   // Where the user was trying to go before being bounced to /login.
   // AuthGuard sets this via Navigate state · default to /app for fresh logins.
   const fromPath: string = (location.state as any)?.from || "/app";
+  // MCP connector consent (2026-10-05): /login?next=https://api.entix.io/oauth/authorize?…
+  // Only our own OAuth consent URL is honoured — anything else is ignored (open-redirect guard).
+  const nextParam = new URLSearchParams(location.search).get("next");
+  const oauthNext = nextParam && /^https:\/\/api\.entix\.io\/oauth\/authorize\?/.test(nextParam) ? nextParam : null;
+  const go = (path: string) => { if (oauthNext) { window.location.assign(oauthNext); return; } navigate(path, { replace: true }); };
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,12 +37,12 @@ export function Login() {
     const dest = (s: { isAuthenticated: boolean; needsOnboarding?: boolean }) =>
       s.needsOnboarding && fromPath === "/app" ? "/welcome" : fromPath;
     const current = authStore.getState();
-    if (!current.loading && current.isAuthenticated) navigate(dest(current), { replace: true });
+    if (!current.loading && current.isAuthenticated) go(dest(current));
     const unsub = authStore.subscribe(s => {
-      if (!s.loading && s.isAuthenticated) navigate(dest(s), { replace: true });
+      if (!s.loading && s.isAuthenticated) go(dest(s));
     });
     return unsub;
-  }, [navigate, fromPath]);
+  }, [navigate, fromPath, oauthNext]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +54,7 @@ export function Login() {
     const result = await authStore.login(email, password, captchaToken);
     if (result.success) {
       const s = authStore.getState();
-      navigate(s.needsOnboarding && fromPath === "/app" ? "/welcome" : fromPath, { replace: true });
+      go(s.needsOnboarding && fromPath === "/app" ? "/welcome" : fromPath);
       return;
     }
     setLoading(false);
