@@ -14,7 +14,8 @@ export function Login() {
   const { language, toggleLanguage, t } = useLanguage();
   // Where the user was trying to go before being bounced to /login.
   // AuthGuard sets this via Navigate state · default to /app for fresh logins.
-  const fromPath: string = (location.state as any)?.from || "/app";
+  const partnerFlow = new URLSearchParams(location.search).get("flow") === "partner";
+  const fromPath: string = partnerFlow ? "/partners" : (location.state as any)?.from || "/app";
   // MCP connector consent (2026-10-05): /login?next=https://api.entix.io/oauth/authorize?…
   // Only our own OAuth consent URL is honoured — anything else is ignored (open-redirect guard).
   const nextParam = new URLSearchParams(location.search).get("next");
@@ -76,7 +77,7 @@ export function Login() {
     setVerifyNotice(null);
     setError(null);
     setVerifyLoading(true);
-    const result = await authStore.resendVerificationEmail(unverifiedEmail, `https://entix.io/login`);
+    const result = await authStore.resendVerificationEmail(unverifiedEmail, partnerFlow ? "https://entix.io/login?flow=partner" : "https://entix.io/login");
     setVerifyLoading(false);
 
     if (result.success) {
@@ -330,7 +331,7 @@ export function Login() {
 
           <div className="mt-6">
             <span className="text-content-secondary" style={{ fontSize: "14px" }}>{t("ليس لديك حساب؟ ", "No account yet? ")}</span>
-            <Link to="/register" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("ابدأ شهرك المجاني", "Start your free month")}</Link>
+            <Link to={partnerFlow ? "/register?flow=partner" : "/register"} className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("ابدأ شهرك المجاني", "Start your free month")}</Link>
           </div>
         </motion.div>
 
