@@ -72,7 +72,40 @@ for (const country of ['US','SA']) for (const language of ['ar','en'] as const) 
   await page.screenshot({path:`/tmp/entix-compact-saved-${country}-${language}-${width}.png`});
   await expect(page.getByTestId('flow-kpis').locator('[dir="ltr"]').first()).toHaveCSS('font-family',font);
   const ledgerChartHeight=await page.getByTestId('flow-profit-loss').locator('.recharts-wrapper').evaluate(el=>el.clientHeight);
-  expect(savedChartHeight).toBe(ledgerChartHeight);
+  expect(ledgerChartHeight).toBeGreaterThan(savedChartHeight);
+  await expect(page.getByTestId("cash-flow")).toBeVisible();
+  await expect(page.getByTestId("expense-breakdown")).toBeVisible();
+  const metricsBox=await page.getByTestId("dashboard-current-summary").boundingBox();
+  const toolbarBox=await page.getByTestId("dashboard-toolbar").boundingBox();
+  expect(toolbarBox!.y).toBeGreaterThanOrEqual(metricsBox!.y+metricsBox!.height);
+  const chartsBox=await page.getByTestId("dashboard-charts-row").boundingBox();
+  const followupBox=await page.getByTestId("current-followup").boundingBox();
+  expect(followupBox!.y).toBeGreaterThanOrEqual(chartsBox!.y+chartsBox!.height);
   await page.screenshot({path:`/tmp/entix-compact-ledger-${country}-${language}-${width}.png`});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+for (const language of ['ar','en'] as const) test(`six figures wrap with available width and preserve signed amounts ${language}`,async({page})=>{
+  await page.route('**/*',route=>new URL(route.request().url()).hostname==='localhost'?route.continue():route.abort());
+  await prepareVisualApp(page,language);
+  const data=summary();
+  await page.route('https://api.entix.io/api/dashboard/summary**',route=>route.fulfill({json:{...data,cash:{...data.cash,baseCurrencyTotal:-3200},kpi:{...data.kpi,netIncome:-700,expenses:0},expenseBreakdown:[{category:'A long expense category that must wrap instead of overlapping another category',total:200},{category:'Refund adjustment',total:-20}],incomeBreakdown:[{category:'Long income category with full descriptive text that should remain readable',total:900}],cashFlowTrend:[{month:'Sep',...point,in:900,out:200}]}}));
+  const ids=['overview-receivables','overview-payables','overview-cash','overview-revenue','overview-net','overview-expenses'];
+  for(const width of [390,768,1440,1920,2560]) {
+    await page.setViewportSize({width,height:1000});
+    await page.goto('/app');
+    await expect(page.getByTestId('overview-net')).toContainText('−700.00');
+    const boxes=await Promise.all(ids.map(id=>page.getByTestId(id).boundingBox()));
+    const rowCount=new Set(boxes.map(box=>Math.round(box!.y))).size;
+    expect(rowCount).toBe(width>=1920?1:width===1440?2:3);
+    const negative=page.getByTestId('overview-net').locator('[dir="ltr"]');
+    const positive=page.getByTestId('overview-revenue').locator('[dir="ltr"]');
+    await expect(negative).toHaveCSS('color','rgb(158, 59, 46)');
+    await expect(positive).toHaveCSS('color','rgb(70, 97, 199)');
+    await expect(negative.locator('small')).toHaveCSS('color',await negative.evaluate(el=>getComputedStyle(el).color));
+    expect(await page.getByTestId('overview-expenses').locator('[dir="ltr"]').evaluate(el=>getComputedStyle(el).color)).not.toBe(await positive.evaluate(el=>getComputedStyle(el).color));
+    await expect(page.getByTestId('expense-breakdown').getByText('Refund adjustment')).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await page.screenshot({path:`/tmp/entix-insights-${language}-${width}.png`,fullPage:true});
+  }
 });

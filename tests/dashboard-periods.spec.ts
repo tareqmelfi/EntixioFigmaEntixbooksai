@@ -189,17 +189,16 @@ test('deployed dashboard geometry stays in order and purchases never count twice
   await expect(figures).not.toContainText('550.00');
   const pl=await page.getByTestId('flow-profit-loss').boundingBox();
   const followup=await page.getByTestId('current-followup').boundingBox();
-  expect(Math.abs(pl!.y-followup!.y)).toBeLessThan(3);
-  expect(pl!.width/followup!.width).toBeGreaterThan(1.9);
-  const primary=await page.getByTestId('dashboard-primary-row').boundingBox();
+  expect(followup!.y).toBeGreaterThan(pl!.y+pl!.height);
   await expect(page.getByTestId('dashboard-analysis')).not.toHaveAttribute('open');
   await page.getByTestId('dashboard-analysis').locator('summary').first().click();
+  const primary=await page.getByTestId('dashboard-primary-row').boundingBox();
   const charts=await page.getByTestId('dashboard-charts-row').boundingBox();
   const balances=await page.getByTestId('dashboard-balances-row').boundingBox();
   expect(primary!.y).toBeLessThan(charts!.y);expect(charts!.y).toBeLessThan(balances!.y);
   await expect(page.getByTestId('dashboard-details')).not.toHaveAttribute('open');
   const firstCardTitles=await page.getByTestId('dashboard-charts-row').locator('h2').allTextContents();
-  expect(firstCardTitles).toEqual(['تفصيل الإيرادات','الإيرادات مقابل المصروفات','التدفق النقدي','تصنيف المصروفات']);
+  expect(firstCardTitles).toEqual(['التدفق النقدي','تصنيف المصروفات','تفصيل الإيرادات','الإيرادات مقابل المصروفات']);
 });
 
 test('foreign in/out point aliases suppress cash chart values independently of current KPIs',async({page})=>{
@@ -298,7 +297,7 @@ for (const width of [390,1440]) test(`posting gaps are prominent without doublin
   await expect(page.getByTestId('flow-kpis')).toContainText('900.00');
   await expect(page.getByTestId('flow-kpis')).not.toContainText('1,262,974.46');
   await expect(page.getByTestId('flow-kpis')).toContainText('أرقام القيود المرحلة فقط');
-  expect(await panel.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('[data-testid="flow-kpis"]')!)&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  expect(await panel.evaluate(el=>!!(el.compareDocumentPosition(document.querySelector('[data-testid="flow-kpis"]')!)&Node.DOCUMENT_POSITION_PRECEDING))).toBe(true);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
   await page.screenshot({path:`/tmp/entix-dashboard-posting-${width}.png`,fullPage:false});
 });
