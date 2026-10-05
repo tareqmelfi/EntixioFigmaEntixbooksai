@@ -1,3 +1,4 @@
+import { VoucherCorrection } from '../components/voucher-correction';
 import { VoucherPaymentMethod, voucherMethodPayload, voucherMethodLabel } from "../components/voucher-payment-method";
 import { ReceiptAllocationPanel } from '../components/receipt-allocation-panel';
 import { ContactProfileLink } from "../components/contact-profile-link";
@@ -60,6 +61,7 @@ export function Receipts() {
   const [summary, setSummary] = useState({ sumAmount: "0", avgAmount: "0" });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [correction, setCorrection] = useState<{ id: string; action: 'edit' | 'delete' } | null>(null);
   const [selected, setSelected] = useState<Voucher | null>(null);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -581,7 +583,8 @@ export function Receipts() {
               <Button size="sm" onClick={() => handlePrint(selected)}>
                 <Printer className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("طباعة / PDF", "Print / PDF")}
               </Button>
-              <Button size="sm" onClick={() => openEdit(selected)} variant="outline">
+              <Button size="sm" onClick={() => openEdit(selected)} variant="outline">{t("ملاحظات السند", "Voucher notes")}</Button>
+              <Button size="sm" onClick={() => setCorrection({ id: selected.id, action: 'edit' })} variant="outline">
                 <ReceiptIcon className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("تعديل", "Edit")}
               </Button>
               <Button size="sm" onClick={() => {
@@ -595,7 +598,7 @@ export function Receipts() {
                   <Button size="sm" onClick={() => setPendingDelete(null)} variant="outline">{t("إلغاء", "Cancel")}</Button>
                 </span>
               ) : (
-                <Button size="sm" onClick={() => setPendingDelete(selected.id)} variant="outline" className="text-danger">
+                <Button size="sm" onClick={() => setCorrection({ id: selected.id, action: 'delete' })} variant="outline" className="text-danger">
                   <Trash2 className="h-4 w-4 me-1" strokeWidth={1.75} /> {t("حذف", "Delete")}
                 </Button>
               )}
@@ -607,6 +610,13 @@ export function Receipts() {
   );
 
   // Below the split-view threshold the document replaces the list (never a dialog · UX-1)
+  if (correction) return <VoucherCorrection key={`${getOrgId()}:${correction.id}`} id={correction.id} initialAction={correction.action}
+    onClose={() => setCorrection(null)} onDone={async deleted => {
+      setCorrection(null); setOpen(false); setSelected(null); setEditingReceipt(null);
+      navigate('/app/receipts', { replace: true }); await refresh();
+      push('success', deleted ? t('حُذف السند وعُكس السداد', 'Voucher deleted and settlement reversed') : t('حُفظ التصحيح وتحدثت الأرصدة', 'Correction saved and balances updated'));
+    }} />;
+
   if (selected && !wideViewport && !open) {
     return (
       <div className="space-y-6">
@@ -778,6 +788,7 @@ export function Receipts() {
         >
           <div className={editingReceipt && previewOpen ? "grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(440px,38%)]" : ""}>
           <form onSubmit={handleSubmit} className="w-full space-y-4">
+            {editingReceipt && <Button type="button" variant="outline" onClick={() => setCorrection({ id: editingReceipt.id, action: 'edit' })}>{t('تعديل بيانات السداد أو حذف السند', 'Edit settlement or delete voucher')}</Button>}
             {saveError && <p role="alert" className="rounded border border-danger-border p-3 text-sm text-danger">{saveError}</p>}
             {editingReceipt && !editingReceipt.invoiceId && <ReceiptAllocationPanel voucher={editingReceipt} onDone={async () => { await refresh(); }} />}
             {sourceInvoiceId && !sourceInvoice && <div role={invoiceError ? 'alert' : 'status'} className="rounded-lg border border-border p-4">
