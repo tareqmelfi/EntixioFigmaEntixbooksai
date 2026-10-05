@@ -25,7 +25,7 @@ import { ToastStack, InlineConfirm, useToasts } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { useFormDraft } from "../lib/form-draft";
 import { SearchableCombobox } from "../components/searchable-combobox";
-import { ItemsTable, InvoiceLine, newLine, TaxMode } from "../components/items-table";
+import { ItemsTable, InvoiceLine, newLine, normalizeTaxRate, TaxMode } from "../components/items-table";
 import { normalizeDigits } from "../lib/digits";
 import { api, ApiError, Contact, DocumentSendRecord, Invoice } from "../lib/api";
 import { SendComposeForm } from "../components/send-compose-form";
@@ -82,7 +82,8 @@ interface CreditNote {
 
 export function CreditNotes() {
   const { t, language } = useLanguage();
-  const { currency: orgCurrency } = useOrgRegion();
+  const { currency: orgCurrency, isSA, loading: regionLoading } = useOrgRegion();
+  const defaultTaxRate = isSA ? 0.15 : 0;
   const params = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -159,13 +160,13 @@ export function CreditNotes() {
           branchId: cn.branchId ?? null,
         });
         const mapped = (cn.lines || []).map((line: any) => ({
-          ...newLine(line.taxRate ? Number(line.taxRate.rate) : 0, false),
+          ...newLine(normalizeTaxRate(line.taxRate).rate, false),
           originalInvoiceLineId: line.originalInvoiceLineId || undefined,
           productId: line.productId || undefined,
           description: line.description,
           quantity: String(line.quantity || "1"),
           unitPrice: String(line.unitPrice || "0"),
-          taxRate: line.taxRate ? Number(line.taxRate.rate) : 0,
+          taxRate: normalizeTaxRate(line.taxRate).rate,
           taxRateId: line.taxRateId || null,
         }));
         setLines(mapped.length > 0 ? mapped : [newLine()]);
@@ -193,7 +194,7 @@ export function CreditNotes() {
 
   const openCreate = () => {
     setForm({ ...EMPTY_FORM, currency: orgCurrency || "SAR" });
-    setLines([newLine()]);
+    setLines([newLine(defaultTaxRate)]);
     setTaxMode("all-exclusive");
     setCreateError(null);
     setCreateOpen(true);
@@ -454,21 +455,21 @@ export function CreditNotes() {
                 setLines={setLines}
                 mode={taxMode}
                 onModeChange={setTaxMode}
-                defaultTaxRate={0.15}
+                defaultTaxRate={defaultTaxRate}
                 currency={form.currency}
                 products={products.map((p: any) => ({
                   id: p.id,
                   name: p.nameAr || p.name,
                   sku: p.sku,
                   unitPrice: Number(p.unitPrice) || 0,
-                  taxRate: 0.15,
+                  taxRate: normalizeTaxRate(p.taxRate, defaultTaxRate).rate,
                   accountId: p.incomeAccountId,
                 }))}
                 onCreateProduct={async (name) => {
                   const p = await (api as any).products.create({ name, type: "GOOD", unitPrice: 0, isActive: true });
                   setProducts((prev) => [p, ...prev]);
                   push("success", t(`تم إنشاء الصنف ${displayName(p)}`, `Created item ${displayName(p)}`));
-                  return { id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, taxRate: 0.15, accountId: p.incomeAccountId };
+                  return { id: p.id, name: p.nameAr || p.name, sku: p.sku, unitPrice: Number(p.unitPrice) || 0, taxRate: normalizeTaxRate(p.taxRate, defaultTaxRate).rate, accountId: p.incomeAccountId };
                 }}
                 minRows={Math.max(5, lines.length)}
                 direction="sales"
@@ -514,7 +515,7 @@ export function CreditNotes() {
         eyebrow={<span className="text-[13px]">{t("المبيعات", "Sales")}</span>}
         title={t("الإشعارات الدائنة", "Credit Notes")}
         description={t("إدارة إشعارات الخصم والإرجاع للعملاء", "Manage customer discount and return credit notes")}
-        actions={<Button className="h-10 px-[18px] text-sm" onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إشعار دائن جديد", "New credit note")}</Button>}
+        actions={<Button className="h-10 px-[18px] text-sm" disabled={regionLoading} onClick={openCreate}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إشعار دائن جديد", "New credit note")}</Button>}
       />
 
       {/* Ledger figures · ink rules, serif numerals */}
