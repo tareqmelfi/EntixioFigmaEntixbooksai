@@ -55,7 +55,7 @@ export interface FormDraftState {
   /** Remove the stored draft (after a successful save). */
   clear: () => void;
   /** Throw away the restored draft and return to the opening baseline. */
-  discard: () => void;
+  discard: () => void | Promise<void>;
   /** Write the current snapshot NOW (leaving the form · before navigation) · returns savedAt */
   flush: () => string | null;
   /** Re-baseline: treat the current snapshot as clean (e.g. after save-and-stay). */
