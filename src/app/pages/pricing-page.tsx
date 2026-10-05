@@ -685,12 +685,12 @@ export function PricingPage() {
               {t("قريباً", "Coming soon")}
             </span>
             <h2 className="text-foreground mb-3" style={{ fontSize: "22px", fontWeight: 700 }}>
-              {t("زد دخلك حتى 40% مع برنامج الإحالة", "Boost your income up to 40% with referrals")}
+              {t("انضم إلى برنامج شركاء Entix", "Apply to the Entix partner program")}
             </h2>
             <p className="text-content-secondary max-w-2xl mx-auto" style={{ fontSize: "14px", lineHeight: 1.85 }}>
               {t(
-                "أحِل شركات إلى ENTIX.IO واحصل على عمولة متكررة تصل إلى 40% تُحوَّل لك كمسوّق معتمد — بعقد واضح وآلية دفع موثّقة. البرنامج في مراحله الأخيرة وسيُطلق كاملاً قريباً.",
-                "Refer companies to ENTIX.IO and earn a recurring commission of up to 40%, paid out as an approved-marketer commission — under a clear agreement and a documented payout process. The program is in its final stages and launches fully soon."
+                "طلبات الشراكة متاحة للمراجعة. تحدد الاتفاقية المعتمدة نسبة العمولة ومدتها، ويبدأ التفعيل بعد اكتمال التحقق وربط التتبع والصرف.",
+                "Partnership applications are open for review. An approved agreement defines commission and duration; activation follows verification and completed attribution and payout integration."
               )}
             </p>
             <Link
@@ -698,7 +698,7 @@ export function PricingPage() {
               className="inline-flex h-11 items-center gap-2 rounded-full bg-foreground px-7 text-background transition-colors hover:bg-primary cursor-pointer mt-6"
               style={{ fontSize: "14px", fontWeight: 600 }}
             >
-              {t("افتح صفحة الإحالات وأنشئ كودك", "Open the referrals page and generate your code")}
+              {t("افتح طلب الشراكة", "Open partnership application")}
             </Link>
           </div>
         </div>

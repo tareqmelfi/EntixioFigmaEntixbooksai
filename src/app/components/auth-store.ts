@@ -277,10 +277,11 @@ class AuthStore {
     _company: string,
     captchaToken?: string | null,
     country?: 'SA' | 'US',
+    intent?: 'partner',
   ): Promise<{ success: boolean; error?: string; code?: string }> {
     try {
       const opts = captchaToken ? { headers: { 'x-captcha-response': captchaToken } } : undefined
-      const { data, error } = await authClient.signUp.email({ email, password, name }, opts)
+      const { data, error } = await authClient.signUp.email({ email, password, name, ...(intent === 'partner' ? { callbackURL: 'https://entix.io/login?flow=partner' } : {}) }, opts)
       if (error) {
         if (error.code === 'USER_ALREADY_EXISTS' || (error.message || '').toLowerCase().includes('already')) {
           return { success: false, error: tt('البريد الإلكتروني مسجل مسبقاً', 'This email is already registered') }

@@ -1,28 +1,21 @@
 import { displayLocale } from "../lib/number-display";
 /**
  * Partners & Affiliates · لوحة برنامج الشركاء
- * Wired to /api/partners · org-scoped
- * Points → certification (10 active clients) · commissions (pending → cleared → paid) · payouts
+ * Wired to /api/partners · person-scoped
+ * Application intake and existing commission/payout records; activation is gated.
  */
 import { useCallback, useEffect, useState } from "react";
-import { Award, BadgeCheck, Building2, HandCoins, Loader2, Trophy, UserPlus, Users2, Wallet } from "lucide-react";
+import { BadgeCheck, Building2, HandCoins, Loader2, Users2, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts } from "../components/side-panel";
-import { api } from "../lib/api";
+import { partnerApi } from "../lib/partner-api";
+import { COUNTRIES } from "../lib/countries";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
-
-const CERTIFICATION_POINTS = 10;
-
-const COMMISSION_TIERS = [
-  { plan: { ar: "الأساسية (Starter)", en: "Starter" }, monthly: "10%", annual: "15%" },
-  { plan: { ar: "المتقدمة (Advanced)", en: "Advanced" }, monthly: "15%", annual: "20%" },
-  { plan: { ar: "الاحترافية (Premium)", en: "Premium" }, monthly: "35%", annual: "40%" },
-];
 
 const COMMISSION_STATUS: Record<string, { ar: string; en: string; cls: string }> = {
   pending: { ar: "قيد التعليق", en: "Pending", cls: "bg-warning/10 text-warning" },
@@ -39,23 +32,23 @@ export function Partners() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [registered, setRegistered] = useState(false);
-  const [data, setData] = useState<{ partner: any; dashboard: any; clients: any[]; commissions: any[]; payouts: any[] } | null>(null);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [regForm, setRegForm] = useState({ name: "", phone: "", type: "FREELANCER" as "FREELANCER" | "FIRM" });
-  const [clientOrgId, setClientOrgId] = useState("");
+  const [data, setData] = useState<{ partner: any; enrollment?: any; dashboard: any; clients: any[]; commissions: any[]; payouts: any[] } | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [regForm, setRegForm] = useState({ name: "", phone: "", country: "", type: "FREELANCER" as "FREELANCER" | "FIRM" });
 
   const refresh = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const me = await api.partners.me();
+      const me = await partnerApi.me();
       setData(me);
       setRegistered(true);
-      const board = await api.partners.leaderboard().catch(() => ({ partners: [] }));
-      setLeaderboard(board.partners || []);
+
     } catch (e: any) {
       if (e?.status === 404 || /not_registered/.test(String(e?.message))) {
         setRegistered(false);
       } else {
+        setLoadError(true);
         push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
       }
     } finally {
@@ -68,26 +61,11 @@ export function Partners() {
   const handleRegister = async () => {
     setBusy(true);
     try {
-      await api.partners.register({ name: regForm.name || undefined, phone: regForm.phone || undefined, type: regForm.type });
-      push("success", t("تم تسجيلك في برنامج الشركاء", "You are registered as a partner"));
+      await partnerApi.register({ name: regForm.name.trim(), phone: regForm.phone || undefined, type: regForm.type, country: regForm.country });
+      push("success", t("تم حفظ طلب الشراكة للمراجعة", "Your partnership application is saved for review"));
       await refresh();
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل التسجيل", en: "Registration failed" }));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleAddClient = async () => {
-    if (!clientOrgId.trim()) return;
-    setBusy(true);
-    try {
-      await api.partners.addClient(clientOrgId.trim());
-      setClientOrgId("");
-      push("success", t("تم ربط العميل بنجاح", "Client linked successfully"));
-      await refresh();
-    } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل ربط العميل", en: "Could not link the client" }));
     } finally {
       setBusy(false);
     }
@@ -102,9 +80,9 @@ export function Partners() {
         .filter(([, b]) => Number(b?.cleared || 0) > 0)
         .map(([currency]) => currency);
       for (const currency of currencies) {
-        await api.partners.requestPayout({ currency });
+        await partnerApi.requestPayout({ currency });
       }
-      push("success", t("تم إرسال طلب السحب · يُراجَع خلال 30 يوماً", "Payout requested · reviewed within 30 days"));
+      push("success", t("تم حفظ طلب الصرف للمراجعة", "Payout request saved for review"));
       await refresh();
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "تعذر طلب السحب", en: "Payout request failed" }));
@@ -121,6 +99,12 @@ export function Partners() {
     );
   }
 
+  if (loadError) return <div role="alert" className="space-y-4 py-8">
+    <ToastStack toasts={toasts} onDismiss={dismiss} />
+    <p>{t("تعذر تحميل بيانات الشراكة. لم تتغير بياناتك.", "Unable to load your partnership. Your data has not changed.")}</p>
+    <Button onClick={refresh}>{t("إعادة المحاولة", "Try again")}</Button>
+  </div>;
+
   // ── Registration gate ────────────────────────────────────────────────────
   if (!registered) {
     return (
@@ -136,30 +120,37 @@ export function Partners() {
           <CardContent className="space-y-4">
             <p className="text-sm leading-6 text-muted-foreground">
               {t(
-                "عمولة متكررة تصل إلى 40% لكل اشتراك عميل نشط · تدريب مجاني وشهادة شريك معتمد · دعم فني ذو أولوية.",
-                "Up to 40% recurring commission per active client subscription · free training and certification · priority support.",
+                "للمسوّقين وصنّاع المحتوى والشركات. قدّم طلبك؛ تحدد الاتفاقية المعتمدة نسبة العمولة ومدتها قبل تفعيل الإحالات والصرف.",
+                "For marketers, creators and firms. Apply here; an approved agreement sets your commission and duration before referrals and payouts are activated.",
               )}
             </p>
             <div className="space-y-1.5">
-              <Label className="text-xs text-foreground/80">{t("الاسم", "Name")}</Label>
-              <Input value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} className="border-border" />
+              <Label htmlFor="partner-name" className="text-xs text-foreground/80">{t("الاسم", "Name")}</Label>
+              <Input id="partner-name" maxLength={160} value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} className="border-border" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-foreground/80">{t("الجوال", "Phone")}</Label>
-              <Input value={regForm.phone} onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })} dir="ltr" className="border-border font-english" />
+              <Label htmlFor="partner-phone" className="text-xs text-foreground/80">{t("الجوال", "Phone")}</Label>
+              <Input id="partner-phone" maxLength={40} value={regForm.phone} onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })} dir="ltr" className="border-border font-english" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-foreground/80">{t("نوع الشريك", "Partner type")}</Label>
               <Select value={regForm.type} onValueChange={(v) => setRegForm({ ...regForm, type: v as "FREELANCER" | "FIRM" })}>
                 <SelectTrigger className="border-border"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="FREELANCER">{t("محاسب مستقل", "Freelance accountant")}</SelectItem>
-                  <SelectItem value="FIRM">{t("مكتب / شركة محاسبة", "Accounting firm")}</SelectItem>
+                  <SelectItem value="FREELANCER">{t("فرد / صانع محتوى", "Individual / creator")}</SelectItem>
+                  <SelectItem value="FIRM">{t("شركة / وكالة", "Company / agency")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleRegister} disabled={busy} className="w-full bg-primary hover:bg-primary/90">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("تسجيل كشريك", "Register as partner")}
+            <div className="space-y-1.5">
+              <Label htmlFor="partner-country">{t("بلد الإقامة · رمز البلد", "Country of residence · country code")}</Label>
+              <Input id="partner-country" list="partner-countries" value={regForm.country} maxLength={2} dir="ltr" placeholder="US"
+                onChange={e => setRegForm({ ...regForm, country: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })} />
+              <datalist id="partner-countries">{COUNTRIES.map(c => <option key={c.code} value={c.code}>{language === 'ar' ? c.nameAr : c.nameEn}</option>)}</datalist>
+              <p className="text-xs text-muted-foreground">{t("يمكن إدخال رمز أي بلد. حفظ الطلب لا يعني الموافقة؛ تُراجع قيود البلدان والهوية ومزوّد الصرف قبل التفعيل.", "You can enter any country code. Saving an application is not approval; country restrictions, identity and payout eligibility are reviewed before activation.")}</p>
+            </div>
+            <Button onClick={handleRegister} disabled={busy || regForm.name.trim().length < 2 || !/^[A-Z]{2}$/.test(regForm.country)} className="w-full bg-primary hover:bg-primary/90">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("تقديم طلب الشراكة", "Submit partnership application")}
             </Button>
           </CardContent>
         </Card>
@@ -174,8 +165,7 @@ export function Partners() {
     Object.entries(d.balancesByCurrency || {}) as any;
   const payoutCurrencies = balances.filter(([, b]) => (b?.cleared || 0) > 0).map(([currency]) => currency);
   const partner = data!.partner;
-  const points = Number(partner?.points || 0);
-  const pointsToCert = Math.max(0, CERTIFICATION_POINTS - points);
+
 
   return (
     <div className="space-y-4">
@@ -189,17 +179,23 @@ export function Partners() {
             {partner?.isCertified && <BadgeCheck className="h-6 w-6 text-primary" />}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {partner?.name} · {partner?.type === "FIRM" ? t("مكتب محاسبة", "Accounting firm") : t("محاسب مستقل", "Freelance accountant")}
+            {partner?.name} · {partner?.type === "FIRM" ? t("شركة / وكالة", "Company / agency") : t("فرد / صانع محتوى", "Individual / creator")}
           </p>
         </div>
-        <Button onClick={handlePayout} disabled={busy || payoutCurrencies.length === 0} className="bg-primary hover:bg-primary/90">
+        <Button onClick={handlePayout} disabled={busy || !data?.enrollment?.payoutReady || payoutCurrencies.length === 0} className="bg-primary hover:bg-primary/90">
           <Wallet className="me-2 h-4 w-4" />
           {t("طلب سحب العمولات الجاهزة", "Request payout of cleared commissions")}
         </Button>
       </div>
 
+      <section className="rounded-lg border border-border bg-card p-5 space-y-2" aria-label={t("حالة الشراكة", "Partnership status")}>
+        <h2 className="font-semibold">{t("طلب محفوظ · التفعيل قيد المراجعة", "Application saved · activation under review")}</h2>
+        <p className="text-sm text-muted-foreground">{t("يلزم اعتماد الاتفاقية والتحقق من الأهلية وحساب الاستلام. لا يوجد رابط إحالة مفعّل أو صرف تلقائي بعد. السجلات السابقة محفوظة وتُراجع وفق اتفاقياتها.", "An approved agreement, eligibility review and verified recipient account are required. Referral links and automatic payouts are not active yet. Existing records are retained for review under their agreements.")}</p>
+        {data?.enrollment?.reference && <p className="text-sm break-all">{t("مرجع الطلب", "Application reference")}: <bdi>{data.enrollment.reference}</bdi></p>}
+      </section>
+
       {/* Stats */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <Card className="border-border">
           <CardContent className="flex items-center gap-3 p-4">
             <Users2 className="h-8 w-8 text-primary" />
@@ -213,7 +209,7 @@ export function Partners() {
           <CardContent className="flex items-start gap-3 p-4">
             <HandCoins className="mt-1 h-8 w-8 shrink-0 text-primary" />
             <div className="min-w-0">
-              {balances.length === 0 && <div className="font-english text-2xl font-bold text-foreground">{money(0)}</div>}
+              {balances.length === 0 && <div className="font-english text-2xl font-bold text-foreground">{t("لا يوجد رصيد بعد", "No balance yet")}</div>}
               {balances.map(([currency, b]) => (
                 <div key={currency} className="font-english text-2xl font-bold text-foreground">{money(b.earned, currency)}</div>
               ))}
@@ -225,31 +221,12 @@ export function Partners() {
           <CardContent className="flex items-start gap-3 p-4">
             <Wallet className="mt-1 h-8 w-8 shrink-0 text-success" />
             <div className="min-w-0">
-              {balances.length === 0 && <div className="font-english text-2xl font-bold text-foreground">{money(0)}</div>}
+              {balances.length === 0 && <div className="font-english text-2xl font-bold text-foreground">{t("لا يوجد رصيد بعد", "No balance yet")}</div>}
               {balances.map(([currency, b]) => (
                 <div key={currency} className="font-english text-2xl font-bold text-foreground">{money(b.paid, currency)}</div>
               ))}
               <div className="text-xs text-muted-foreground">{t("عمولات مدفوعة", "Paid out")}</div>
             </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Award className="h-8 w-8 text-primary" />
-              <div>
-                <div className="font-english text-2xl font-bold text-foreground">{points}</div>
-                <div className="text-xs text-muted-foreground">{t("نقطة", "Points")}</div>
-              </div>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.min(100, (points / CERTIFICATION_POINTS) * 100)}%` }} />
-            </div>
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {partner?.isCertified
-                ? t("شريك معتمد", "Certified partner")
-                : t(`تبقّى ${pointsToCert} نقطة لتصبح شريكاً معتمداً`, `${pointsToCert} point(s) remaining to become certified`)}
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -263,20 +240,8 @@ export function Partners() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="flex gap-2">
-              <Input
-                value={clientOrgId}
-                onChange={(e) => setClientOrgId(e.target.value)}
-                placeholder={t("معرّف شركة العميل (Org ID)", "Client org ID")}
-                dir="ltr"
-                className="border-border font-english text-sm"
-              />
-              <Button onClick={handleAddClient} disabled={busy || !clientOrgId.trim()} variant="outline" className="shrink-0 border-primary text-primary hover:bg-primary/5">
-                <UserPlus className="me-1 h-4 w-4" />{t("ربط", "Link")}
-              </Button>
-            </div>
             {data!.clients.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">{t("لا يوجد عملاء بعد · اربط أول عميل لكسب نقطة", "No clients yet · link your first client to earn a point")}</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">{t("لا توجد إحالات موثقة بعد", "No verified referrals yet")}</p>
             ) : (
               <div className="divide-y divide-border rounded-lg border border-border">
                 {data!.clients.map((c: any) => (
@@ -292,35 +257,6 @@ export function Partners() {
           </CardContent>
         </Card>
 
-        {/* Commission tiers */}
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-foreground">
-              <HandCoins className="h-5 w-5 text-primary" />{t("شرائح العمولة", "Commission tiers")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="py-2 text-start font-medium">{t("الخطة", "Plan")}</th>
-                  <th className="py-2 text-start font-medium">{t("شهري", "Monthly")}</th>
-                  <th className="py-2 text-start font-medium">{t("سنوي", "Annual")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMMISSION_TIERS.map((tier) => (
-                  <tr key={tier.plan.en} className="border-b border-border/60 last:border-0">
-                    <td className="py-2 text-foreground">{language === "en" ? tier.plan.en : tier.plan.ar}</td>
-                    <td className="py-2 font-english font-semibold text-foreground" dir="ltr">{tier.monthly}</td>
-                    <td className="py-2 font-english font-semibold text-primary" dir="ltr">{tier.annual}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="mt-3 text-xs text-muted-foreground">{t("لا تُحتسب عمولة على الخطط المخفَّضة.", "No commission on discounted plans.")}</p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Commissions + payouts */}
@@ -360,7 +296,7 @@ export function Partners() {
           </CardHeader>
           <CardContent>
             {data!.payouts.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">{t("لا طلبات سحب · تُصفّى العمولات بعد 30 يوماً", "No payouts · commissions clear after 30 days")}</p>
+              <p className="py-4 text-center text-sm text-muted-foreground">{t("لا توجد طلبات صرف مسجلة", "No payout requests recorded")}</p>
             ) : (
               <div className="divide-y divide-border rounded-lg border border-border">
                 {data!.payouts.map((p: any) => (
@@ -369,7 +305,7 @@ export function Partners() {
                     <div className="flex items-center gap-2">
                       <span className="font-english font-semibold text-foreground" dir="ltr">{money(p.amount, p.currency)}</span>
                       <span className={`rounded px-2 py-0.5 text-xs ${p.status === "paid" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"}`}>
-                        {p.status === "paid" ? t("مدفوع", "Paid") : t("قيد المعالجة", "Processing")}
+                        {p.status === "paid" ? t("مدفوع", "Paid") : p.status === "pending" ? t("بانتظار المراجعة", "Pending review") : p.status === "rejected" ? t("مرفوض", "Rejected") : p.status === "failed" ? t("تعذر الصرف", "Failed") : p.status === "processing" ? t("قيد المعالجة", "Processing") : t("تحتاج مراجعة", "Needs review")}
                       </span>
                     </div>
                   </div>
@@ -380,30 +316,6 @@ export function Partners() {
         </Card>
       </div>
 
-      {/* Leaderboard */}
-      {leaderboard.length > 0 && (
-        <Card className="border-border">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-foreground">
-              <Trophy className="h-5 w-5 text-primary" />{t("أعلى الشركاء نقاطاً", "Top partners")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-border rounded-lg border border-border">
-              {leaderboard.slice(0, 10).map((p: any, i: number) => (
-                <div key={p.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 text-center font-english font-bold text-muted-foreground" dir="ltr">{i + 1}</span>
-                    <span className="text-foreground">{p.name}</span>
-                    {p.isCertified && <BadgeCheck className="h-4 w-4 text-primary" />}
-                  </div>
-                  <span className="font-english font-semibold text-foreground" dir="ltr">{p.points} {t("نقطة", "pts")}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

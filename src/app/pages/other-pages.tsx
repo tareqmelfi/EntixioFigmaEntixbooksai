@@ -1,3 +1,4 @@
+import { Referrals } from "./referrals";
 import { PlaceholderPage } from "./placeholder";
 import { Link } from "react-router";
 import { SharedNavbar } from "../components/shared-navbar";
@@ -53,15 +54,7 @@ export function Contact() {
   </div>;
 }
 
-export function Partners() {
-  const { t } = useLanguage();
-  return (
-    <PlaceholderPage
-      title={t("الشركاء", "Partners")}
-      description={t("قريباً! تعرف على شركائنا الاستراتيجيين في النجاح.", "Coming soon! Meet the strategic partners behind our success.")}
-    />
-  );
-}
+export function Partners() { return <Referrals />; }
 
 export function Changelog() {
   const { t } = useLanguage();

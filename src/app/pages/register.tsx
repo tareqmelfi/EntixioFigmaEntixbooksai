@@ -37,11 +37,12 @@ export function Register() {
 
   // Invite links (/invite/:token) bounce here with state.from — after signup
   // the invitee must land back on the invitation, not the bare app.
-  const fromPath: string = (location.state as any)?.from || "/app";
+  const partnerFlow = new URLSearchParams(location.search).get("flow") === "partner";
+  const fromPath: string = partnerFlow ? "/partners" : (location.state as any)?.from || "/app";
 
   useEffect(() => {
     const dest = (st: { isAuthenticated: boolean; needsOnboarding?: boolean }) =>
-      st.needsOnboarding ? "/welcome" : fromPath;
+      st.needsOnboarding && fromPath === "/app" ? "/welcome" : fromPath;
     const current = authStore.getState();
     if (!current.loading && current.isAuthenticated) navigate(dest(current));
     const unsub = authStore.subscribe(s => {
@@ -60,7 +61,7 @@ export function Register() {
     }
     setLoading(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
-    const result = await authStore.register(email, password, fullName, "", captchaToken, country);
+    const result = await authStore.register(email, password, fullName, "", captchaToken, country, partnerFlow ? "partner" : undefined);
     setLoading(false);
     if (result.success) {
       if (result.code === 'EMAIL_VERIFICATION_REQUIRED') {
@@ -83,7 +84,7 @@ export function Register() {
     if (!pendingVerificationEmail || resendBusy) return;
     setResendBusy(true);
     setResendNotice(null);
-    const r = await authStore.resendVerificationEmail(pendingVerificationEmail, "https://entix.io/login");
+    const r = await authStore.resendVerificationEmail(pendingVerificationEmail, partnerFlow ? "https://entix.io/login?flow=partner" : "https://entix.io/login");
     setResendBusy(false);
     setResendNotice(
       r.success
@@ -96,7 +97,7 @@ export function Register() {
     setError(null);
     setGoogleLoading(true);
     try {
-      const r = await authStore.loginWithGoogle();
+      const r = await authStore.loginWithGoogle(partnerFlow ? "https://entix.io/partners" : undefined);
       if (!r.success) {
         setError(r.error || t("تعذّر الاتصال بـGoogle", "Could not connect to Google"));
         setGoogleLoading(false);
@@ -111,7 +112,7 @@ export function Register() {
     setError(null);
     setMicrosoftLoading(true);
     try {
-      const r = await authStore.loginWithMicrosoft();
+      const r = await authStore.loginWithMicrosoft(partnerFlow ? "https://entix.io/partners" : undefined);
       if (!r.success) {
         setError(r.error || t("تعذّر الاتصال بـMicrosoft", "Could not connect to Microsoft"));
         setMicrosoftLoading(false);
@@ -181,7 +182,7 @@ export function Register() {
               <div className="space-y-3">
                 <button
                   type="button"
-                  onClick={() => navigate("/login", { replace: true })}
+                  onClick={() => navigate(partnerFlow ? "/login?flow=partner" : "/login", { replace: true })}
                   className="w-full min-h-[48px] py-3.5 bg-[var(--brand-blue-600)] hover:opacity-90 text-primary-foreground rounded-full transition-opacity cursor-pointer"
                   style={{ fontSize: "15px", fontWeight: 600 }}
                 >
@@ -208,7 +209,7 @@ export function Register() {
           <h1 className={language === "en"
             ? "font-display font-normal m-0 mb-2 text-[36px] sm:text-[44px] leading-none text-foreground"
             : "font-bold m-0 mb-2 text-[28px] sm:text-[34px] leading-[1.25] text-foreground"}>{t("أنشئ حسابك.", "Create your account.")}</h1>
-          <p className="text-content-secondary mb-8 m-0" style={{ fontSize: "15px", lineHeight: 1.5 }}>{t("ابدأ شهرك المجاني — لا حاجة لبطاقة ائتمان", "Start your free month — no credit card needed")}</p>
+          <p className="text-content-secondary mb-8 m-0" style={{ fontSize: "15px", lineHeight: 1.5 }}>{partnerFlow ? t("أنشئ حسابك للتقديم كشريك — لا تحتاج إنشاء شركة محاسبية.", "Create an account to apply as a partner — no accounting company required.") : t("ابدأ شهرك المجاني — لا حاجة لبطاقة ائتمان", "Start your free month — no credit card needed")}</p>
 
           {error && (
             <motion.div 
@@ -369,7 +370,7 @@ export function Register() {
 
           <div className="mt-6">
             <span className="text-content-secondary" style={{ fontSize: "14px" }}>{t("لديك حساب بالفعل؟ ", "Already have an account? ")}</span>
-            <Link to="/login" className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("تسجيل الدخول", "Sign in")}</Link>
+            <Link to={partnerFlow ? "/login?flow=partner" : "/login"} className="text-primary hover:underline" style={{ fontSize: "14px", fontWeight: 600 }}>{t("تسجيل الدخول", "Sign in")}</Link>
           </div>
           </>
           )}
