@@ -10,9 +10,9 @@ test('dashboard uses the shared page header and neutral AR/AP surfaces', async (
   await expect(heading.locator('xpath=ancestor::header')).toHaveCount(1)
 
   // AR/AP links sit inside the shared neutral financial panel.
-  const receivableRow = page.getByText('Receivable (AR)', { exact: true }).locator('xpath=..')
-  const payableRow = page.getByText('Payable (AP)', { exact: true }).locator('xpath=..')
+  const receivableRow = page.getByTestId('overview-receivables')
+  const payableRow = page.getByTestId('overview-payables')
   await expect(receivableRow).toHaveClass(/\bborder-border\b/)
   await expect(payableRow).toHaveClass(/\bborder-border\b/)
-  await expect(page.getByTestId('current-balances')).toHaveCSS('background-color', 'rgb(255, 253, 249)')
+  await expect(page.getByTestId('overview-receivables')).toHaveCSS('background-color', 'rgb(255, 253, 249)')
 })

@@ -8,6 +8,7 @@ import { displayDigits, displayLocale } from '../lib/number-display';
 import { useLanguage } from './LanguageContext';
 import { Card } from './ui/card';
 import { Check, Circle } from 'lucide-react';
+import { DetailSection } from './detail-section';
 import { dashboardTotalsMatch } from '../lib/dashboard-totals-match';
 import { DashboardFigures, DashboardNumeral as Numeral } from './dashboard-figures';
 import { DashboardPostingCoverage, type PostingCoverage } from './dashboard-posting-coverage';
@@ -54,8 +55,6 @@ function OpenBalances({data,title,scope,href}: {data?:DashboardOpenBalances;titl
 
 export function DashboardFinancialOverview({data,period,onPeriodChange,historicalRecord,historicalLoading,historicalError,onOpenHistorical,onPosted}: {data:DashboardSummary & {postingCoverage?:PostingCoverage};period:DashboardPeriodKey;onPeriodChange:(value:DashboardPeriodKey)=>void;historicalRecord?:HistoricalReportRecord|null;historicalLoading?:boolean;historicalError?:boolean;onOpenHistorical:()=>void;onPosted?:()=>void}) {
   const {t,language}=useLanguage();
-  const [basis,setBasis]=useState<'saved'|'ledger'>('saved');
-  const savedView=basis==='saved'&&!!data.savedActivity;
   const [requestedGrouping,setChartGrouping]=useState<'auto'|'months'|'years'|'history'>('auto');
   const hasLedgerTrend=data.profitLoss.some(row=>row.dataAvailability?.hasActivity)||(data.yearlyTrend||[]).some(row=>row.dataAvailability?.hasActivity);
   const hasHistoricalValues=historicalProfitRows(historicalRecord).some(row=>row.revenue!==null||row.net!==null);
@@ -103,36 +102,36 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
   const compareYear=safeComparison(yearCompare,comparison?.yearAgoComparable??comparison?.comparable);
   const incomeLink=p?financialReportHref('income-statement',p.fromDate,p.toDate):'/app/reports/income-statement';
   const chartDates=(rows:TrendPoint[])=>{const from=rows.map(row=>row.fromDate).filter(Boolean).sort()[0];const to=rows.map(row=>row.toDate).filter(Boolean).sort().slice(-1)[0];return `${date(from)} → ${date(to)}`;};
-  const activity=[...data.overdueInvoices.slice(0,3).map(invoice=>({id:invoice.id,label:`${invoice.number} · ${invoice.contact}`,amount:invoice.remaining,currency:invoice.currency||cur,href:`/app/invoices/${invoice.id}`})),...data.bankAccounts.slice(0,2).map(bank=>({id:bank.id,label:bank.bankName||bank.name,amount:bank.balance,currency:bank.currency,href:`/app/bank-accounts/${bank.id}`}))].slice(0,5);
   const figures=[
     {key:'revenue',label:t('إجمالي الإيرادات','Total revenue'),labelShort:t('الإيرادات','Revenue'),value:flowValue(k.revenue,'revenue')},
     {key:'net',label:t('صافي الدخل','Net income'),value:flowValue(net,'netIncome','revenue','expenses'),negative:hasActivity&&net<0},
-    {key:'expenses',label:t('المصروفات','Expenses'),value:flowValue(k.expenses,'expenses')},
-    {key:'vat',label:t('صافي ضريبة مستندات الفترة','Net tax on period documents'),labelShort:t('صافي ضريبة الفترة','Net period tax'),value:flowValue(k.vatNet,'vatNet')}
+    {key:'expenses',label:t('المصروفات','Expenses'),value:flowValue(k.expenses,'expenses')}
   ];
   const comparisonContent=!compareLast&&!compareYear?<p className="py-4 text-xs text-content-secondary">{t('لا تتوفر فترات ذات بيانات قابلة للمقارنة.','No periods with comparable recorded data are available.')}</p>:<div className="overflow-x-auto"><table className="w-full min-w-[530px] text-xs"><thead><tr className="border-b border-border"><th className="py-2 text-start">{cur}</th>{[currentCompare,...(compareLast?[priorCompare]:[]),...(compareYear&&yearCompare?[yearCompare]:[])].map((point,index)=><th key={index} className="px-2 text-end"><bdi>{range(point.fromDate,point.toDate)}</bdi></th>)}</tr></thead><tbody>{comparisonRows.map(([key,label])=><tr key={key} className="border-b border-border"><th className="py-3 text-start font-normal">{label}</th><td className="text-end tabular-nums">{number(currentCompare[key])}</td>{[...(compareLast?[priorCompare]:[]),...(compareYear&&yearCompare?[yearCompare]:[])].map((point,index)=>{const growth=comparableGrowth(currentCompare[key],point[key],true);return <td key={index} className="px-2 text-end tabular-nums">{number(point[key])}<span className="ms-2 text-content-secondary">{growth===null?'—':`${growth>0?'+':''}${growth.toFixed(1)}%`}</span></td>})}</tr>)}</tbody></table></div>;
   return <>
+    <section aria-label={t('المستحقات والأرصدة الحالية','Current dues and balances')} data-testid="dashboard-current-summary">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold">{t('وضعك الآن','Where you stand')}</h2><span className="text-xs text-content-secondary">{scopedText(currentScope)}</span></div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {[{label:t('مستحق لك','Owed to you'),balance:data.receivables,href:'/app/reports/dues-settlements?view=receivable',id:'overview-receivables'}, {label:t('مستحق عليك','You owe'),balance:data.payables,href:'/app/reports/dues-settlements?view=payable',id:'overview-payables'}].map(row=><Link key={row.id} data-testid={row.id} to={row.href} className="ledger-hoverable min-w-0 rounded-lg border border-border bg-card p-4"><span className="text-xs text-content-secondary">{row.label}</span><p className="mt-2 text-2xl font-semibold tabular-nums break-words"><bdi>{row.balance?money(row.balance.total,row.balance.currency):'—'}</bdi></p><p className="mt-2 text-xs text-content-secondary">{row.balance?<>{t('منه متأخر','Overdue')}: <bdi>{money(row.balance.overdue,row.balance.currency)}</bdi>{row.balance.byCurrency.some(c=>c.currency!==row.balance!.currency)&&<> · {t('عملات أخرى في التفاصيل','Other currencies in details')}</>}</>:unavailable}</p></Link>)}
+        <Link to="/app/bank-accounts" data-testid="overview-cash" className="ledger-hoverable col-span-2 sm:col-span-1 min-w-0 rounded-lg border border-border bg-card p-4"><span className="text-xs text-content-secondary">{t('أرصدة الحسابات البنكية','Bank account balances')}</span><p className="mt-2 text-2xl font-semibold tabular-nums break-words"><bdi>{data.cash?money(data.cash.baseCurrencyTotal,data.cash.baseCurrency):'—'}</bdi></p><p className="mt-2 text-xs text-content-secondary">{data.cash?<>{t('مسجلة حتى','Recorded as of')} <bdi>{date(data.cash.asOf)}</bdi>{data.cash.byCurrency.some(c=>c.currency!==data.cash!.baseCurrency)&&<> · {t('عملات أخرى خارج الإجمالي','Other currencies excluded')}</>}</>:unavailable}</p></Link>
+      </div>
+    </section>
     <div className="space-y-1.5" data-testid="dashboard-toolbar">
     <div data-testid="flow-period" className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[11px]">
-      <div className="flex flex-wrap items-center gap-2"><label htmlFor="dashboard-flow-period" className="text-content-secondary">{t('الفترة','Period')}</label><select id="dashboard-flow-period" aria-label={t('فترة الحركات','Activity period')} className="h-7 max-w-full rounded-full border border-border/50 bg-transparent px-2 text-[11px]" value={period} onChange={event=>onPeriodChange(event.target.value as DashboardPeriodKey)}>{([
+      <div className="flex flex-wrap items-center gap-2"><label htmlFor="dashboard-flow-period" className="text-content-secondary">{t('فترة الأداء','Performance period')}</label><select id="dashboard-flow-period" aria-label={t('فترة الحركات','Activity period')} className="h-7 max-w-full rounded-full border border-border/50 bg-transparent px-2 text-[11px]" value={period} onChange={event=>onPeriodChange(event.target.value as DashboardPeriodKey)}>{([
         ['fiscal_ytd',t('السنة المالية حتى اليوم','Fiscal year to date')],['previous_fiscal_year',t('السنة المالية السابقة','Previous fiscal year')],['month',t('الشهر الحالي حتى اليوم','Current month to date')],['previous_month',t('الشهر السابق','Previous month')],['all_time',t('كل الفترات','All time')]
       ] as const).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></div>
       <span className="text-content-secondary" data-testid="flow-dates">{scopedText(flowDates)} · {cur}</span>
     </div>
     {data.savedActivity&&<div className="flex flex-wrap items-center gap-x-3 gap-y-1" data-testid="dashboard-basis-row">
-      <div className="inline-flex items-center gap-0.5 rounded-full border border-border/50 p-0.5 text-[11px]" role="group" aria-label={t('مصدر لوحة التحكم','Dashboard basis')}>
-        <button className="h-6 rounded-full px-2.5 text-content-secondary transition-colors hover:text-foreground aria-pressed:bg-foreground/5 aria-pressed:text-foreground aria-pressed:font-semibold" aria-pressed={savedView} onClick={()=>setBasis('saved')}>{t('المستندات المحفوظة','Saved documents')}</button>
-        <button className="h-6 rounded-full px-2.5 text-content-secondary transition-colors hover:text-foreground aria-pressed:bg-foreground/5 aria-pressed:text-foreground aria-pressed:font-semibold" aria-pressed={!savedView} onClick={()=>setBasis('ledger')}>{t('الدفاتر المعتمدة','Posted books')}</button>
-      </div>
       <span data-testid="dashboard-match" role="status" className={`inline-flex items-center gap-1 text-[11px] ${dashboardTotalsMatch(data)?'text-success':'text-content-secondary'}`} title={t('مقارنة صافي المبيعات والتكاليف المسجلة بإجماليات الدفاتر للفترة والعملة نفسها؛ لا تغني عن التسوية البنكية أو مراجعة كل قيد.','Compares saved net sales and costs with book totals for the same period and currency; not bank reconciliation or a journal audit.')}>
         {dashboardTotalsMatch(data)?<Check className="size-3.5" aria-hidden="true"/>:<Circle className="size-3" aria-hidden="true"/>}
         {dashboardTotalsMatch(data)?t('إجماليات الفترة متطابقة','Period totals match'):t('المطابقة تحتاج مراجعة','Matching needs review')}
       </span>
     </div>}
     </div>
-    {savedView?<DashboardSavedActivity key={data.org.id} data={data}/>:<>
     <DashboardPostingCoverage key={`${p?.fromDate}-${p?.toDate}`} coverage={data.postingCoverage} source={p?.source} from={p?.fromDate} to={p?.toDate} onPosted={onPosted}/>
-    <section data-testid="flow-kpis"><DashboardFigures items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
+    <section data-testid="flow-kpis"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="mb-2 text-sm font-semibold">{t('نتيجة الفترة','Period performance')} <span className="font-normal text-xs text-content-secondary">· {cur} · {p?.source==='ledger'?t('قيود مرحّلة','Posted journals'):p?.source==='documents'?t('مستندات مسجلة','Recorded documents'):unavailable}</span></h2><Link to={incomeLink} className="text-xs text-primary hover:underline">{t('فتح قائمة الدخل','Open income statement')}</Link></div><DashboardFigures columns={3} items={figures}/><p className="mt-2 text-xs text-content-secondary" role="status">{data.postingCoverage?.unlinkedCount&&p?.source==='ledger'?t('أرقام القيود المرحلة فقط — توجد مستندات تحتاج مراجعة الترحيل.','Posted journal figures only — some documents need posting review.'):!hasActivity?noData:missing('revenue','expenses','netIncome','vatNet')?t('بعض المؤشرات غير متاحة من البيانات المسجلة.','Some indicators are unavailable from the recorded data.'):t('بحسب البيانات المسجلة للفترة','Based on recorded data for the period')}</p></section>
 
     <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-3" data-testid="dashboard-primary-row">
       <div className="min-w-0 lg:col-span-2"><Panel title={chartGrouping==='history'?t('الأرباح والخسائر · القوائم السابقة','Profit & Loss · prior statements'):chartGrouping==='years'?t('الأرباح والخسائر · حسب السنة','Profit & Loss · by year'):t('الأرباح والخسائر · آخر 12 شهرًا','Profit & Loss · last 12 months')} scope={chartGrouping==='history'?t('مرجع محفوظ مستقل عن دفاتر الفترة الحالية','Saved reference separate from current-period books'):chartDates(rawPl)} testId="flow-profit-loss">
@@ -140,11 +139,13 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
         {chartGrouping==='history'?<HistoricalProfitChart record={historicalRecord} loading={historicalLoading} error={historicalError} onOpen={onOpenHistorical}/>:<div dir="ltr" className="h-[120px] md:h-[150px] xl:h-[190px]">{!usable(seriesRows,['revenue','net'])?trendEmpty:<ResponsiveContainer width="100%" height="100%"><BarChart data={seriesRows} margin={{top:4,right:0,left:0,bottom:0}} barGap={4} barCategoryGap="26%"><CartesianGrid stroke="var(--surface-hover)" vertical={false}/><XAxis dataKey="label" tick={{fontSize:11}} tickLine={false} axisLine={{stroke:'var(--border)'}}/><Tooltip {...tooltip}/><Bar dataKey="revenue" name={t('الإيرادات','Revenue')} fill="var(--chart-5)" radius={[4,4,0,0]} maxBarSize={42}/><Bar dataKey="net" name={t('الربح','Profit')} fill="var(--chart-1)" radius={[4,4,0,0]} maxBarSize={42}>{seriesRows.map((row,index)=><Cell key={index} fill={row.net!==null&&row.net<0?'var(--danger)':'var(--chart-1)'}/>)}</Bar></BarChart></ResponsiveContainer>}</div>}
         <ChartLegend items={[{label:t('الإيرادات','Revenue'),color:'var(--chart-5)'},{label:t('الربح','Profit'),color:'var(--chart-1)'},{label:t('خسارة','Loss'),color:'var(--danger)'}]}/>
       </Panel></div>
-      <Panel title={t('متابعة الحسابات','Account follow-up')} scope={`${t('حتى','As of')} ${date(data.currentTotalsScope?.asOfDate)}`} testId="current-followup">
-        {!activity.length?<div className="py-8 text-xs text-content-secondary">{t('لا توجد متابعة مسجلة بعد','No recorded items to follow up')}</div>:<div className="flex flex-col text-[13px]">{activity.map(row=><Link key={row.id} to={row.href} className="flex items-center justify-between gap-3 border-b border-border py-2.5"><span className="min-w-0 truncate">{displayDigits(row.label)}</span><span className="shrink-0 font-display text-base tabular-nums"><bdi>{money(row.amount,row.currency)}</bdi></span></Link>)}</div>}
-      </Panel>
+      <div className="min-w-0" data-testid="current-followup"><Panel title={t('يحتاج متابعتك','Needs your attention')} scope={currentScope} testId="overdue-followup">
+      <div className="grid grid-cols-1 gap-3">{[{title:t('متأخرة عليهم (AR)','Overdue to us (AR)'),items:data.overdueInvoices,base:'/app/invoices/'},{title:t('متأخرة علينا (AP)','Overdue by us (AP)'),items:data.overdueBills,base:'/app/purchases/bills/'}].map(group=><div key={group.base}><h3 className="mb-2 border-b border-foreground pb-1.5 text-xs text-content-secondary">{group.title}</h3>{!group.items?<p className="py-4 text-xs text-content-secondary">{unavailable}</p>:!group.items.length?<p className="py-4 text-xs text-content-secondary">{t('لا توجد متأخرات مسجلة.','No recorded overdue items.')}</p>:group.items.slice(0,3).map(item=><Link key={item.id} to={`${group.base}${item.id}`} className="flex items-center justify-between gap-2 border-b border-border py-2.5 text-xs"><span className="min-w-0"><span className="font-code">{displayDigits(item.number)}</span> · {item.daysOverdue}{t('ي','d')}<span className="mt-0.5 block truncate text-content-secondary">{displayDigits(item.contact)}</span></span><bdi className="shrink-0 font-display text-sm">{money(item.remaining,item.currency||cur)}</bdi></Link>)}</div>)}</div>
+    </Panel></div>
     </div>
 
+    {data.savedActivity&&<DetailSection title={t('المستندات والمسودات','Documents and drafts')} description={t('حركة الحفظ حسب العملة؛ لا تدخل المسودات في الأرباح','Saved activity by currency; drafts are excluded from profit')} testId="dashboard-documents"><DashboardSavedActivity key={data.org.id} data={data}/></DetailSection>}
+    <DetailSection title={t('تحليل وتقارير إضافية','More analysis and reports')} description={t('تفاصيل الإيرادات والمصروفات والنقد والمقارنات','Revenue, expenses, cash and comparison details')} testId="dashboard-analysis">
     <div className="grid grid-cols-1 gap-4 md:gap-[18px] xl:gap-6 lg:grid-cols-2" data-testid="dashboard-charts-row">
       <Panel title={t('تفصيل الإيرادات','Revenue Breakdown')} scope={`${t('حسابات الإيرادات · الفترة المختارة','Income accounts · selected period')} · ${p?chartDates([p]):'—'}`}>
         {chartUnavailable(data.incomeBreakdown,'revenue')||!data.incomeBreakdown.length?chartEmpty:<div dir="ltr"><ResponsiveContainer width="100%" height={230}><BarChart layout="vertical" data={data.incomeBreakdown.slice(0,6)}><CartesianGrid stroke="var(--surface-hover)" horizontal={false}/><XAxis type="number" tick={{fontSize:11}} tickLine={false} axisLine={false}/><YAxis type="category" dataKey="category" orientation="right" width={110} tick={{fontSize:11}} tickLine={false} axisLine={false}/><Tooltip {...tooltip}/><Bar dataKey="total" name={t('الإيرادات','Revenue')} fill="var(--chart-1)" radius={[0,4,4,0]} maxBarSize={22}/></BarChart></ResponsiveContainer></div>}
@@ -185,9 +186,6 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
       </Panel>
     </div>
 
-    <Panel title={t('الفواتير المتأخرة','Overdue Invoices')} scope={currentScope} testId="overdue-followup">
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">{[{title:t('متأخرة عليهم (AR)','Overdue to us (AR)'),items:data.overdueInvoices,base:'/app/invoices/'},{title:t('متأخرة علينا (AP)','Overdue by us (AP)'),items:data.overdueBills,base:'/app/purchases/bills/'}].map(group=><div key={group.base}><h3 className="mb-2 border-b border-foreground pb-1.5 text-xs text-content-secondary">{group.title}</h3>{!group.items?<p className="py-4 text-xs text-content-secondary">{unavailable}</p>:!group.items.length?<p className="py-4 text-xs text-content-secondary">{t('لا توجد متأخرات مسجلة.','No recorded overdue items.')}</p>:group.items.slice(0,3).map(item=><Link key={item.id} to={`${group.base}${item.id}`} className="flex items-center justify-between gap-2 border-b border-border py-2.5 text-xs"><span className="min-w-0"><span className="font-code">{displayDigits(item.number)}</span> · {item.daysOverdue}{t('ي','d')}<span className="mt-0.5 block truncate text-content-secondary">{displayDigits(item.contact)}</span></span><bdi className="shrink-0 font-display text-sm">{money(item.remaining,item.currency||cur)}</bdi></Link>)}</div>)}</div>
-    </Panel>
     <DashboardFigures items={[
       {key:'contacts',label:t('عدد العملاء/الموردين','Customers/Vendors count'),value:<Numeral value={k.contactCount} fraction={false}/>,hint:t('كل السجلات','All records')},
       {key:'overdue',label:t('فواتير متأخرة','Overdue invoices'),value:<Numeral value={k.overdueCount} fraction={false}/>,hint:t('جميع السنوات · حاليًا','All years · current')},
@@ -196,13 +194,13 @@ export function DashboardFinancialOverview({data,period,onPeriodChange,historica
     ]}/>
 
     <details className="rounded-lg border border-border px-4 py-3" data-testid="dashboard-details"><summary className="cursor-pointer text-xs font-semibold">{t('تفاصيل الفترة والذمم والتقارير','Period, balances and report details')}</summary><div className="mt-4 space-y-4">
-      <p className="text-xs text-content-secondary">{scopedText(flowScope)}</p>
+      <p className="text-xs text-content-secondary">{scopedText(flowScope)}</p><p className="text-xs text-content-secondary">{t('صافي ضريبة مستندات الفترة','Net tax on period documents')}: <bdi>{!p||!hasActivity||missing('vatNet')?'—':money(k.vatNet)}</bdi></p>
       {p&&<div className="flex flex-wrap gap-3 text-xs font-semibold text-primary"><Link to={incomeLink}>{t('قائمة دخل الفترة','Period income statement')}</Link><Link to={financialReportHref('balance-sheet',null,p.toDate)}>{t('المركز المالي في','Financial position at')} <bdi>{date(p.toDate)}</bdi></Link></div>}
       {!!data.limitations?.length&&<div className="text-xs text-content-secondary">{data.limitations.map((notice,index)=><p key={index}>{displayDigits(language==='ar'?notice.messageAr:notice.messageEn)}</p>)}</div>}
       <p className="text-xs text-content-secondary">{scopedText(trendScope(data.monthlyTrend,p?.source||'documents'))}</p>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2"><OpenBalances data={data.receivables} title={t('مستحق للشركة — العملاء','Due to the company — customers')} scope={currentScope} href="/app/reports/dues-settlements?view=receivable"/><OpenBalances data={data.payables} title={t('مستحق على الشركة — الموردون','Due by the company — suppliers')} scope={currentScope} href="/app/reports/dues-settlements?view=payable"/></div>
       <Panel title={t('تفصيل المقارنة الشهرية والسنوية','Monthly and annual comparison detail')} scope={t('مقارنة مستقلة عن اختيار فترة الحركات','Comparison independent of selected activity period')} testId="comparison-details">{comparisonContent}</Panel>
     </div></details>
-    </>}
+    </DetailSection>
   </>;
 }

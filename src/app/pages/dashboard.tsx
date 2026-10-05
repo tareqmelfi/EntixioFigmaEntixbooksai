@@ -1,5 +1,6 @@
 import { authStore } from "../components/auth-store";
 import { HistoricalReportSummary, useHistoricalReports } from "../components/historical-reports-access";
+import { DetailSection } from "../components/detail-section";
 import { DashboardFinancialOverview } from "../components/dashboard-financial-overview";
 import { HistoricalStatements } from "../components/historical-statements";
 import { displayLocale } from "../lib/number-display";
@@ -269,7 +270,7 @@ useEffect(() => {
 
       {/* Industry strip · per-category landing row (P2) */}
       {strip && (
-        <section>
+        <DetailSection title={t('أدوات النشاط','Industry tools')}>
           <div className="mb-2.5 flex items-center gap-2">
             <strip.icon className="size-4 text-content-secondary" strokeWidth={1.75} />
             <span className="text-sm font-semibold text-foreground">{t(strip.ar, strip.en)}</span>
@@ -290,11 +291,11 @@ useEffect(() => {
               );
             })}
           </div>
-        </section>
+        </DetailSection>
       )}
 
       <DashboardFinancialOverview onPosted={()=>void refresh()} data={data} period={period} onPeriodChange={setPeriod} historicalRecord={historical.record} historicalLoading={historical.loading} historicalError={historical.error} onOpenHistorical={() => setHistoricalView(true)} />
-      <HistoricalReportSummary access={historical} onOpen={() => setHistoricalView(true)} />
+      <DetailSection title={t("القوائم السابقة", "Prior statements")} testId="dashboard-history"><HistoricalReportSummary access={historical} onOpen={() => setHistoricalView(true)} /></DetailSection>
       <ToastStack toasts={toasts} onDismiss={dismiss} />
     </div>
   );
