@@ -1,3 +1,4 @@
+import { PaymentMethodsSettings } from "../components/payment-methods-settings";
 import { BillingAddressPanel } from '../components/billing-address-panel';
 import { displayDigits, displayLocale } from "../lib/number-display";
 import { EntixWordmark } from "../components/entix-brand";
@@ -747,7 +748,7 @@ export function Settings() {
       )}
 
       {tab === "numbering" && org && <NumberingTab orgId={org.id} push={push} />}
-      {tab === "payments" && org && <PaymentsTab org={org} setOrg={setOrg} push={push} />}
+      {tab === "payments" && org && <div className="space-y-6"><PaymentMethodsSettings key={org.id} org={org} /><PaymentsTab key={`gateways-${org.id}`} org={org} setOrg={setOrg} push={push} /></div>}
       {tab === "catalog" && org && <CatalogTab push={push} />}
       {/* The device link is what the tab is about; VAT registration follows it as the longer-form task. */}
       {tab === "us-banking" && org && tabAllowed("us-banking", org.country) && <UsBankingTab org={org} />}

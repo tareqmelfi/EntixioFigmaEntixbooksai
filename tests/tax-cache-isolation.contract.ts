@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict';
+const { api, setOrgId, getOrgId } = await import('../src/app/lib/api');
+const { loadTaxRates, refreshTaxRates } = await import('../src/app/lib/use-tax-rates');
+let calls = 0;
+let release: ((v: any) => void) | undefined;
+api.taxRates.list = async () => {
+  calls++;
+  if (getOrgId() === 'sa') return new Promise(resolve => { release = resolve; });
+  return { items: [{ id: 'us-state', rate: '.06' }] } as any;
+};
+setOrgId('sa', false);
+const old = loadTaxRates();
+setOrgId('us', false);
+assert.equal((await loadTaxRates())[0].id, 'us-state');
+release!({ items: [{ id: 'sa-vat', rate: '.15' }] });
+assert.equal((await old)[0].id, 'sa-vat');
+assert.equal((await loadTaxRates())[0].id, 'us-state');
+assert.equal(calls, 2);
+refreshTaxRates();
+api.taxRates.list = async () => { calls++; throw new Error('temporary failure'); };
+assert.deepEqual(await loadTaxRates(), []);
+api.taxRates.list = async () => { calls++; return { items: [{ id: 'recovered' }] } as any; };
+assert.equal((await loadTaxRates())[0].id, 'recovered');
+assert.equal(calls, 4);
+setOrgId(null, false);
+assert.deepEqual(await loadTaxRates(), []);
+assert.equal(calls, 4);
+console.log('Tax cache: concurrent company isolation, recovery after failure, and unauthenticated no-fetch passed.');

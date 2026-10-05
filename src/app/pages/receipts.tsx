@@ -1,3 +1,4 @@
+import { VoucherPaymentMethod, voucherMethodPayload, voucherMethodLabel } from "../components/voucher-payment-method";
 import { ReceiptAllocationPanel } from '../components/receipt-allocation-panel';
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { displayLocale, displayDigits } from "../lib/number-display";
@@ -20,7 +21,6 @@ import { useOrgRegion } from "../lib/use-org-region";
 import { Input } from "../components/ui/input";
 import { DateInput } from "../components/date-input";
 import { Label } from "../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { ToastStack, useToasts, InlineConfirm } from "../components/side-panel";
 import { FullPageForm } from "../components/full-page-form";
 import { useFormDraft } from "../lib/form-draft";
@@ -56,7 +56,6 @@ export function Receipts() {
   const [items, setItems] = useState<Voucher[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
-  const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const { toasts, push, dismiss } = useToasts();
   const [summary, setSummary] = useState({ sumAmount: "0", avgAmount: "0" });
   const [loading, setLoading] = useState(true);
@@ -134,15 +133,13 @@ export function Receipts() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const [v, c, b] = await Promise.all([
+      const [v, c] = await Promise.all([
         api.vouchers.list({ type: "RECEIPT", ...(sourceInvoiceId ? { invoiceId: sourceInvoiceId } : {}) }),
         api.contacts.list({ role: "customer" }).catch(() => ({ items: [] })),
-        api.bankAccounts.list().catch(() => ({ items: [] })),
       ]);
       setItems(v.items);
       setSummary(v.summary);
       setContacts((c as any).items || []);
-      setBankAccounts((b as any).items || []);
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
     } finally { setLoading(false); }
@@ -252,6 +249,7 @@ export function Receipts() {
         date: full.date ? new Date(full.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
         amount: String(full.amount ?? ""),
         paymentMethod: full.paymentMethod || "BANK_TRANSFER",
+        paymentMethodConfigId: full.paymentMethodConfigId || null,
         reference: full.reference || "",
         bankAccountId: (full as any).bankAccountId || "",
         notes: full.notes || "",
@@ -322,8 +320,7 @@ export function Receipts() {
           currency: invoices.find((inv: any) => inv.id === form.invoiceId)?.currency || orgCurrency,
           date: form.date,
           amount: Number(directAmount.toFixed(2)),
-          paymentMethod: form.paymentMethod,
-          bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+          ...voucherMethodPayload(form),
           reference: form.reference || null,
           notes: form.notes || null,
           branchId: form.branchId ?? null,
@@ -353,8 +350,7 @@ export function Receipts() {
             currency: inv?.currency || orgCurrency,
             date: form.date,
             amount: Number(amount.toFixed(2)),
-            paymentMethod: form.paymentMethod,
-            bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+            ...voucherMethodPayload(form),
             reference: inv?.invoiceNumber || form.reference || null,
             notes: form.notes || null,
             branchId: form.branchId ?? null,
@@ -369,8 +365,7 @@ export function Receipts() {
           currency: invoices.find((inv: any) => inv.id === form.invoiceId)?.currency || orgCurrency,
           date: form.date,
           amount: Number(directAmount.toFixed(2)),
-          paymentMethod: form.paymentMethod,
-          bankAccountId: form.paymentMethod !== "CASH" ? (form.bankAccountId || null) : null,
+          ...voucherMethodPayload(form),
           reference: form.reference || null,
           notes: form.notes || null,
           branchId: form.branchId ?? null,
@@ -524,7 +519,7 @@ export function Receipts() {
               <div className="ledger-figure-value mt-2 text-success" style={{ fontSize: "clamp(1.75rem, 2vw, 2.5rem)" }}>
                 <LedgerFigure value={Number(selected.amount)} currency={selected.currency} />
               </div>
-              <div className="mt-1 text-xs text-content-secondary">{METHOD_LABELS[selected.paymentMethod]}</div>
+              <div className="mt-1 text-xs text-content-secondary">{voucherMethodLabel(selected, language, METHOD_LABELS[selected.paymentMethod])}</div>
             </div>
 
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
@@ -727,7 +722,7 @@ export function Receipts() {
                     <TableCell className="text-end align-middle">
                       <span dir="ltr" className="block font-display text-[18px] leading-6 text-success tabular-nums">{money2(v.amount)}{v.currency !== figureCurrency && <span className="font-english text-[10px] text-muted-foreground"> {v.currency}</span>}</span>
                     </TableCell>
-                    <TableCell className="align-middle text-xs text-content-secondary"><span className="block truncate">{METHOD_LABELS[v.paymentMethod]}</span></TableCell>
+                    <TableCell className="align-middle text-xs text-content-secondary"><span className="block truncate">{voucherMethodLabel(v, language, METHOD_LABELS[v.paymentMethod])}</span></TableCell>
                     {!(wideViewport && selected) && (
                     <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex items-center gap-1 whitespace-nowrap">
@@ -955,28 +950,7 @@ export function Receipts() {
               </div>
             </div>
 
-            <div>
-              <Label className="text-xs">{t("طريقة الدفع", "Payment method")} *</Label>
-              <Select value={form.paymentMethod} onValueChange={(v) => setForm({ ...form, paymentMethod: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(METHOD_LABELS).map(([k, l]) => <SelectItem key={k} value={k}>{l}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {form.paymentMethod !== "CASH" && bankAccounts.length > 0 && (
-              <div>
-                <Label className="text-xs">{t("الحساب البنكي المُستلم فيه", "Bank account received into")}</Label>
-                <select value={form.bankAccountId} onChange={(e) => setForm({ ...form, bankAccountId: e.target.value })}
-                  className="w-full text-sm rounded border border-border px-3 py-2 bg-card">
-                  <option value="">{t("— اختر —", "— Select —")}</option>
-                  {bankAccounts.map((b) => (
-                    <option key={b.id} value={b.id}>{b.bankName || b.name} · {b.accountNumber || b.iban}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <VoucherPaymentMethod key={getOrgId()} usage="receipt" currency={invoices.find((inv: any) => inv.id === form.invoiceId)?.currency || orgCurrency} value={form} saved={editingReceipt} onChange={selection => setForm((current: any) => ({ ...current, ...selection }))} />
 
             <div>
               <Label className="text-xs">{t("المرجع (رقم تحويل / شيك)", "Reference (transfer / check no.)")}</Label>

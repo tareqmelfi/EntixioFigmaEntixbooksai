@@ -23,56 +23,46 @@ export type OrgRegion = {
   loading: boolean;
 };
 
-let cached: { orgId: string; country: string; currency: string } | null = null;
+type RegionData = { country: string; currency: string };
+const cache = new Map<string, RegionData>();
+const inflight = new Map<string, Promise<RegionData | undefined>>();
+const region = (data?: RegionData, loading = false): OrgRegion => ({
+  country: data?.country || '', currency: data?.currency || '',
+  isSA: data?.country === 'SA', isUS: data?.country === 'US', loading,
+});
 
-function currencyFor(country: string, base?: string | null): string {
-  if (base) return base.toUpperCase();
-  return country === "US" ? "USD" : "SAR";
-}
-let inflight: Promise<void> | null = null;
-
-async function loadOnce(): Promise<void> {
-  // Z2.3 · an admin acting on behalf of a company has no membership → region comes from the grant.
-  const act = readActAs();
-  if (act && act.orgId === getOrgId()) { cached = { orgId: act.orgId, country: (act.country || "SA").toUpperCase(), currency: (act.currency || "").toUpperCase() || currencyFor((act.country || "SA").toUpperCase()) }; return; }
+async function loadOnce(orgId: string): Promise<RegionData | undefined> {
   try {
-    const orgs = await api.orgs.list();
-    const stored = getOrgId();
-    const active = (stored ? orgs.find((o) => o.id === stored) : null);
-    if (!active) throw new Error("active_company_unavailable");
-    const country = (active.country || "").toUpperCase();
-    cached = { orgId: active?.id || "", country, currency: currencyFor(country, (active as any)?.baseCurrency) };
-  } catch {
-    // Never invent a region or currency when the selected company is unavailable.
-    cached = cached?.orgId === getOrgId() ? cached : null;
-  }
+    const act = readActAs();
+    const active = act?.orgId === orgId
+      ? { country: act.country, baseCurrency: act.currency }
+      : (await api.orgs.list()).find(o => o.id === orgId);
+    if (!active) return undefined;
+    const data = { country: (active.country || '').toUpperCase(), currency: (active.baseCurrency || '').toUpperCase() };
+    cache.set(orgId, data);
+    return data;
+  } catch { return undefined; }
 }
 
 export function useOrgRegion(): OrgRegion {
-  const [state, setState] = useState<OrgRegion>(() => ({
-    country: cached?.country || "",
-    isSA: cached?.country === "SA",
-    isUS: cached?.country === "US",
-    currency: cached?.currency || "",
-    loading: !cached,
-  }));
-
+  const orgId = getOrgId();
+  const [resolved, setResolved] = useState<{ orgId: string | null; value: OrgRegion }>(() => ({ orgId, value: region(orgId ? cache.get(orgId) : undefined, !!orgId && !cache.has(orgId)) }));
   useEffect(() => {
-    if (cached) return;
+    if (!orgId) { setResolved({ orgId, value: region() }); return; }
+    const cached = cache.get(orgId);
+    if (cached) { setResolved({ orgId, value: region(cached) }); return; }
     let mounted = true;
-    inflight = inflight || loadOnce().finally(() => { inflight = null; });
-    inflight.then(() => {
-      if (!mounted) return;
-      const country = cached?.country || "";
-      setState({ country, isSA: country === "SA", isUS: country === "US", currency: cached?.currency || "", loading: false });
+    let pending = inflight.get(orgId);
+    if (!pending) {
+      pending = loadOnce(orgId).finally(() => { inflight.delete(orgId); });
+      inflight.set(orgId, pending);
+    }
+    pending.then(data => {
+      if (mounted && getOrgId() === orgId) setResolved({ orgId, value: region(data) });
     });
     return () => { mounted = false; };
-  }, []);
-
-  return state;
+  }, [orgId]);
+  return resolved.orgId === orgId ? resolved.value : region(undefined, !!orgId);
 }
 
-/** Re-resolve on org switch (call after changing active org) */
-export function invalidateOrgRegion() {
-  cached = null;
-}
+export function invalidateOrgRegion() { cache.clear(); }

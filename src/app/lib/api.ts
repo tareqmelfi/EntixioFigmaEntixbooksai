@@ -1385,6 +1385,13 @@ export const api = {
     health: () => request<{ base: string; tokenSet: boolean; publicApiUrl: string }>('/api/sign/health'),
   },
 
+  paymentMethods: {
+    list: (params?: { active?: boolean; appliesTo?: PaymentUsage }) => request<{ items: PaymentMethodConfig[] }>('/api/payment-methods', { query: params ? { ...params, active: params.active === undefined ? undefined : String(params.active) } : undefined }),
+    suggestions: () => request<{ items: PaymentMethodSuggestion[] }>('/api/payment-methods/suggestions'),
+    create: (data: PaymentMethodInput) => request<PaymentMethodConfig>('/api/payment-methods', { method: 'POST', body: data }),
+    update: (id: string, data: Partial<PaymentMethodInput> & { expectedUpdatedAt: string }) => request<PaymentMethodConfig>(`/api/payment-methods/${id}`, { method: 'PATCH', body: data }),
+  },
+
   // Bank Accounts
   bankAccounts: {
     activity: (id: string) => request<{items: Array<Voucher & {kind?: string; detailPath?: string}>}>(`/api/bank-accounts/${id}/activity`),
@@ -3139,7 +3146,26 @@ export interface PurchasesDashboard {
   recentBills: Array<{ id: string; number: string; contact: string; status: string; total: number; date: string }>
 }
 
-export interface BankAccount {
+export type SettlementKind = 'bank' | 'gateway' | 'card_issuer' | 'cash_box' | 'clearing'
+export type PaymentUsage = 'receipt' | 'payment' | 'pos' | 'invoice_link'
+export type PaymentMethodKind = 'cash' | 'bank_transfer' | 'card' | 'gateway' | 'wallet' | 'cheque' | 'clearing' | 'custom'
+export interface PaymentMethodInput {
+  code: string; nameAr: string; nameEn: string; kind: PaymentMethodKind;
+  settlementAccountId: string; feeAccountId?: string | null;
+  defaultFeePct?: number | null; defaultFeeFixed?: number | null; feeCurrency?: string | null;
+  isActive?: boolean; sortOrder?: number; appliesTo: PaymentUsage[]; icon?: string | null;
+}
+export type PaymentMethodSuggestion = Pick<PaymentMethodInput, 'code' | 'nameAr' | 'nameEn' | 'kind' | 'sortOrder' | 'appliesTo'>
+export interface PaymentMethodConfig extends Omit<PaymentMethodInput, 'defaultFeePct' | 'defaultFeeFixed'> {
+  id: string; orgId: string; updatedAt: string; isActive: boolean;
+  defaultFeePct?: string | number | null; defaultFeeFixed?: string | number | null;
+  settlementAccount?: BankAccount;
+}
+export interface SettlementFields {
+  kind?: SettlementKind; accountId?: string | null; provider?: string | null;
+  externalId?: string | null; parentSettlementAccountId?: string | null; last4?: string | null;
+}
+export interface BankAccount extends SettlementFields {
   id: string
   orgId: string
   name: string
@@ -3154,7 +3180,7 @@ export interface BankAccount {
   isActive: boolean
 }
 
-export interface BankAccountInput {
+export interface BankAccountInput extends SettlementFields {
   name: string
   bankName?: string | null
   country?: string | null
@@ -3747,6 +3773,9 @@ export interface QuoteInput {
 }
 
 export interface Voucher {
+  bankAccountId?: string | null
+  paymentMethodConfigId?: string | null
+  paymentMethodSnapshot?: { nameAr: string; nameEn: string; code: string; kind: string; settlementAccountId: string } | null
   receiptAllocations?: Array<{ id: string; invoiceId: string; amount: string | number; appliedAt: string; cancelledAt?: string | null; invoice?: { invoiceNumber: string } }>;
 
   /** Branch dimension (B1) · omitted → member default · null → none */
@@ -3770,6 +3799,7 @@ export interface Voucher {
 }
 
 export interface VoucherInput {
+  paymentMethodConfigId?: string | null
   idempotencyKey?: string
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null

@@ -1,3 +1,4 @@
+import { voucherMethodLabel } from "../components/voucher-payment-method";
 import { downloadDocumentPdf, type PreparedDocumentPdf } from "../lib/document-pdf";
 import { socialFooterHtml } from "../lib/document-social";
 import { displayLocale } from "../lib/number-display";
@@ -336,7 +337,7 @@ export function VoucherPrintView() {
               <div><span style={{ color: "#6B7280" }}>{T("رقم السند:", "Voucher No.:")}</span> <strong><NumericText className="num">{voucher.number}</NumericText></strong></div>
               <div><span style={{ color: "#6B7280" }}>{T("التاريخ:", "Date:")}</span> <strong className="num">{String(voucher.date).slice(0, 10)}</strong></div>
               <div><span style={{ color: "#6B7280" }}>{partyLabel}:</span> <strong><BidiText>{contact?.displayName || voucher.contact?.displayName || "—"}</BidiText></strong></div>
-              <div><span style={{ color: "#6B7280" }}>{T("طريقة الدفع:", "Payment method:")}</span> <strong>{METHOD_LABELS[voucher.paymentMethod]}</strong></div>
+              <div><span style={{ color: "#6B7280" }}>{T("طريقة الدفع:", "Payment method:")}</span> <strong>{voucherMethodLabel(voucher, lang, METHOD_LABELS[voucher.paymentMethod])}</strong></div>
               {voucher.reference && <div><span style={{ color: "#6B7280" }}>{T("المرجع:", "Reference:")}</span> <strong className="num">{voucher.reference}</strong></div>}
               {voucher.invoiceId && <div><span style={{ color: "#6B7280" }}>{T("الفاتورة المرتبطة:", "Linked invoice:")}</span> <strong className="num">{linkedInvoiceNumber || voucher.invoiceId}</strong></div>}
               {voucher.billId && <div><span style={{ color: "#6B7280" }}>{T("سند المشتريات المرتبط:", "Linked bill:")}</span> <strong className="num">{linkedBillNumber || voucher.billId}</strong></div>}

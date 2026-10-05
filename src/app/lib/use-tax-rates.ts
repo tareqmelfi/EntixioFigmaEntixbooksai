@@ -12,25 +12,28 @@
  * settings page edits the catalogue.
  */
 import { useEffect, useState } from "react";
-import { api, type TaxRate } from "./api";
+import { api, getOrgId, type TaxRate } from "./api";
 
-let cache: Promise<TaxRate[]> | null = null;
+const cache = new Map<string, Promise<TaxRate[]>>();
 
 export function loadTaxRates(): Promise<TaxRate[]> {
-  if (!cache) {
-    cache = api.taxRates
-      .list()
-      .then((r) => r.items || [])
-      // A failure must never blank the dropdown — the caller falls back to its
-      // own static options and the user can still type a document.
-      .catch(() => []);
+  const orgId = getOrgId();
+  if (!orgId) return Promise.resolve([]);
+  let pending = cache.get(orgId);
+  if (!pending) {
+    pending = api.taxRates.list().then(r => r.items || []).catch(() => {
+      // A transient failure must not poison this company's catalogue for the session.
+      if (cache.get(orgId) === pending) cache.delete(orgId);
+      return [];
+    });
+    cache.set(orgId, pending);
   }
-  return cache;
+  return pending;
 }
 
-/** Forget the cached catalogue (after «الضرائب» in settings changes a rate). */
 export function refreshTaxRates() {
-  cache = null;
+  const orgId = getOrgId();
+  if (orgId) cache.delete(orgId);
 }
 
 /** Fraction (0.15) → the label the CEO reads («15%»), ASCII digits, no trailing zeros. */
@@ -63,16 +66,18 @@ export function taxRateLabel(rate: TaxRate, language: "ar" | "en"): string {
 }
 
 export function useTaxRates(): { rates: TaxRate[]; loading: boolean } {
-  const [rates, setRates] = useState<TaxRate[]>([]);
+  const orgId = getOrgId();
+  const [result, setResult] = useState<{ orgId: string | null; items: TaxRate[] }>({ orgId, items: [] });
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     let alive = true;
+    setResult({ orgId, items: [] }); setLoading(true);
     loadTaxRates().then((items) => {
-      if (!alive) return;
-      setRates(items);
+      if (!alive || getOrgId() !== orgId) return;
+      setResult({ orgId, items });
       setLoading(false);
     });
     return () => { alive = false; };
-  }, []);
-  return { rates, loading };
+  }, [orgId]);
+  return { rates: result.orgId === orgId ? result.items : [], loading: result.orgId !== orgId || loading };
 }

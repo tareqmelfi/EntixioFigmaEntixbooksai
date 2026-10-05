@@ -11,6 +11,23 @@ import { ApiError } from './api'
 type Lang = 'ar' | 'en'
 
 const MAP: Record<string, { ar: string; en: string }> = {
+  payment_method_stale: { ar: 'عُدلت الطريقة في مكان آخر. حدّث القائمة وافتح التعديل مجددًا.', en: 'This method changed elsewhere. Refresh the list and reopen the editor.' },
+  payment_method_unavailable: { ar: 'طريقة الدفع غير نشطة أو غير متاحة لهذا السند. اختر طريقة أخرى.', en: 'This payment method is inactive or unavailable for this voucher. Select another method.' },
+  payment_method_settlement_mismatch: { ar: 'حساب السند لا يطابق طريقة الدفع. أعد اختيار الطريقة.', en: 'The voucher account differs from its payment method. Select the method again.' },
+  payment_settlement_invalid: { ar: 'اختر حساب تسوية نشطًا من هذه الشركة.', en: 'Select an active settlement account in this company.' },
+  settlement_account_required: { ar: 'اربط حساب التسوية بحساب محاسبي من إعدادات طرق الدفع.', en: 'Map the settlement account to a ledger account in payment settings.' },
+  settlement_account_invalid: { ar: 'اختر حسابًا تفصيليًا نشطًا يقبل الترحيل بالنوع المناسب.', en: 'Select an active posting account of the appropriate type, with no child accounts.' },
+  settlement_mapping_in_use: { ar: 'الحساب مستخدم أو يحمل رصيدًا. أضف حساب تسوية جديدًا بدل تغيير الربط السابق.', en: 'This account is in use or has a balance. Add a new settlement account instead of changing its existing mapping.' },
+  settlement_parent_invalid: { ar: 'اختر بنكًا نشطًا بنفس العملة وله حساب محاسبي لبطاقة الخصم.', en: 'Select an active bank in the same currency with a ledger mapping for this debit card.' },
+  debit_card_account_mismatch: { ar: 'بطاقة الخصم تستخدم الحساب المحاسبي للبنك المرتبط.', en: 'A debit card uses its linked bank ledger account.' },
+  fee_account_required: { ar: 'اختر حساب مصروف الرسوم قبل إدخال تقدير الرسوم.', en: 'Select a fee expense account before entering estimated fees.' },
+  fee_account_invalid: { ar: 'اختر حساب مصروف تفصيليًا نشطًا للرسوم.', en: 'Select an active posting expense account for fees.' },
+  fee_currency_mismatch: { ar: 'عملة الرسم الثابت يجب أن تطابق حساب التسوية.', en: 'The fixed fee currency must match the settlement account.' },
+  cash_box_required: { ar: 'اختر صندوقًا نقديًا لهذه الطريقة.', en: 'Select a cash box for this payment method.' },
+  bank_required: { ar: 'اختر حساب بنك للتحويل البنكي.', en: 'Select a bank account for bank transfers.' },
+  gateway_required: { ar: 'اختر حساب بوابة لهذه الطريقة.', en: 'Select a gateway account for this method.' },
+  clearing_required: { ar: 'اختر حساب تسوية لهذه الطريقة.', en: 'Select a clearing account for this method.' },
+
   // infra
   internal_error: {
     ar: 'خطأ غير متوقع في الخادم',
