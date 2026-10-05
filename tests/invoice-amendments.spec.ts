@@ -134,10 +134,14 @@ for (const lang of ['ar', 'en'] as const) test(`invoice document stays left of e
   const doc = page.getByTestId('invoice-document-column'), editor = page.getByTestId('invoice-editor-column');
   await expect(doc.locator('iframe')).toBeVisible();
   await expect(page.frameLocator('iframe[title]').first().locator('[data-document-ready="true"]')).toBeVisible();
-  const d = (await doc.boundingBox())!, e = (await editor.boundingBox())!;
-  expect(d.x + d.width).toBeLessThanOrEqual(e.x);
-  expect(Math.abs(d.y - e.y)).toBeLessThan(50);
-  await page.screenshot({ path: info.outputPath(`invoice-editor-${lang}.png`) });
+  for (const width of [1920, 1266, 1024]) {
+    await page.setViewportSize({ width, height: 1080 });
+    const d = (await doc.boundingBox())!, e = (await editor.boundingBox())!;
+    expect(d.x + d.width, `document must stay left at ${width}px`).toBeLessThanOrEqual(e.x);
+    expect(Math.abs(d.y - e.y)).toBeLessThan(50);
+    expect(e.x + e.width).toBeLessThanOrEqual(width);
+    await page.screenshot({ path: info.outputPath(`invoice-editor-${lang}-${width}.png`) });
+  }
   await page.setViewportSize({ width: 390, height: 844 });
   const md = (await doc.boundingBox())!, me = (await editor.boundingBox())!;
   expect(md.y).toBeGreaterThan(me.y);
