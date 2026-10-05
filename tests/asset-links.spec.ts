@@ -1,6 +1,7 @@
 import {test,expect} from '@playwright/test';
 import {prepareVisualApp} from './fixtures/visual-app';
-for(const lang of ['en','ar'] as const) test(`asset accounting, purchase link and identity persist (${lang})`,async({page})=>{
+for(const mobile of [false,true]) for(const lang of ['en','ar'] as const) test(`asset accounting, purchase link and identity persist (${lang}, ${mobile?'mobile':'desktop'})`,async({page})=>{
+ if(mobile)await page.setViewportSize({width:390,height:844});
  await prepareVisualApp(page,lang);
  const cost={id:'cost',code:'14210',name:'Computer Equipment',nameAr:'أجهزة الكمبيوتر',type:'ASSET',subtype:'fixed-computer',isActive:true,allowPosting:true};
  const expense={...cost,id:'expense',code:'72010',name:'Computer depreciation',nameAr:'إهلاك الكمبيوتر',type:'EXPENSE',subtype:'depreciation'};
@@ -24,7 +25,7 @@ for(const lang of ['en','ar'] as const) test(`asset accounting, purchase link an
  await page.getByLabel(lang==='ar'?'الرقم التسلسلي للجهاز':'Device serial number').fill('MAC-TEST-1');
  await page.getByRole('button',{name:lang==='ar'?'اختر مستند الشراء':'Choose purchase document',exact:true}).click();
  await page.getByText('B-100 · Apple Store',{exact:true}).click();
- await page.screenshot({path:`/tmp/entix-asset-form-${lang}.png`,fullPage:true});
+ await page.screenshot({path:`/tmp/entix-asset-form-${lang}-${mobile?'mobile':'desktop'}.png`,fullPage:true});
  await page.getByRole('button',{name:lang==='ar'?'حفظ التغييرات':'Save changes',exact:true}).click();
  await expect.poll(()=>saved?.code).toBe('EN-00001');
  expect(saved.accountId).toBe('cost');expect(saved.depreciationExpenseAccountId).toBe('expense');expect(saved.accumulatedDepreciationAccountId).toBe('accumulated');expect(saved.purchaseBillId).toBe('bill1');expect(saved.purchaseExpenseId).toBeNull();expect(saved.serialNumber).toBe('MAC-TEST-1');
