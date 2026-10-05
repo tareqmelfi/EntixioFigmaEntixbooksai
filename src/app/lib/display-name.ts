@@ -11,7 +11,7 @@
 export type BilingualNamed = { name?: string | null; nameAr?: string | null };
 
 /** Use this document’s locale: another tab can have a different public URL. */
-function uiLang(): string {
+export function uiLang(): string {
   if (typeof document !== "undefined" && ["ar", "en"].includes(document.documentElement.lang)) return document.documentElement.lang;
   try { return localStorage.getItem("entix-language") === "ar" ? "ar" : "en"; } catch { return "en"; }
 }

@@ -11,6 +11,7 @@ import type { HistoricalStatements } from './historical-statements'
  *  - Error envelope normalization
  */
 import { humanizeZodIssues } from './validation-message'
+import { uiLang } from './display-name'
 import { readTabOrgId, rememberTabOrgId } from './tab-org-selection'
 import type { DuplicateDecision, SimilarityReview } from './similarity-review'
 import type { DocPage, DocTheme, ThemePreset, HeaderStyle, PaymentPlanStyle, ClosingFact } from './document-render'
@@ -194,7 +195,7 @@ async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   // Locale travels with every call — server-rendered content (emails, errors,
   // PDF) follows the user's chosen language instead of a backend default.
   if (!headers['Accept-Language']) {
-    const lang = (typeof localStorage !== 'undefined' && localStorage.getItem('entix-language')) || 'en'
+    const lang = uiLang()
     headers['Accept-Language'] = lang === 'ar' ? 'ar-SA,ar;q=0.9,en;q=0.8' : 'en-US,en;q=0.9,ar;q=0.8'
   }
   if (!opts.skipOrg && orgId) headers['X-Org-Id'] = orgId
