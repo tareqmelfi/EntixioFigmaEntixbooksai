@@ -1,3 +1,4 @@
+import { useOrgRegion } from '../lib/use-org-region';
 import { AssetPurchaseLink } from '../components/asset-purchase-link';
 import { displayLocale } from "../lib/number-display";
 /**
@@ -38,6 +39,7 @@ const EMPTY_FORM = {
 
 export function AssetDetail() {
   const { t, language } = useLanguage();
+  const { isUS, currency } = useOrgRegion();
   const { id } = useParams();
   const [params] = useSearchParams();
   const intakeKey = params.get("intake");
@@ -105,7 +107,7 @@ export function AssetDetail() {
   useEffect(() => { load(); }, [load]);
 
   const leaf = (a:Account) => a.isActive && a.allowPosting && !accounts.some(child=>child.parentId===a.id);
-  const option = (a:Account) => ({id:a.id,label:`${a.code} · ${displayName(a,language)}`,sublabel:secondaryName(a,language) || undefined});
+  const option = (a:Account) => ({id:a.id,label:`${a.code} · ${displayName(a,language)}`,sublabel:secondaryName(a,language) || undefined,searchTerms:`${a.name} ${a.nameAr || ""}`.normalize("NFKD").replace(/\p{M}/gu, "")});
   const assetAccounts = accounts.filter(a=>leaf(a) && a.type==='ASSET' && /fixed|intangible/.test(a.subtype || '') && !/contra|accumulated/.test(a.subtype || '')).map(option);
   const expenseAccounts = accounts.filter(a=>leaf(a) && a.type==='EXPENSE' && /depreciation/.test(a.subtype || '')).map(option);
   const accumulatedAccounts = accounts.filter(a=>leaf(a) && a.type==='ASSET' && ['contra-fixed','accumulated-depreciation'].includes(a.subtype || '')).map(option);
@@ -226,12 +228,12 @@ export function AssetDetail() {
               <div className="space-y-2"><Label>{t("العمر الإنتاجي (سنوات)", "Useful life (years)")} *</Label><Input aria-label={t("العمر الإنتاجي (سنوات)", "Useful life (years)")} type="number" min="1" max="200" required value={form.usefulLifeYears} onChange={(e) => setForm({ ...form, usefulLifeYears: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label htmlFor="asset-cost">{t("التكلفة", "Cost")} *</Label><Input id="asset-cost" type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label htmlFor="asset-cost">{t("التكلفة", "Cost")} {currency && `(${currency})`} *</Label><Input id="asset-cost" type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>{t("القيمة المتبقية", "Salvage value")}</Label><Input type="number" step="0.01" min="0" value={form.salvageValue} onChange={(e) => setForm({ ...form, salvageValue: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2"><Label htmlFor="asset-serial">{t('الرقم التسلسلي للجهاز','Device serial number')}</Label><Input id="asset-serial" value={form.serialNumber} onChange={e=>setForm({...form,serialNumber:e.target.value})} dir="ltr" /></div>
-              <div className="space-y-2"><Label>{t('تاريخ بدء الاستخدام','Placed in service')}</Label><DateInput value={form.inServiceDate} onChange={value=>setForm({...form,inServiceDate:value})} /></div>
+              <div className="space-y-2"><Label htmlFor="asset-service-date">{t('تاريخ بدء الاستخدام','Placed in service')}</Label><DateInput id="asset-service-date" value={form.inServiceDate} onChange={value=>setForm({...form,inServiceDate:value})} /></div>
             </div>
             <div className="space-y-2"><Label>{t("ملاحظات", "Notes")}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("اختياري", "Optional")} /></div>
           </CardContent>
@@ -262,7 +264,7 @@ export function AssetDetail() {
               <p>{t('سيُنشأ أو يُعاد استخدام ثلاثة حسابات: أجهزة الكمبيوتر، مصروف إهلاك أجهزة الكمبيوتر، ومجمع إهلاك أجهزة الكمبيوتر. لا ينشئ هذا أي قيد مالي.','Create or reuse three posting accounts: Computer Equipment, Depreciation — Computer Equipment, and Accumulated Depreciation — Computer Equipment. This creates no journal entry.')}</p>
               <Button type="button" disabled={setupBusy} onClick={setupAccounts}>{setupBusy ? '…' : t('تجهيز الحسابات واختيارها','Set up and select accounts')}</Button>
             </div>}
-            <p className="text-xs text-muted-foreground leading-5">{t('عند إثبات الإهلاك: مدين مصروف الإهلاك، ودائن مجمع الإهلاك. الحسابات هنا للإهلاك الدفتري؛ MACRS وSection 179 وخيارات الضريبة الأمريكية تُراجع بشكل منفصل حسب سياسة الشركة.','Depreciation entry: debit depreciation expense, credit accumulated depreciation. These links are for book depreciation; US MACRS, Section 179 and tax elections require separate review under company policy.')}</p>
+            <p className="text-xs text-muted-foreground leading-5">{t('عند إثبات الإهلاك: مدين مصروف الإهلاك، ودائن مجمع الإهلاك. الحسابات هنا للإهلاك الدفتري.','Depreciation entry: debit depreciation expense, credit accumulated depreciation. These links are for book depreciation.')} {isUS && t('MACRS وSection 179 وخيارات الضريبة الأمريكية تُراجع بشكل منفصل حسب سياسة الشركة.','US MACRS, Section 179 and tax elections require separate review under company policy.')}</p>
             {!candidate && <AssetPurchaseLink billId={form.purchaseBillId} expenseId={form.purchaseExpenseId} onChange={(purchaseBillId,purchaseExpenseId)=>setForm(f=>({...f,purchaseBillId,purchaseExpenseId}))} />}
           </CardContent>
         </Card>
