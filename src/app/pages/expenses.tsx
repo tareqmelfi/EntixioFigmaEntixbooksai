@@ -52,6 +52,7 @@ import { useLanguage } from "../components/LanguageContext";
 import { BranchField } from "../components/branch-field";
 import { ProjectField } from "../components/project-field";
 import { useOrgRegion } from "../lib/use-org-region";
+import { taxLabel } from "../lib/tax-label";
 import { humanizeError } from "../lib/error-messages";
 
 type Translate = (ar: string, en?: string) => string;
@@ -704,6 +705,11 @@ export function Expenses() {
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const { language, t } = useLanguage();
   const { currency: orgCurrency, isSA, loading: regionLoading } = useOrgRegion();
+  // Purchases may carry foreign tax; do not relabel every US purchase as US sales tax.
+  const expenseTaxLabel = taxLabel(isSA ? 'SA' : undefined, language);
+  const paymentOptions = (current: string) => Object.entries(paymentMethodLabels(t))
+    .filter(([value]) => value !== 'CLEARING' && (isSA || !['MADA', 'STC_PAY'].includes(value) || value === current))
+    .map(([value, label]) => ({ value, label }));
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [showDetails, setShowDetails] = useState(false);
   const [showSplits, setShowSplits] = useState(false);
@@ -1669,7 +1675,7 @@ export function Expenses() {
                   <SegGroup
                     value={formData.paymentMethod}
                     onChange={(v) => setFormData({ ...formData, paymentMethod: v as ApiExpense["paymentMethod"] })}
-                    options={Object.entries(paymentMethodLabels(t)).filter(([value]) => value !== "CLEARING").map(([value, label]) => ({ value, label }))}
+                    options={paymentOptions(formData.paymentMethod)}
                   />
                 </div>
                 {showDetails && <><BranchField value={formData.branchId} onChange={(id) => setFormData((f) => ({ ...f, branchId: id }))} />
@@ -1686,8 +1692,8 @@ export function Expenses() {
                   }} required dir="ltr" className="border-border font-english" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-foreground/80">{t("ضريبة VAT", "VAT")}</Label>
-                  <Input type="text" inputMode="decimal" placeholder="0.00" readOnly={formData.lineItems.length > 0} value={formData.taxAmount} onChange={(e) => {
+                  <Label htmlFor="expense-tax-amount" className="text-foreground/80">{expenseTaxLabel}</Label>
+                  <Input id="expense-tax-amount" type="text" inputMode="decimal" placeholder="0.00" readOnly={formData.lineItems.length > 0} value={formData.taxAmount} onChange={(e) => {
                     const taxAmount = normalizeDigits(e.target.value);
                     const amount = Number(normalizeDigits(formData.amount || "0"));
                     setFormData({ ...formData, taxAmount, totalAmount: String((amount + Number(taxAmount || 0)).toFixed(2)) });
@@ -1761,7 +1767,7 @@ export function Expenses() {
                         <th className="px-2 py-2 text-start">{t("الكمية", "Qty")}</th>
                         <th className="px-2 py-2 text-start">{t("السعر", "Price")}</th>
                         <th className="px-2 py-2 text-start">{t("خصم", "Discount")}</th>
-                        <th className="px-2 py-2 text-start">VAT</th>
+                        <th className="px-2 py-2 text-start">{expenseTaxLabel}</th>
                         <th className="px-2 py-2 text-start">{t("شامل؟", "Incl?")}</th>
                         <th className="px-2 py-2 text-start">{t("المبلغ قبل الضريبة", "Amount before tax")}</th>
                         <th className="px-2 py-2 text-start">{t("مبلغ الضريبة", "Tax amount")}</th>
@@ -1827,7 +1833,7 @@ export function Expenses() {
                             }} className="h-8 w-20 border-border font-english" />
                           </td>
                           <td className="px-2 py-2">
-                            <Input dir="ltr" inputMode="decimal" value={String(line.taxRate ?? 0.15)} onChange={(e) => {
+                            <Input aria-label={t(`نسبة ضريبة السطر ${idx + 1}`, `Line tax rate ${idx + 1}`)} dir="ltr" inputMode="decimal" value={String(line.taxRate ?? 0)} onChange={(e) => {
                               const taxRate = Number(normalizeDigits(e.target.value || "0"));
                               setFormData((f) => ({ ...f, lineItems: f.lineItems.map((item, i) => i === idx ? { ...item, taxRate } : item) }));
                             }} className="h-8 w-20 border-border font-english" />
@@ -1887,7 +1893,7 @@ export function Expenses() {
                             const splits = f.paymentSplits.length ? f.paymentSplits : paymentRows;
                             return { ...f, paymentMethod: method as ApiExpense["paymentMethod"], paymentSplits: splits.map((item, i) => i === idx ? { ...item, method: method as ApiExpense["paymentMethod"] } : item) };
                           })}
-                          options={Object.entries(paymentMethodLabels(t)).filter(([value]) => value !== "CLEARING").map(([value, label]) => ({ value, label }))}
+                          options={paymentOptions(payment.method)}
                         />
                         <SegGroup
                           compact
@@ -1998,7 +2004,7 @@ export function Expenses() {
         <MetricStrip className="compact xl:grid-cols-2 2xl:grid-cols-4">
           <Metric label={t("الإجمالي", "Total")} value={<LedgerFigure value={Number(selected.total || 0)} currency={selected.currency} />} />
           <Metric label={t("قبل الضريبة", "Before tax")} value={<LedgerFigure value={Number(selected.subtotal ?? selected.amount ?? 0)} currency={selected.currency} />} />
-          <Metric label="VAT" value={<LedgerFigure value={Number(selected.taxAmount || 0)} currency={selected.currency} />} />
+          <Metric label={expenseTaxLabel} value={<LedgerFigure value={Number(selected.taxAmount || 0)} currency={selected.currency} />} />
           <Metric label={t("طريقة الدفع", "Payment method")} value={<span className="font-sans text-base font-medium text-foreground">{paymentSplits.length > 1 ? `${paymentSplits.length} ${t("دفعات", "payments")}` : paymentMethodLabels(t)[selected.paymentMethod]}</span>} />
         </MetricStrip>
 
@@ -2182,7 +2188,7 @@ export function Expenses() {
                       <TableHead className={th}>{t("الحساب", "Account")}</TableHead>
                       <TableHead className={`${th} text-start`}>{t("الكمية", "Qty")}</TableHead>
                       <TableHead className={`${th} text-start`}>{t("السعر", "Price")}</TableHead>
-                      <TableHead className={`${th} text-start`}>VAT</TableHead>
+                      <TableHead className={`${th} text-start`}>{expenseTaxLabel}</TableHead>
                       <TableHead className={`${th} text-start`}>{t("الإجمالي", "Total")}</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
@@ -2336,14 +2342,14 @@ export function Expenses() {
                     <TableCell className="align-middle"><span dir="ltr" className="font-english text-xs text-content-secondary tabular-nums">{e.date.slice(0, 10)}</span></TableCell>
                     <TableCell className="text-start align-middle">
                       <span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap font-display text-[18px] leading-6 text-foreground tabular-nums">{money2(e.total, e.currency)}</span>
-                      {Number(e.taxAmount) > 0 && <span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap text-[10px] text-content-secondary tabular-nums">VAT {money2(e.taxAmount, e.currency)}</span>}
+                      {Number(e.taxAmount) > 0 && <span dir="ltr" style={{ textAlign: language === "ar" ? "right" : "left" }} className="block whitespace-nowrap text-[10px] text-content-secondary tabular-nums">{expenseTaxLabel} {money2(e.taxAmount, e.currency)}</span>}
                     </TableCell>
                     <TableCell className="align-middle" onClick={(ev) => ev.stopPropagation()}>
                       <div className="flex flex-wrap items-center gap-1">
                         {!e.externalId?.startsWith('stripe:') && <button onClick={() => editFromList(e)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t('تعديل', 'Edit')}><Edit3 className="h-4 w-4" /></button>}
                         <button onClick={() => openExpense(e)} className="rounded-full p-1.5 text-primary hover:bg-surface-hover" title={t("فتح المصروف", "Open expense")}><Eye className="h-4 w-4" strokeWidth={1.75} /></button>
                         {e.attachmentCount ? <FileImage className="h-4 w-4 text-content-secondary" strokeWidth={1.75} aria-label={t("مرفقات", "Attachments")} /> : null}
-                        {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-success" strokeWidth={1.75} aria-label="VAT" /> : null}
+                        {Number(e.taxAmount) > 0 ? <Wallet className="h-4 w-4 text-success" strokeWidth={1.75} aria-label={expenseTaxLabel} /> : null}
                         {pendingDelete === e.id ? (
                           <InlineConfirm onConfirm={() => handleDelete(e.id)} onCancel={() => setPendingDelete(null)} />
                         ) : (
