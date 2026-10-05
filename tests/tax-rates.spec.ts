@@ -47,6 +47,7 @@ const contact = {
 }
 
 async function mockTaxApi(page: Page) {
+  await page.route('**/orgs', r => r.fulfill({ json: [{ id: 'org-visual-system', country: 'SA', baseCurrency: 'SAR', role: 'OWNER' }] }));
   await page.route('https://api.entix.io/api/tax-rates**', (route) => {
     if (route.request().method() !== 'GET') return route.fulfill({ json: taxRates[0] })
     return route.fulfill({ json: { items: taxRates, total: taxRates.length, defaultId: 'tr-vat-15' } })
@@ -127,7 +128,8 @@ test.describe('tax rates · the settings surface', () => {
   test('«معدلات الضريبة» lists the catalogue and can add a rate', async ({ page }) => {
     await prepareVisualApp(page, 'ar')
     await mockTaxApi(page)
-    // The fixture org is a US company, so the page renders the sales-tax view.
+    // Catalogue management retains foreign historical rates for review.
+    await page.route('**/orgs', r => r.fulfill({ json: [{ id: 'org-visual-system', country: 'US', baseCurrency: 'USD', role: 'OWNER' }] }));
     await page.route('https://api.entix.io/api/tax-return/**', (route) => route.fulfill({
       json: {
         type: 'us-sales-tax',

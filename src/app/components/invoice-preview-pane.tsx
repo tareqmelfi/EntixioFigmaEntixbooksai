@@ -1,3 +1,4 @@
+import { useOrgRegion } from "../lib/use-org-region";
 import { ContactProfileLink } from "./contact-profile-link";
 import { displayDigits } from "../lib/number-display";
 /**
@@ -21,6 +22,7 @@ export interface PreviewParty {
   contactId?: string | null;
   name: string;
   vatNumber?: string | null;
+  country?: string | null;
 }
 
 export interface PreviewDocLine {
@@ -102,6 +104,7 @@ export function InvoicePreviewPane({
   extraActions,
 }: Props) {
   const { t } = useLanguage();
+  const { isSA, isUS } = useOrgRegion();
   const total = num(doc.total);
   const taxTotal = num(doc.taxTotal);
   const discountTotal = num(doc.discountTotal);
@@ -150,7 +153,7 @@ export function InvoicePreviewPane({
       <div className="rounded-lg border border-border bg-card px-[26px] py-7 shadow-[var(--elevation-popover)]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
-            <span className="ledger-eyebrow">{docTypeLabel || t("فاتورة ضريبية", "Tax invoice")}</span>
+            <span className="ledger-eyebrow">{(!isSA && (!docTypeLabel || docTypeLabel === t("فاتورة ضريبية", "Tax invoice"))) ? t("فاتورة", "Invoice") : docTypeLabel || t("فاتورة ضريبية", "Tax invoice")}</span>
             <span dir="ltr" className="min-w-0 truncate font-display text-[26px] leading-none text-foreground" title={doc.number}>{doc.number}</span>
           </div>
           <EntixWordmark size={13} className="shrink-0" />
@@ -160,12 +163,12 @@ export function InvoicePreviewPane({
           <div className="flex min-w-0 flex-col gap-[3px]">
             <span className="text-muted-foreground">{t("من", "From")}</span>
             <span className="truncate font-semibold text-foreground"><ContactProfileLink id={seller?.contactId} name={seller?.name} /></span>
-            {seller?.vatNumber && <span dir="ltr" className="font-code text-[11px]">VAT {seller.vatNumber}</span>}
+            {seller?.vatNumber && <span dir="ltr" className="font-code text-[11px]">{t("الرقم الضريبي", "Tax ID")} {seller.vatNumber}</span>}
           </div>
           <div className="flex min-w-0 flex-col gap-[3px]">
             <span className="text-muted-foreground">{t("إلى", "To")}</span>
             <span className="truncate font-semibold text-foreground"><ContactProfileLink id={customer?.contactId} name={customer?.name} /></span>
-            {customer?.vatNumber && <span dir="ltr" className="font-code text-[11px]">VAT {customer.vatNumber}</span>}
+            {customer?.vatNumber && <span dir="ltr" className="font-code text-[11px]">{t("الرقم الضريبي", "Tax ID")} {customer.vatNumber}</span>}
           </div>
         </div>
 
@@ -218,7 +221,7 @@ export function InvoicePreviewPane({
             </>
           )}
           <div className="flex items-baseline justify-between gap-3">
-            <span>{t("ضريبة القيمة المضافة", "VAT")}</span>
+            <span>{isSA ? t("ضريبة القيمة المضافة", "VAT") : isUS ? t("ضريبة المبيعات", "Sales tax") : t("الضريبة", "Tax")}</span>
             <span dir="ltr" className="font-display text-[15px] leading-none text-foreground tabular-nums">{money(taxTotal)}</span>
           </div>
           <div className="mt-1 flex items-baseline justify-between gap-3 border-t border-foreground pt-2 font-semibold text-foreground">

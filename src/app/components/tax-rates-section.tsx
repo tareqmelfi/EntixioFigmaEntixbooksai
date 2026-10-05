@@ -1,3 +1,5 @@
+import { isForeignVatRate } from "../lib/tax-catalogue-region";
+import { useOrgRegion } from "../lib/use-org-region";
 /**
  * «معدلات الضريبة» — the org's VAT catalogue, managed inline.
  *
@@ -35,6 +37,7 @@ const toast = (kind: "success" | "error" | "info", message: string) =>
 
 export function TaxRatesSection() {
   const { t, language } = useLanguage();
+  const { country, isSA, isUS } = useOrgRegion();
   const [items, setItems] = useState<TaxRate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -127,21 +130,22 @@ export function TaxRatesSection() {
         )}
       </div>
 
+      {items.some(rate => isForeignVatRate(rate, country)) && <p className="text-sm text-muted-foreground">{t('توجد معدلات VAT أجنبية أو قديمة في هذه الشركة الأمريكية. لا تظهر ضمن الخيارات المعتادة للبنود الجديدة؛ تبقى متاحة للمراجعة أو للمعاملات الأجنبية، ولا تتغير بها المستندات السابقة.', 'This US company contains foreign or legacy VAT rates. They are excluded from ordinary new-line choices but remain available for review or foreign transactions. Existing documents are unchanged.')}</p>}
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       {adding && (
         <div className="grid grid-cols-1 gap-3 rounded-lg border border-dashed border-border p-3 sm:grid-cols-2 xl:grid-cols-5" data-testid="tax-rate-form">
           <div className="min-w-0 space-y-1">
             <Label className="text-xs text-content-secondary">{t("الاسم بالعربية", "Arabic name")}</Label>
-            <Input value={draft.nameAr} onChange={(e) => setDraft({ ...draft, nameAr: e.target.value })} placeholder={t("ضريبة القيمة المضافة 15%", "VAT 15%")} />
+            <Input value={draft.nameAr} onChange={(e) => setDraft({ ...draft, nameAr: e.target.value })} placeholder={isSA ? t("ضريبة القيمة المضافة 15%", "VAT 15%") : isUS ? t("ضريبة المبيعات حسب الولاية", "State sales tax") : t("اسم الضريبة", "Tax name")} />
           </div>
           <div className="min-w-0 space-y-1">
             <Label className="text-xs text-content-secondary">{t("الاسم بالإنجليزية", "English name")}</Label>
-            <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="VAT 15%" dir="ltr" />
+            <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder={isSA ? "VAT 15%" : isUS ? "State sales tax" : "Tax name"} dir="ltr" />
           </div>
           <div className="min-w-0 space-y-1">
             <Label className="text-xs text-content-secondary">{t("النسبة %", "Rate %")}</Label>
-            <Input value={draft.rate} onChange={(e) => setDraft({ ...draft, rate: normalizeDigits(e.target.value) })} inputMode="decimal" dir="ltr" className="font-english" placeholder="15" data-testid="tax-rate-value" />
+            <Input value={draft.rate} onChange={(e) => setDraft({ ...draft, rate: normalizeDigits(e.target.value) })} inputMode="decimal" dir="ltr" className="font-english" placeholder={isSA ? "15" : "0"} data-testid="tax-rate-value" />
           </div>
           <div className="min-w-0 space-y-1">
             <Label className="text-xs text-content-secondary">{t("النوع", "Type")}</Label>

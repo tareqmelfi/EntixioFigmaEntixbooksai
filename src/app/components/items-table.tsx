@@ -1,3 +1,5 @@
+import { isForeignVatRate } from "../lib/tax-catalogue-region";
+import { useOrgRegion } from "../lib/use-org-region";
 import { roundDocumentMoney } from "../lib/document-money";
 import { displayLocale, displayDigits } from "../lib/number-display";
 /**
@@ -137,7 +139,7 @@ interface Props {
   autoSuggest?: boolean;
 }
 
-export function newLine(taxRate = 0.15, taxInclusive = false): InvoiceLine {
+export function newLine(taxRate = 0, taxInclusive = false): InvoiceLine {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     description: "",
@@ -350,7 +352,7 @@ export function ItemsTable({
   setLines,
   mode,
   onModeChange,
-  defaultTaxRate = 0.15,
+  defaultTaxRate = 0,
   currency = "SAR",
   products = [],
   accounts = [],
@@ -367,6 +369,8 @@ export function ItemsTable({
   defaultAccountLabel,
 }: Props) {
   const { t, language } = useLanguage();
+  const { country, isSA, isUS } = useOrgRegion();
+  const [showForeignTax, setShowForeignTax] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN_COLS);
   const [suggestingIds, setSuggestingIds] = useState<Set<string>>(new Set());
@@ -695,7 +699,10 @@ export function ItemsTable({
   void totals;
 
   // The org's VAT catalogue · shared cache, so several grids on one page fetch once.
-  const { rates: taxRates } = useTaxRates();
+  const { rates: catalogue } = useTaxRates();
+  const foreignTaxCount = catalogue.filter(rate => isForeignVatRate(rate, country)).length;
+  const taxRates = useMemo(() => catalogue.filter(rate => showForeignTax || !isForeignVatRate(rate, country)
+    || lines.some(line => line.taxRateId === rate.id || (lineTaxRate(line) > 0 && lineTaxRate(line) === Number(rate.rate)))), [catalogue, country, showForeignTax, lines]);
 
   /**
    * Once the catalogue arrives, bind every line that has a matching rate to that
@@ -770,10 +777,21 @@ export function ItemsTable({
         return out;
       })()
     : [
-        { value: "rate:0.15:ex", label: t("15% غير شامل", "15% excluded") },
-        { value: "rate:0.15:in", label: t("15% شامل", "15% included") },
-        { value: "rate:0:ex", label: t("0% (صفر)", "0% (zero-rated)") },
+        ...(isSA ? [
+          { value: "rate:0.15:ex", label: t("15% غير شامل", "15% excluded") },
+          { value: "rate:0.15:in", label: t("15% شامل", "15% included") },
+        ] : []),
+        { value: "rate:0:ex", label: t("بدون ضريبة", "No tax") },
       ];
+
+  // Keep the saved numeric basis visible even while the catalogue is unavailable.
+  // Do not replace an existing document's tax or manufacture another country's rate.
+  for (const line of lines) {
+    const rate = lineTaxRate(line);
+    if (taxRates.some(r => Number(r.rate) === rate && !!r.isInclusive === !!line.taxInclusive)) continue;
+    const value = `rate:${rate}:${line.taxInclusive ? "in" : "ex"}`;
+    if (!taxOptions.some(o => o.value === value)) taxOptions.push({ value, label: `${Number((rate * 100).toFixed(4))}% ${line.taxInclusive ? t("شامل", "incl.") : t("غير شامل", "excl.")}` });
+  }
 
   /** A rate id alone cannot describe an explicitly overridden line basis. */
   const taxOptionValue = (line: InvoiceLine): string => {
@@ -870,7 +888,7 @@ export function ItemsTable({
               {showAccount && <span className="cell h">{t("الحساب", "Account")}</span>}
               {showTax && <span className="cell h n">{t("الضريبة", "Tax")}</span>}
               <span className="cell h n">{t("المبلغ", "Amount")} ({currency})</span>
-              {showTaxAmount && <span className="cell h n">{t("ض.ق.م", "VAT amt")}</span>}
+              {showTaxAmount && <span className="cell h n">{isSA ? t("ض.ق.م", "VAT amt") : isUS ? t("ضريبة المبيعات", "Sales tax") : t("مبلغ الضريبة", "Tax amount")}</span>}
               <span className="cell h n">{t("الإجمالي", "Total")} ({currency})</span>
               {showRecognition && (
                 <span className="cell h">
@@ -1197,6 +1215,7 @@ export function ItemsTable({
               />
             )}
           </div>
+          {foreignTaxCount > 0 && <button type="button" className="text-xs text-primary underline" onClick={() => setShowForeignTax(v => !v)}>{showForeignTax ? t("إخفاء معدلات VAT الأجنبية", "Hide foreign VAT rates") : t("معدلات VAT أجنبية / قديمة · عرض للمراجعة", "Foreign / legacy VAT rates · review")}</button>}
           {scanError && <p role="alert" className="w-full text-sm text-danger">{scanError}</p>}
           <div className="relative flex items-center gap-3">
             <span className="text-muted-foreground">{t("{n} بنود", "{n} lines").replace("{n}", String(realLineCount))}</span>

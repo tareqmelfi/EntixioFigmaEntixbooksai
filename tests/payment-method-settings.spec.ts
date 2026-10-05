@@ -123,3 +123,26 @@ for (const language of ['en', 'ar'] as const) test(`printed voucher preserves it
   await page.goto(`/print/voucher/named-receipt?lang=${language}`);
   await expect(page.getByText(language === 'ar' ? 'تسوية سترايب دولار' : 'Stripe USD settlement', { exact: true })).toBeVisible();
 });
+
+for (const language of ['en', 'ar'] as const) test(`create a gateway and method inside a receipt without submitting or losing its draft (${language})`, async ({ page }) => {
+  const f = await setup(page, language); f.failVoucher();
+  await page.goto('/app/receipts?new=1&invoiceId=selected');
+  await page.getByRole('button', { name: language === 'ar' ? 'إضافة طريقة دفع أو حساب' : 'Add payment method or account', exact: true }).click();
+  await page.getByRole('button', { name: language === 'ar' ? 'سترايب' : 'Stripe', exact: true }).click();
+  await page.getByRole('button', { name: language === 'ar' ? 'إضافة حساب تسوية' : 'Add settlement account', exact: true }).click();
+  const account = page.getByRole('form', { name: language === 'ar' ? 'إعداد حساب التسوية' : 'Settlement account setup' });
+  await account.getByLabel(language === 'ar' ? 'اسم الحساب' : 'Account name', { exact: true }).fill('Stripe USD');
+  await expect(account.getByLabel(language === 'ar' ? 'النوع' : 'Type', { exact: true })).toHaveValue('gateway');
+  await account.getByRole('button', { name: language === 'ar' ? 'اختر حسابًا قابلًا للترحيل' : 'Select a posting account', exact: true }).click();
+  await page.getByRole('button', { name: language === 'ar' ? '1041 · حساب البوابة' : '1041 · Gateway ledger', exact: true }).click();
+  await account.getByRole('button', { name: language === 'ar' ? 'حفظ الحساب' : 'Save account', exact: true }).click();
+  const method = page.getByRole('form', { name: language === 'ar' ? 'إعداد طريقة الدفع' : 'Payment method setup' });
+  await expect(method).toContainText('Stripe USD');
+  await method.getByRole('button', { name: language === 'ar' ? 'حفظ الطريقة' : 'Save method', exact: true }).click();
+  await expect(method).toHaveCount(0);
+  expect(f.voucherWrites).toHaveLength(0);
+  await expect(page.locator('[aria-label="' + (language === 'ar' ? 'طريقة الدفع وحسابها' : 'Payment method and account') + '"]')).toContainText('Stripe');
+  await page.getByRole('button', { name: language === 'ar' ? 'حفظ' : 'Save', exact: true }).click();
+  await expect.poll(() => f.voucherWrites.length).toBe(1);
+  expect(f.voucherWrites[0]).toMatchObject({ date: '2026-08-02', amount: 163, bankAccountId: 'new-gateway', paymentMethodConfigId: 'custom-method' });
+});

@@ -120,3 +120,23 @@ for (const lang of ['ar','en'] as const) test(`unconnected Saudi invoice correct
   await save.click();await expect(page.getByRole('alert').filter({hasText:lang==='ar'?'تعذر حفظ التعديل':'Could not save amendment'})).toBeVisible();await expect(issue).toHaveValue('02/08/2026');
   await save.click();await expect(issue).toHaveCount(0);expect(attempts).toBe(2);expect(inv.invoiceNumber).toBe('EN-INV-202610020001');expect(inv.total).toBe('143750');
 });
+
+for (const lang of ['ar', 'en'] as const) test(`invoice document stays left of editor on desktop and stacks on mobile (${lang})`, async ({ page }, info) => {
+  await prepareVisualApp(page, lang);
+  const inv = { id: 'split', invoiceNumber: 'SPLIT-1', status: 'APPROVED', currency: 'USD', total: 100, amountPaid: 0, issueDate: '2026-10-05', updatedAt: '2026-10-05T00:00:00Z', lines: [{ id: 'l', description: 'Synthetic service', quantity: 1, unitPrice: 100 }] };
+  await page.route('**/api/invoices/split', r => r.fulfill({ json: inv }));
+  await page.route('**/api/invoices/split/amendment-policy', r => r.fulfill({ json: { canAmend: true, country: 'US' } }));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto('/app/invoices/split');
+  await page.getByRole('button', { name: lang === 'ar' ? 'تعديل الفاتورة' : 'Edit invoice', exact: true }).click();
+  const doc = page.getByTestId('invoice-document-column'), editor = page.getByTestId('invoice-editor-column');
+  await expect(doc.locator('iframe')).toBeVisible();
+  const d = (await doc.boundingBox())!, e = (await editor.boundingBox())!;
+  expect(d.x + d.width).toBeLessThanOrEqual(e.x);
+  expect(Math.abs(d.y - e.y)).toBeLessThan(50);
+  await page.screenshot({ path: info.outputPath(`invoice-editor-${lang}.png`) });
+  await page.setViewportSize({ width: 390, height: 844 });
+  const md = (await doc.boundingBox())!, me = (await editor.boundingBox())!;
+  expect(md.y).toBeGreaterThan(me.y);
+  expect(me.x + me.width).toBeLessThanOrEqual(391);
+});

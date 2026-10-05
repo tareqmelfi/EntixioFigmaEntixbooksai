@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
-import { api, type BankAccount, type PaymentMethodConfig, type Voucher } from '../lib/api';
+import { PaymentMethodsSettings } from './payment-methods-settings';
+import { api, getOrgId, type Org, type BankAccount, type PaymentMethodConfig, type Voucher } from '../lib/api';
 import { useLanguage } from './LanguageContext';
 import { useOrgRegion } from '../lib/use-org-region';
 import { SearchableCombobox } from './searchable-combobox';
@@ -23,6 +23,9 @@ export function VoucherPaymentMethod({ value, onChange, usage, currency, saved }
 }) {
   const { t, language } = useLanguage();
   const { country } = useOrgRegion();
+  const orgId = getOrgId();
+  const [org, setOrg] = useState<Org | null>(null);
+  const [setupOpen, setSetupOpen] = useState(false);
   const [methods, setMethods] = useState<PaymentMethodConfig[]>([]);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,12 +34,12 @@ export function VoucherPaymentMethod({ value, onChange, usage, currency, saved }
   useEffect(() => {
     let live = true;
     setLoading(true); setFailed(false);
-    Promise.all([api.paymentMethods.list({ active: true, appliesTo: usage }), api.bankAccounts.list()])
-      .then(([m, b]) => { if (live) { setMethods(m.items); setAccounts(b.items); } })
+    Promise.all([api.paymentMethods.list({ active: true, appliesTo: usage }), api.bankAccounts.list(), api.orgs.list()])
+      .then(([m, b, orgs]) => { if (live && getOrgId() === orgId) { setMethods(m.items); setAccounts(b.items); setOrg(orgs.find(o => o.id === orgId) || null); } })
       .catch(() => { if (live) setFailed(true); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
-  }, [usage, retry]);
+  }, [usage, retry, orgId]);
   const legacy = [
     { id: 'BANK_TRANSFER', label: t('تحويل بنكي', 'Bank transfer') }, { id: 'CASH', label: t('نقدًا', 'Cash') },
     { id: 'CARD', label: t('بطاقة', 'Card') }, { id: 'CHECK', label: t('شيك', 'Cheque') }, { id: 'OTHER', label: t('أخرى', 'Other') },
@@ -61,6 +64,19 @@ export function VoucherPaymentMethod({ value, onChange, usage, currency, saved }
       <p className="text-xs">{t('حساب التسوية', 'Settlement account')}</p>
       <SearchableCombobox disabled={loading} value={value.bankAccountId || ''} onChange={id => onChange({ ...value, bankAccountId: id || null })} placeholder={value.paymentMethod === 'CASH' ? t('الصندوق الافتراضي أو اختر صندوقًا', 'Default cash control or select a cash box') : t('اختر حساب التسوية', 'Select settlement account')} items={ready.map(a => ({ id: a.id, label: `${a.name} · ${a.currency}` }))} />
     </>}
-    <Link to="/app/settings?tab=payments" className="text-xs text-primary underline">{t('إعداد طرق الدفع وربط الحسابات', 'Set up payment methods and account mappings')}</Link>
+    {(method?.kind === 'gateway' || selectedAccount?.kind === 'gateway') && <p className="text-xs text-muted-foreground">{t('يُسجّل القبض في حساب البوابة أولًا. عند وصول تحويل Stripe إلى البنك، سجّل تحويلًا بين الحسابين من الحسابات البنكية، وسجّل الرسوم الفعلية منفصلة. لا تسجّل قبضًا ثانيًا لنفس الفاتورة.', 'Record the receipt in the gateway account first. When Stripe pays out to your bank, record a transfer between the accounts from Bank accounts and record actual fees separately. Do not record another receipt for this invoice.')}</p>}
+    {org && ['OWNER', 'ADMIN', 'ACCOUNTANT'].includes(org.role || '') && <Button type="button" variant="outline" size="sm" onClick={() => setSetupOpen(open => !open)}>{setupOpen ? t('إغلاق إعداد طرق الدفع', 'Close payment setup') : t('إضافة طريقة دفع أو حساب', 'Add payment method or account')}</Button>}
+    {setupOpen && org && <PaymentMethodsSettings org={org} inline currency={currency}
+      onSettlementSaved={account => { setAccounts(rows => [...rows.filter(a => a.id !== account.id), account]); }}
+      onMethodSaved={config => {
+        const account = accounts.find(a => a.id === config.settlementAccountId);
+        setMethods(rows => [...rows.filter(m => m.id !== config.id), { ...config, settlementAccount: account }]);
+        if (config.isActive && config.appliesTo.includes(usage) && account?.currency === currency) {
+          onChange({ paymentMethod: config.kind === 'cash' ? 'CASH' : config.kind === 'bank_transfer' ? 'BANK_TRANSFER' : config.kind === 'card' ? 'CARD' : config.kind === 'cheque' ? 'CHECK' : 'OTHER', paymentMethodConfigId: config.id, bankAccountId: config.settlementAccountId });
+          setSetupOpen(false);
+        }
+        setRetry(n => n + 1);
+      }} />}
+
   </div>;
 }
