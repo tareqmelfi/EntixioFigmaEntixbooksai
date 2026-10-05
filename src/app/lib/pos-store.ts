@@ -120,7 +120,7 @@ export function loadCatalogCache(): PosCatalog | null {
 }
 export async function refreshCatalog(): Promise<PosCatalog> {
   const r: any = await api.posCatalog();
-  const cat: PosCatalog = { items: r.items || [], orgVatRate: typeof r.orgVatRate === "number" ? r.orgVatRate : 0.15, store: r.store ?? null, branches: r.branches ?? [], cashiers: (r as any).cashiers ?? [], fetchedAt: new Date().toISOString() };
+  const cat: PosCatalog = { items: r.items || [], orgVatRate: typeof r.orgVatRate === "number" ? r.orgVatRate : r.store?.country === "SA" ? 0.15 : 0, store: r.store ?? null, branches: r.branches ?? [], cashiers: (r as any).cashiers ?? [], fetchedAt: new Date().toISOString() };
   write("catalog", cat);
   return cat;
 }

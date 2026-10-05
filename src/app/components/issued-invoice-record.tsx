@@ -63,15 +63,15 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
       <Button disabled={!canRelease} onClick={() => window.open(`/print/invoice/${invoice.id}`, '_blank', 'noopener,noreferrer')}>{t('طباعة / تنزيل', 'Print / download')}</Button>
       {onSend && invoice.status !== 'CANCELLED' && <Button onClick={() => onSend()} className="bg-primary hover:bg-primary/90" data-testid="issued-invoice-send"><Mail className="me-2 h-4 w-4" strokeWidth={1.75} />{t('إرسال', 'Send')}</Button>}
     </div>}>
-    <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-5 items-start w-full" dir="ltr" data-testid="invoice-workspace">
-      <aside className="min-w-0 xl:sticky xl:top-4 space-y-3 order-2 xl:order-1" dir={language === 'ar' ? 'rtl' : 'ltr'} data-testid="invoice-document-column">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-5 items-start w-full" dir="ltr" data-testid="invoice-workspace">
+      <aside className="min-w-0 lg:sticky lg:top-4 space-y-3 order-2 lg:order-1" dir={language === 'ar' ? 'rtl' : 'ltr'} data-testid="invoice-document-column">
         <p className="text-xs text-muted-foreground">{t('النسخة المحفوظة · تتحدث بعد حفظ التعديل', 'Saved document · updates after saving changes')}</p>
         <div className="rounded-lg border border-border overflow-hidden" aria-label={t('معاينة الفاتورة', 'Invoice preview')}>
           <iframe title={t('معاينة الفاتورة', 'Invoice preview')} key={invoice.updatedAt} src={previewSrc} className="w-full block bg-card" style={{ height: 'min(78vh, 900px)', minHeight: 480, border: 0 }} />
         </div>
         <InvoiceDocuments invoiceId={invoice.id} />
       </aside>
-      <div className="min-w-0 space-y-4 order-1 xl:order-2" dir={language === 'ar' ? 'rtl' : 'ltr'} data-testid="invoice-editor-column">
+      <div className="min-w-0 space-y-4 order-1 lg:order-2" dir={language === 'ar' ? 'rtl' : 'ltr'} data-testid="invoice-editor-column">
       <InvoiceAmendmentPanel key={`${invoice.id}:${invoice.updatedAt}`} invoice={invoice} onDone={onRefresh} initialAction={initialAction} />
       {remaining > 0 && invoice.status !== 'CANCELLED' && <section className="rounded-lg border border-border bg-card p-4 space-y-2">
         <h2 className="font-semibold">{t('دفع العميل عبر الإنترنت', 'Customer online payment')}</h2>
@@ -105,7 +105,7 @@ export function IssuedInvoiceRecord({ invoice, onClose, onRefresh, onPayment, on
         </> : <p className="text-sm">{delivery?.message || t('لم يُحفظ رد نهائي من الهيئة بعد. الاعتماد داخل Entix يختلف عن قبول الهيئة.', 'No final authority response is stored yet. Approval in Entix is separate from ZATCA acceptance.')}</p>}
       </section>}
       <section className="rounded-lg border border-border bg-card p-4 space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div className="grid grid-cols-2 2xl:grid-cols-4 gap-4 text-sm [&>div]:min-w-0 [&_p]:[overflow-wrap:anywhere]">
           <div><p className="text-muted-foreground">{t('تاريخ الإصدار', 'Issue date')}</p><p dir="ltr">{displayDigits(invoice.issueDate?.slice(0, 10) || '')}</p></div>
           <div><p className="text-muted-foreground">{t('الإجمالي', 'Total')}</p><p><bdi dir="ltr">{amount(invoice.total)} {invoice.currency}</bdi></p></div>
           <div><p className="text-muted-foreground">{t('المحصّل', 'Collected')}</p><p><bdi dir="ltr">{amount(invoice.amountPaid)} {invoice.currency}</bdi></p></div>

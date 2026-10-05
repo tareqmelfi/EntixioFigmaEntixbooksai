@@ -1,4 +1,5 @@
 import { useOrgRegion } from "../lib/use-org-region";
+import { taxLabel } from "../lib/tax-label";
 import { displayLocale } from "../lib/number-display";
 /**
  * POS v2 · الكاشير (CEO 2026-08-25)
@@ -143,9 +144,9 @@ export function PosPage() {
   useEffect(() => { refocus(); }, [cart, shift, panel, done, refocus]);
 
   const items = catalog?.items ?? [];
-  const orgVat = catalog?.orgVatRate ?? 0.15;
   const store = catalog?.store ?? null;
-  const { currency: orgCurrency } = useOrgRegion();
+  const { currency: orgCurrency, country, isSA } = useOrgRegion();
+  const orgVat = catalog?.orgVatRate ?? (isSA ? 0.15 : 0);
   // CURRENCY LAW (2026-09-16): never fall back to a language-chosen unit — an
   // Arabic UI on a US store printed «ر.س» on a USD receipt.
   const currency = store?.baseCurrency || orgCurrency;
@@ -557,14 +558,14 @@ export function PosPage() {
                 {/* totals */}
                 <div className="border-t border-border px-4 pt-3">
                   <div className="flex justify-between text-xs text-muted-foreground"><span>{t("قبل الضريبة", "Subtotal")}</span><span className="font-english">{money(totals.net)}</span></div>
-                  <div className="flex justify-between text-xs text-muted-foreground"><span>{t("ضريبة القيمة المضافة", "VAT")}</span><span className="font-english">{money(totals.vat)}</span></div>
+                  <div className="flex justify-between text-xs text-muted-foreground"><span>{taxLabel(country, lang)}</span><span className="font-english">{money(totals.vat)}</span></div>
                   <div className="mt-1 flex items-baseline justify-between"><span className="text-base font-bold text-foreground">{t("الإجمالي", "Total")}</span><span className="font-english text-2xl font-extrabold text-[#1A1E48]">{money(totals.grand)} <span className="text-xs font-semibold text-muted-foreground">{currency}</span></span></div>
                 </div>
 
                 {/* method + tender */}
                 <div className="px-4 pt-3">
-                  <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-canvas p-1">
-                    {([["CASH", Banknote, t("نقد", "Cash")], ["MADA", Wallet, t("مدى", "Mada")], ["CARD", CreditCard, t("بطاقة", "Card")]] as const).map(([m, I, lb]) => (
+                  <div className={`grid ${isSA ? 'grid-cols-3' : 'grid-cols-2'} gap-1.5 rounded-xl bg-canvas p-1`}>
+                    {([["CASH", Banknote, t("نقد", "Cash")], ["MADA", Wallet, t("مدى", "Mada")], ["CARD", CreditCard, t("بطاقة", "Card")]] as const).filter(([m]) => m !== 'MADA' || isSA).map(([m, I, lb]) => (
                       <button key={m} onClick={() => { setMethod(m); if (m !== "CASH") setTendered(""); }} className={`flex h-11 items-center justify-center gap-1.5 rounded-lg text-xs font-bold transition-all ${method === m ? "bg-surface text-[#1A1E48] shadow-sm" : "text-muted-foreground hover:text-foreground"}`}><I className="h-4 w-4" />{lb}</button>
                     ))}
                   </div>
@@ -766,4 +767,3 @@ function SettingsPanel({ settings, update, branches, onClose, t, device, testPri
     </div>
   );
 }
-

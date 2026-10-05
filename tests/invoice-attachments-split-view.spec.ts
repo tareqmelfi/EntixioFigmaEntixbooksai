@@ -70,13 +70,13 @@ for (const lang of ['ar', 'en'] as const) {
     await expect(frame.locator('body')).toContainText(invoice.invoiceNumber)
     await expect(frame.locator('body')).toContainText('2,487,489.62')
 
-    for (const width of AUDIT_WIDTHS) {
+    for (const width of [...new Set([...AUDIT_WIDTHS, 1266])]) {
       await page.setViewportSize({ width, height: 1000 })
       await page.waitForTimeout(400)
       const hits = await auditOverflow(page)
       if (hits.length) console.log(`OVERFLOW @ ${width} (${lang}):`, JSON.stringify(hits, null, 2))
       expect(hits, `overflow hits at ${width} (${lang})`).toEqual([])
-      if (width === 1024 || width === 1920) {
+      if (width === 1024 || width === 1266 || width === 1920) {
         await page.screenshot({ path: `${SHOTS}/${lang}-${width}.png`, fullPage: true })
       }
     }
