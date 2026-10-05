@@ -9,10 +9,10 @@ test('dashboard uses the shared page header and neutral AR/AP surfaces', async (
   await expect(heading).toBeVisible()
   await expect(heading.locator('xpath=ancestor::header')).toHaveCount(1)
 
-  // AR/AP links sit inside the shared neutral financial panel.
+  // Current figures preserve the approved ink-ruled ledger strip, without filled cards.
   const receivableRow = page.getByTestId('overview-receivables')
   const payableRow = page.getByTestId('overview-payables')
   await expect(receivableRow).toHaveClass(/\bborder-border\b/)
   await expect(payableRow).toHaveClass(/\bborder-border\b/)
-  await expect(page.getByTestId('overview-receivables')).toHaveCSS('background-color', 'rgb(255, 253, 249)')
+  await expect(page.getByTestId('overview-receivables')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
 })

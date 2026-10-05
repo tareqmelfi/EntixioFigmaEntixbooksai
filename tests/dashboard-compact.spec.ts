@@ -62,6 +62,11 @@ for (const country of ['US','SA']) for (const language of ['ar','en'] as const) 
   await expect(match).toContainText(language==='ar'?'إجماليات الفترة متطابقة':'Period totals match');
   const savedFigure=page.getByTestId('saved-invoice').locator('[dir="ltr"]');
   const font=await savedFigure.evaluate(el=>getComputedStyle(el).fontFamily);
+  const currentFigure=page.getByTestId('overview-receivables').locator('[dir="ltr"]');
+  await expect(currentFigure).toHaveCSS('font-family',font);
+  await expect(currentFigure.getByRole('link')).toHaveCSS('font-family',font);
+  await expect(currentFigure).toHaveCSS('font-size',await savedFigure.evaluate(el=>getComputedStyle(el).fontSize));
+  await expect(page.getByTestId('overview-receivables')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await expect(page.getByTestId('saved-invoice')).toContainText('1,000.00');
   const savedChartHeight=await page.getByTestId('saved-monthly').locator('.recharts-wrapper').evaluate(el=>el.clientHeight);
   await page.screenshot({path:`/tmp/entix-compact-saved-${country}-${language}-${width}.png`});

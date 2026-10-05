@@ -6,6 +6,7 @@ The company dashboard answers three questions in one view: what is owed, how the
 - Performance uses the API's stated source and selected dates. Drafts are separate document activity, not profit. Missing or unavailable metrics remain unavailable rather than zero.
 - Keep posting gaps and their review action visible. A comparison of totals is not a bank reconciliation or journal audit.
 - Show one primary trend and an actionable follow-up list. Use `DetailSection` for document registers, advanced charts and historical references. Keep exact-date report links available.
+- Monetary summaries must retain the approved ink-ruled `DashboardFigures` strip and `DashboardNumeral` typography: paper background, thin dividers, large display numerals with smaller decimal fractions. Do not replace them with filled cards or bold sans-serif figures.
 - Reuse shared `Card`, `Button`, product page headers/toolbars, semantic color tokens and logical start/end spacing. Do not create a new font, palette or status convention per page.
 - Sidebar route expansion is temporary. Only explicit expansion/collapse choices persist. Collapsing groups never removes routes or search results.
 
