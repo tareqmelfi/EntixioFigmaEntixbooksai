@@ -1,0 +1,20 @@
+/* Match the available dashboard width, including the open/closed sidebar. */
+.dashboard-figures-container { container-type: inline-size; }
+.dashboard-figures-six { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dashboard-figures-six > div { padding-inline: 14px; border-inline-end: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.dashboard-figures-six > div:nth-child(2n) { border-inline-end: 0; padding-inline-end: 0; }
+.dashboard-figures-six > div:nth-child(2n + 1) { padding-inline-start: 0; }
+.dashboard-figures-six > div:nth-last-child(-n + 2) { border-bottom: 0; }
+@container (min-width: 720px) {
+  .dashboard-figures-six { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .dashboard-figures-six > div:nth-child(n) { padding-inline: 16px; border-inline-end: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .dashboard-figures-six > div:nth-child(3n) { border-inline-end: 0; padding-inline-end: 0; }
+  .dashboard-figures-six > div:nth-child(3n + 1) { padding-inline-start: 0; }
+  .dashboard-figures-six > div:nth-last-child(-n + 3) { border-bottom: 0; }
+}
+@container (min-width: 1440px) {
+  .dashboard-figures-six { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .dashboard-figures-six > div:nth-child(n) { padding-inline: 16px; border-inline-end: 1px solid var(--border); border-bottom: 0; }
+  .dashboard-figures-six > div:first-child { padding-inline-start: 0; }
+  .dashboard-figures-six > div:last-child { border-inline-end: 0; padding-inline-end: 0; }
+}
