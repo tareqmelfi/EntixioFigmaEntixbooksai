@@ -1008,6 +1008,7 @@ export const api = {
 
   // Dashboard — real org-scoped numbers
   dashboard: {
+    records: (query: Record<string,string>) => request<import('./dashboard-records').DashboardRecords>('/api/dashboard/records', {query}),
     summary: (period: DashboardPeriodKey = 'fiscal_ytd') => request<DashboardSummary>(`/api/dashboard/summary?period=${encodeURIComponent(period)}`),
     sales: () => request<SalesDashboard>('/api/dashboard/sales'),
     purchases: () => request<PurchasesDashboard>('/api/dashboard/purchases'),
@@ -3252,7 +3253,7 @@ export interface DashboardSummary {
   yearlyTrend?: Array<DashboardTrendPoint & { year: number; revenue: number; expenses: number; net: number }>
   cashFlowTrend: Array<DashboardTrendPoint & { month: string; in: number; out: number; net: number }>
   profitLoss: Array<DashboardTrendPoint & { month: string; revenue: number; expenses: number; net: number }>
-  expenseBreakdown: Array<{ category: string; total: number }>
+  expenseBreakdown: Array<{ category: string; code: string; total: number }>
   incomeBreakdown: Array<{ category: string; code: string; total: number }>
   overdueInvoices: Array<{
     id: string

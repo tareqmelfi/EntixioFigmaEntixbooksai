@@ -340,5 +340,5 @@ test('saved dashboard shows unlinked paid invoices and drafts immediately, isola
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await expect(page.getByTestId('saved-invoice')).toContainText('17,000.00');
   await expect(page.getByTestId('saved-register')).toBeVisible();
-  await expect(page.getByTestId('saved-row-expense').getByRole('link')).toHaveAttribute('href','/app/expenses');
+  await expect(page.getByTestId('saved-row-expense').getByRole('link').first()).toHaveAttribute('href','/app/dashboard/records?basis=saved&metric=expense&state=all&measure=net&currency=USD&from=2026-04-01&to=2026-09-16');
 });
