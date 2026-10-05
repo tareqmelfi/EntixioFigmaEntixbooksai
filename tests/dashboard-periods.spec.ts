@@ -31,6 +31,11 @@ test('period selector changes flow and exact report dates; all-year partial bala
   const calls=await setup(page);
   const select=page.getByLabel('فترة الحركات',{exact:true});
   await expect(select).toHaveValue('fiscal_ytd');
+  await expect(page.getByTestId('overview-receivables')).toContainText('750.00 USD');
+  await expect(page.getByTestId('overview-payables')).toContainText('750.00 USD');
+  await expect(page.getByTestId('overview-cash')).toContainText('500.00 USD');
+  await expect(page.getByTestId('overview-cash')).not.toContainText('600.00');
+  await expect(page.getByTestId('overview-cash')).toContainText('عملات أخرى خارج الإجمالي');
   await expect(page.getByTestId('flow-dates')).toContainText('من 2026-04-01 إلى 2026-09-16');
   await expect(page.getByTestId('current-receivables')).toContainText('750.00 USD');
   await expect(page.getByTestId('current-receivables')).toContainText('2023');
@@ -39,13 +44,17 @@ test('period selector changes flow and exact report dates; all-year partial bala
   for(const key of ['month','previous_month','previous_fiscal_year','all_time']) {
     await select.selectOption(key);
     await expect(select).toHaveValue(key);
+    await expect(page.getByTestId('overview-receivables')).toBeVisible();
+    await expect(page.getByTestId('overview-receivables')).toContainText('750.00 USD');
     await expect(page.getByTestId('flow-dates')).toContainText(dates[key][1]);
     await expect(page.getByTestId('current-receivables')).toContainText('750.00 USD');
     await expect(page.getByTestId('current-payables')).toContainText('750.00 USD');
   }
   expect(calls).toEqual(['fiscal_ytd','month','previous_month','previous_fiscal_year','all_time']);
+  await page.getByTestId('dashboard-analysis').locator('summary').first().click();
   await page.getByTestId('dashboard-details').locator('summary').click();
   await expect(page.getByRole('link',{name:'قائمة دخل الفترة',exact:true})).toHaveAttribute('href','/app/reports/income-statement?to=2026-09-16&allTime=1');
+  await page.getByTestId('dashboard-history').locator('summary').first().click();
   const card=page.getByTestId('historical-summary');
   await expect(card.getByRole('button',{name:'توسيع الملخص'})).toHaveAttribute('aria-expanded','false');
   await expect(card.locator('dl')).toHaveCount(0);
@@ -76,6 +85,7 @@ test('foreign-currency unavailable movement is suppressed; unsupported compariso
 
 test('matched comparisons use exact ranges, never invented percentage when previous value is zero',async({page})=>{
   await setup(page,data=>({...data,periodCompare:{...data.periodCompare,lastMonth:{...data.periodCompare.lastMonth,revenue:0}},comparison:{...data.comparison,yearAgoComparable:false}}));
+  await page.getByTestId('dashboard-analysis').locator('summary').first().click();
   await page.getByTestId('dashboard-details').locator('summary').click();
   const comparison=page.getByTestId('comparison-details');
   await expect(comparison).toContainText('2026-08-01 — 2026-08-16');
@@ -153,6 +163,7 @@ test('report all-time link preserves scope, missing values, remembered summary a
     return route.fulfill({json:{id:'income-statement',title:'قائمة الدخل',englishTitle:'Income statement',description:'Synthetic report',category:'financial',status:'empty',generatedAt:'2026-09-16T12:00:00Z',period:{from:null,to:'2026-09-16',allTime:true},dataBasis:{source:'ledger',status:'no_activity',dateBasis:'period',from:null,to:'2026-09-16',postedEntriesOnly:true},currency:'USD',org,summary:{},notices:['لا توجد قيود دخل مرحلة.'],sections:[{id:'income-summary',title:'Summary',columns:[{key:'amount',label:'Amount',kind:'money'}],rows:[{id:'revenue',label:'Revenue',values:{amount:null}}]},{id:'income-detail',title:'Synthetic full detail',columns:[{key:'amount',label:'Amount',kind:'money'}],rows:[{id:'detail',label:'No recorded amount',values:{amount:null}}]}]}});
   });
   await page.getByLabel('فترة الحركات',{exact:true}).selectOption('all_time');
+  await page.getByTestId('dashboard-analysis').locator('summary').first().click();
   await page.getByTestId('dashboard-details').locator('summary').click();
   await page.getByRole('link',{name:'قائمة دخل الفترة',exact:true}).click();
   await expect(page.getByText('Synthetic full detail',{exact:true})).toHaveCount(0);
@@ -181,6 +192,8 @@ test('deployed dashboard geometry stays in order and purchases never count twice
   expect(Math.abs(pl!.y-followup!.y)).toBeLessThan(3);
   expect(pl!.width/followup!.width).toBeGreaterThan(1.9);
   const primary=await page.getByTestId('dashboard-primary-row').boundingBox();
+  await expect(page.getByTestId('dashboard-analysis')).not.toHaveAttribute('open');
+  await page.getByTestId('dashboard-analysis').locator('summary').first().click();
   const charts=await page.getByTestId('dashboard-charts-row').boundingBox();
   const balances=await page.getByTestId('dashboard-balances-row').boundingBox();
   expect(primary!.y).toBeLessThan(charts!.y);expect(charts!.y).toBeLessThan(balances!.y);
@@ -316,14 +329,14 @@ test('saved dashboard shows unlinked paid invoices and drafts immediately, isola
   await setup(page,data=>({...data,savedActivity:{basis:'saved_documents',includesDrafts:true,rows:[row('invoice',amount),row('invoice',2000,true),row('invoice',99999,false,'SAR'),row('bill',300),row('expense',50,true),row('journal',10000),row('receipt',10000)]}}));
   await expect(page.getByTestId('saved-invoice')).toContainText('12,000.00');
   await expect(page.getByTestId('saved-invoice')).toContainText('2,000.00');
-  await expect(page.getByTestId('flow-kpis')).toHaveCount(0);
+  await expect(page.getByTestId('flow-kpis')).toBeVisible();
+  await expect(page.getByTestId('flow-kpis')).not.toContainText('12,000.00');
+  await page.getByTestId('dashboard-documents').locator('summary').first().click();
   await expect(page.getByTestId('saved-row-journal')).toContainText('10,000.00');
   await page.getByLabel('عملة الحركة').selectOption('SAR');
   await expect(page.getByTestId('saved-invoice')).toContainText('99,999.00');
   await page.getByLabel('عملة الحركة').selectOption('USD');
-  await page.getByRole('button',{name:'الدفاتر المعتمدة',exact:true}).click();
   await expect(page.getByTestId('flow-kpis')).toContainText('900');
-  await page.getByRole('button',{name:'المستندات المحفوظة',exact:true}).click();
   amount=15000;
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
   await expect(page.getByTestId('saved-invoice')).toContainText('17,000.00');

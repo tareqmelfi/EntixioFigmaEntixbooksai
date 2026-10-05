@@ -451,18 +451,23 @@ export function AppSidebar({
       return next;
     });
 
+  const collapseGroups = () => {
+    const next = Object.fromEntries(sections.filter(s => s.label).map(s => [s.label!, false]));
+    writeStoredGroups(next);
+    setOpenGroups(next);
+    setOpenMenus(new Set());
+  };
+
   // Never hide the page the user is standing on: the group holding the active
   // route opens itself, whatever the remembered state said.
   useEffect(() => {
     const active = sections.filter((s) => s.label && sectionHasActiveRoute(s)).map((s) => s.label!);
-    if (!active.length) return;
-    setOpenGroups((prev) => {
-      if (active.every((l) => prev[l])) return prev;
-      const next = { ...prev };
-      for (const l of active) next[l] = true;
-      writeStoredGroups(next);
-      return next;
-    });
+    // Automatic route expansion is temporary. Only explicit choices are saved.
+    // This prevents visiting several sections from permanently expanding them all.
+    const stored = readStoredGroups();
+    setOpenGroups(Object.fromEntries(sections.filter(s => s.label).map(s => [s.label!,
+      active.includes(s.label!) || (stored[s.label!] ?? DEFAULT_OPEN_GROUPS.includes(s.label!)),
+    ])));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
 
@@ -494,6 +499,7 @@ export function AppSidebar({
           toggleMenu={toggleMenu}
           openGroups={openGroups}
           toggleGroup={toggleGroup}
+          collapseGroups={collapseGroups}
           isActive={isActive}
           isLeafActive={isLeafActive}
           hasActiveChild={hasActiveChild}
@@ -533,6 +539,7 @@ export function AppSidebar({
         toggleMenu={toggleMenu}
         openGroups={openGroups}
         toggleGroup={toggleGroup}
+        collapseGroups={collapseGroups}
         isActive={isActive}
         isLeafActive={isLeafActive}
         hasActiveChild={hasActiveChild}
@@ -553,7 +560,7 @@ export function AppSidebar({
 /* ─── Shared sidebar content ─── */
 function SidebarContent({
   cycleMode, modeLabel, ModeIcon,
-  openMenus, toggleMenu, openGroups, toggleGroup, isActive, isLeafActive, hasActiveChild, isParentPathActive,
+  openMenus, toggleMenu, openGroups, toggleGroup, collapseGroups, isActive, isLeafActive, hasActiveChild, isParentPathActive,
   searchQuery, setSearchQuery, searchFocused, setSearchFocused, searchRef, searchResults,
   navigate, onClose, collapsed, setCollapsed,
 }: {
@@ -564,6 +571,7 @@ function SidebarContent({
   toggleMenu: (t: string) => void;
   openGroups: Record<string, boolean>;
   toggleGroup: (label: string) => void;
+  collapseGroups: () => void;
   isActive: (p?: string) => boolean;
   isLeafActive: (p?: string) => boolean;
   hasActiveChild: (c?: SubItem[]) => boolean;
@@ -652,6 +660,7 @@ function SidebarContent({
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto px-[16px] pb-[8px]">
+        {!collapsed && <button type="button" onClick={collapseGroups} className="mb-1 w-full rounded-md px-2 py-1.5 text-end text-xs text-content-secondary hover:bg-surface-hover focus-visible:ring-2 focus-visible:ring-ring">{t('طي الأقسام', 'Collapse sections')}</button>}
         {sections.map((section, si) => {
           // Is the page the user is standing on inside THIS section? Drives the
           // section header's own state, which is distinct from the open page's.

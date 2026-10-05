@@ -24,6 +24,7 @@ async function setup(page:Page,role='OWNER',failure: 'none'|'unavailable'|'confl
     return route.fulfill({status:201,json:{report:record(body.payload,2),duplicate:false}});
   });
   await page.goto('/app?__qa_auth=1');
+  await page.getByTestId('dashboard-history').locator('summary').first().click();
   return posted;
 }
 
@@ -121,6 +122,7 @@ test('dashboard historical figures show known values and label unavailable or un
   source.periods[0].metrics.cash.value=null;source.periods[0].metrics.cash.status='unavailable';
   await page.route('https://api.entix.io/api/historical-reports/latest**',route=>route.fulfill({json:{report:record(source)}}));
   await page.reload();
+  await page.getByTestId('dashboard-history').locator('summary').first().click();
   const card=page.getByTestId('historical-summary');
   await expect(card).not.toContainText('25.00');
   await card.getByRole('button',{name:'توسيع الملخص',exact:true}).click();

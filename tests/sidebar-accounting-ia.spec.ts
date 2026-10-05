@@ -60,3 +60,21 @@ test('settings «الأدوات» tab hosts integrations, templates, and the par
     await expect(page.getByRole('link', { name: new RegExp(name) }).first()).toBeVisible()
   }
 })
+
+for (const language of ['ar','en'] as const) test(`navigation stays compact after visiting a section (${language})`, async ({ page }) => {
+  await prepareVisualApp(page, language)
+  await page.goto('/app')
+  const nav = page.locator('nav:visible').first()
+  await nav.getByRole('button', {name: language === 'ar' ? 'طي الأقسام' : 'Collapse sections', exact:true}).click()
+  await expect(nav.locator('button[aria-expanded="true"]')).toHaveCount(0)
+  await nav.getByRole('link', {name:language==='ar'?'البنوك والنقد':'Banks & cash',exact:true}).click()
+  await expect(nav.getByRole('button',{name:language==='ar'?'البنوك والنقد':'Banks & cash',exact:true})).toHaveAttribute('aria-expanded','true')
+  await nav.getByRole('link', {name:language==='ar'?'لوحة التحكم':'Dashboard',exact:true}).click()
+  await expect(nav.locator('button[aria-expanded="true"]')).toHaveCount(0)
+  // Explicit expansion is a preference; automatic route expansion is not.
+  const sales=nav.getByRole('button',{name:language==='ar'?'المبيعات':'Sales',exact:true})
+  await sales.click()
+  await page.reload()
+  await expect(sales).toHaveAttribute('aria-expanded','true')
+  await expect(nav.getByRole('link',{name:language==='ar'?'الفواتير':'Invoices',exact:true})).toBeVisible()
+})
