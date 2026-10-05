@@ -114,6 +114,7 @@ interface Props {
   /** Optional · enables Account picker column */
   accounts?: AccountOption[];
   /** Allow user to create a product on-the-fly */
+  preserveLineOnProductCreate?: boolean;
   onCreateProduct?: (name: string) => Promise<ProductOption>;
   /** Allow user to create an account on-the-fly (rare · usually pre-set) */
   onCreateAccount?: (name: string) => Promise<AccountOption>;
@@ -357,6 +358,7 @@ export function ItemsTable({
   products = [],
   accounts = [],
   onCreateProduct,
+  preserveLineOnProductCreate = false,
   onCreateAccount,
   minRows = 10,
   direction = "sales",
@@ -951,14 +953,27 @@ export function ItemsTable({
                         const p = products.find((x) => x.id === id);
                         if (p) onProductPick(i, p);
                       }}
+                      closeOnCreate={preserveLineOnProductCreate}
                       onCreate={onCreateProduct ? async (name) => {
                         const p = await onCreateProduct(name);
-                        onProductPick(i, p);
+                        if (preserveLineOnProductCreate) {
+                          setLines(current => {
+                            const index = current.findIndex(row => row.id === line.id);
+                            // Never restore a real row removed while creation was pending.
+                            if (index < 0 && isReal) return current;
+                            const row = index < 0 ? line : current[index];
+                            const next = { ...row, productId: p.id,
+                              description: row.description.trim() ? row.description : p.name,
+                              accountId: row.accountId || p.accountId };
+                            return index < 0 ? [...current, next] : current.map((row, n) => n === index ? next : row);
+                          });
+                        } else onProductPick(i, p);
                         return p.id;
                       } : undefined}
                       items={products.map((p) => ({
                         id: p.id,
                         label: p.name,
+                        searchKeys: p.sku ? [p.sku] : [],
                         sublabel: `${p.sku ? `${p.sku} · ` : ""}${(Number(p.unitPrice) || 0).toLocaleString(displayLocale(), { maximumFractionDigits: 2 })}`,
                       }))}
                       placeholder={t("منتج أو خدمة…", "Product or service…")}

@@ -19,18 +19,21 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Plus, Search, Check, ChevronDown } from "lucide-react";
+import { useLanguageSafe } from "./LanguageContext";
 import { normalizeDigits } from "../lib/digits";
 import { BidiText, NumericText } from "./bidi-text";
 
 export interface ComboboxItem {
   id: string;
   label: string;
+  searchKeys?: string[];
   sublabel?: string; // e.g. email · displayed below label in muted text
 }
 
 interface Props {
   value: string;
   onChange: (id: string) => void;
+  closeOnCreate?: boolean;
   onCreate?: (query: string) => Promise<string>; // returns created item's id
   items: ComboboxItem[];
   placeholder?: string;
@@ -63,9 +66,10 @@ export function SearchableCombobox({
   value,
   onChange,
   onCreate,
+  closeOnCreate = false,
   items,
-  placeholder = "ابحث أو اكتب...",
-  createLabel = (q) => `+ إنشاء "${q}"`,
+  placeholder: placeholderProp,
+  createLabel: createLabelProp,
   disabled = false,
   className = "",
   buttonClassName = "",
@@ -73,6 +77,10 @@ export function SearchableCombobox({
   wrap = false,
   borderless = false,
 }: Props) {
+  const { t } = useLanguageSafe();
+  const placeholder = placeholderProp ?? t("ابحث أو اكتب...", "Search or type...");
+  const createLabel = createLabelProp ?? ((q: string) => `${t("+ إنشاء", "+ Create")} "${q}"`);
+  const creatingRef = useRef(false);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
@@ -92,7 +100,7 @@ export function SearchableCombobox({
     return items.filter(
       (i) =>
         i.label.toLowerCase().includes(q) ||
-        (i.sublabel || "").toLowerCase().includes(q),
+        (i.sublabel || "").toLowerCase().includes(q) || i.searchKeys?.some(k => k.toLowerCase().includes(q)),
     );
   }, [items, query]);
 
@@ -100,7 +108,7 @@ export function SearchableCombobox({
   const showCreate = useMemo(() => {
     if (!onCreate || !query.trim()) return false;
     const q = query.trim().toLowerCase();
-    return !items.some((i) => i.label.toLowerCase() === q);
+    return !items.some((i) => i.label.toLowerCase() === q || i.searchKeys?.some(k => k.toLowerCase() === q));
   }, [items, query, onCreate]);
 
   const updatePanelPosition = () => {
@@ -182,15 +190,18 @@ export function SearchableCombobox({
   };
 
   const handleCreate = async () => {
-    if (!onCreate || !query.trim()) return;
+    if (!onCreate || !query.trim() || creatingRef.current) return;
+    creatingRef.current = true;
     setCreating(true);
+    if (closeOnCreate) setOpen(false);
     try {
       const newId = await onCreate(query.trim());
       handleSelect(newId);
     } catch (e) {
       // caller is responsible for showing the error · we just stop creating
-      console.warn("[combobox] create failed", e);
+      if (e) console.warn("[combobox] create failed", e);
     } finally {
+      creatingRef.current = false;
       setCreating(false);
     }
   };
@@ -214,7 +225,7 @@ export function SearchableCombobox({
       <button
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
-        disabled={disabled}
+        disabled={disabled || creating}
         className={`w-full flex items-center justify-between rounded-md ${
           borderless
             ? "border-0 bg-transparent hover:bg-muted/40 focus:outline-none focus:ring-1 focus:ring-primary/30"
@@ -273,13 +284,13 @@ export function SearchableCombobox({
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span style={{ fontWeight: 500 }}>{createLabel(query.trim())}</span>
-                {creating && <span className="text-xs text-muted-foreground/60 ms-auto">جارٍ الإنشاء...</span>}
+                {creating && <span className="text-xs text-muted-foreground/60 ms-auto">{t("جارٍ الإنشاء...", "Creating...")}</span>}
               </button>
             )}
 
             {filtered.length === 0 && !showCreate && (
               <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                لا توجد نتائج · جرب اسماً مختلفاً
+                {t("لا توجد نتائج · جرب اسماً مختلفاً", "No results · try a different name")}
               </div>
             )}
 

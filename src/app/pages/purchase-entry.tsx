@@ -5,7 +5,7 @@ import { useLanguage } from '../components/LanguageContext';
 import { useOrgRegion } from '../lib/use-org-region';
 import { FullPageForm } from '../components/full-page-form';
 import { useFormDraft } from '../lib/form-draft';
-import { ItemsTable, newLine, computeTotals, normalizeTaxRate, type InvoiceLine, type TaxMode } from '../components/items-table';
+import { ItemsTable, newLine, computeTotals, normalizeTaxRate, type InvoiceLine, type ProductOption, type TaxMode } from '../components/items-table';
 import { SearchableCombobox } from '../components/searchable-combobox';
 import { DocumentDropZone } from '../components/document-dropzone';
 import { BranchField } from '../components/branch-field';
@@ -19,6 +19,7 @@ import { settlePurchase } from '../lib/purchase-settlement';
 import { humanizeError } from '../lib/error-messages';
 import { getSimilarityReview, buildDuplicateDecision, type SimilarityReview } from '../lib/similarity-review';
 import { SimilarityReviewDialog } from '../components/similarity-review-dialog';
+import { PurchaseProductCreate } from '../components/purchase-product-create';
 import { usePurchaseDraftFiles } from '../lib/purchase-draft-files';
 
 export function PurchaseEntry() {
@@ -38,6 +39,10 @@ export function PurchaseEntry() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [productRequest, setProductRequest] = useState<{ query: string; resolve: (p: ProductOption) => void; reject: () => void } | null>(null);
+  const productOption = (p: any): ProductOption => ({ id: p.id, name: displayName(p, language), sku: p.sku,
+    unitPrice: Number(p.costPrice ?? p.buyPrice ?? p.unitPrice ?? 0),
+    taxRate: normalizeTaxRate(p.taxRate, region.isSA ? .15 : 0).rate, accountId: p.expenseAccountId });
   const [banks, setBanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -74,7 +79,7 @@ export function PurchaseEntry() {
     }).catch(e => { if (active) setLoadError(humanizeError(e, language)); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [revision, language, scope]);
-  const close = () => navigate('/app/purchases/records');
+  const close = () => { if (!productRequest) navigate('/app/purchases/records'); };
   const totals = computeTotals(lines.filter(l => l.description.trim()));
   const bank = banks.find(b => b.id === form.bankId);
   const paymentCurrency = bank?.currency || form.currency;
@@ -130,13 +135,16 @@ export function PurchaseEntry() {
     finally { saving.current = false; setBusy(false); }
   };
   const field = (label: string, key: 'reference' | 'dueDate' | 'date' | 'exchangeRate' | 'actualPaidAmount', type = 'text') => <label className="block space-y-1 text-xs"><span>{label}</span>{type === 'date' ? <DateInput value={form[key]} onChange={v => setForm(f => ({ ...f, [key]: v }))} /> : <Input aria-label={label} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />}</label>;
-  return <><FullPageForm title={t('تسجيل شراء أو مصروف', 'Record a purchase or expense')} subtitle={t('أدخل البنود ثم اختر هل دفعت الآن أو ستدفع لاحقًا.', 'Enter the items and choose whether you paid now or will pay later.')} onClose={close} draft={{ ...draft, discard: () => { draft.discard(); setFiles([]); } }} disableEscape={busy} footer={<div className="flex flex-wrap gap-2"><Button disabled={busy || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(false)}>{form.paid ? t('حفظ كمدفوع', 'Save as paid') : t('حفظ كمستحق', 'Save as payable')}</Button><Button variant="outline" disabled={busy || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(true)}>{t('حفظ كمسودة', 'Save as draft')}</Button><Button variant="ghost" onClick={close} disabled={busy}>{t('إلغاء', 'Cancel')}</Button></div>}>
+  return <><FullPageForm title={t('تسجيل شراء أو مصروف', 'Record a purchase or expense')} subtitle={t('أدخل البنود ثم اختر هل دفعت الآن أو ستدفع لاحقًا.', 'Enter the items and choose whether you paid now or will pay later.')} onClose={close} draft={{ ...draft, discard: () => { draft.discard(); setFiles([]); } }} disableEscape={busy || !!productRequest} footer={<div className="flex flex-wrap gap-2"><Button disabled={busy || !!productRequest || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(false)}>{form.paid ? t('حفظ كمدفوع', 'Save as paid') : t('حفظ كمستحق', 'Save as payable')}</Button><Button variant="outline" disabled={busy || !!productRequest || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(true)}>{t('حفظ كمسودة', 'Save as draft')}</Button><Button variant="ghost" onClick={close} disabled={busy || !!productRequest}>{t('إلغاء', 'Cancel')}</Button></div>}>
     <div className="space-y-4">
       {loadError && <div role="alert">{loadError} <Button variant="outline" onClick={() => setRevision(v => v + 1)}>{t('إعادة المحاولة', 'Retry')}</Button></div>}
       {error && <p role="alert" className="rounded-lg border border-danger p-3 text-danger">{error}</p>}
       {fileDraft.failed && <p role="alert" className="text-danger text-sm">{t('تعذّر حفظ نسخة المرفقات على هذا الجهاز. احفظ المستند قبل إغلاق الصفحة.', 'Could not cache attachments on this device. Save the document before leaving.')}</p>}
       {loading && <p role="status">{t('تحميل الموردين والحسابات…', 'Loading suppliers and accounts…')}</p>}
-      <fieldset disabled={busy || loading || !fileDraft.ready} className="min-w-0 space-y-4">
+      {productRequest && <PurchaseProductCreate query={productRequest.query} scope={scope} accounts={accounts}
+        onCancel={() => { productRequest.reject(); setProductRequest(null); }}
+        onCreated={p => { setProducts(current => [...current.filter(item => item.id !== p.id), p]); productRequest.resolve(productOption(p)); setProductRequest(null); }} />}
+      <fieldset disabled={busy || !!productRequest || loading || !fileDraft.ready} className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('موعد الدفع', 'Payment timing')}><Button type="button" variant={form.paid ? 'default' : 'outline'} aria-pressed={form.paid} onClick={() => setForm(f => ({ ...f, paid: true }))}>{t('مدفوع الآن', 'Paid now')}</Button><Button type="button" variant={!form.paid ? 'default' : 'outline'} aria-pressed={!form.paid} onClick={() => setForm(f => ({ ...f, paid: false }))}>{t('سأدفع لاحقًا', 'Pay later')}</Button></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block space-y-1 text-xs"><span>{t('المورد', 'Supplier')}{form.paid ? t(' (اختياري)', ' (optional)') : ' *'}</span><SearchableCombobox value={form.contactId} onChange={id => setForm(f => ({ ...f, contactId: id }))} items={contacts.map(c => ({ id: c.id, label: c.displayName }))} placeholder={t('اختر المورد', 'Select supplier')} onCreate={async name => { const c = await api.contacts.create({ displayName: name, type: 'SUPPLIER' }); setContacts(v => [...v, c]); setForm(f => ({ ...f, contactId: c.id })); return c.id; }} /></label>
@@ -150,7 +158,8 @@ export function PurchaseEntry() {
         <ItemsTable lines={lines} setLines={setLines} mode={taxMode} onModeChange={setTaxMode} direction="purchases" minRows={2} currency={form.currency} defaultTaxRate={region.isSA ? .15 : 0} contactId={form.contactId || null}
           defaultAccountLabel={t('مصروف عام / افتراضي الشركة', 'General expense / company default')}
           accounts={accounts.filter(a => a.isActive !== false && a.allowPosting !== false).map(a => ({ ...a, name: displayName(a, language) }))}
-          products={products.map(p => ({ id: p.id, name: p.name, unitPrice: Number(p.buyPrice || p.unitPrice || 0), taxRate: normalizeTaxRate(p.taxRate, region.isSA ? .15 : 0).rate, accountId: p.expenseAccountId }))} />
+          products={products.map(productOption)} preserveLineOnProductCreate
+          onCreateProduct={query => new Promise((resolve, reject) => setProductRequest({ query, resolve, reject }))} />
         {form.paid && <section className="rounded-lg border border-border p-3 space-y-3"><h2 className="text-sm font-semibold">{t('تفاصيل الدفع', 'Payment details')}</h2><div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="space-y-1 text-xs"><span>{t('طريقة الدفع', 'Payment method')}</span><select aria-label={t('طريقة الدفع', 'Payment method')} className="h-9 w-full rounded-md border border-border bg-transparent px-2" value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value, bankId: '', actualPaidAmount: '' }))}>{[['CASH', t('نقدًا', 'Cash')], ['BANK_TRANSFER', t('تحويل بنكي', 'Bank transfer')], ['CARD', t('بطاقة', 'Card')], ['CHECK', t('شيك', 'Check')], ['OTHER', t('أخرى', 'Other')]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
           {form.method !== 'CASH' && <label className="space-y-1 text-xs"><span>{t('دفعت من', 'Paid from')}</span><SearchableCombobox value={form.bankId} onChange={id => setForm(f => ({ ...f, bankId: id, actualPaidAmount: '' }))} items={banks.filter(b => b.isActive !== false).map(b => ({ id: b.id, label: `${b.name} · ${b.currency}` }))} placeholder={t('حساب الدفع الافتراضي', 'Default payment account')} /></label>}
