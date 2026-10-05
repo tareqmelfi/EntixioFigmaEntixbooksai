@@ -1868,8 +1868,8 @@ export const api = {
 
   // Invoices
   invoices: {
-    deletionPolicy: (id: string) => request<{ canDeletePermanently: boolean; reason: string | null; expectedUpdatedAt: string; reversesLedger: boolean }>(`/api/invoices/${id}/deletion-policy`),
-    deletePermanently: (id: string, body: { expectedUpdatedAt: string; confirmInvoiceNumber: string; reason?: string }) => request<{ deleted: boolean; id: string }>(`/api/invoices/${id}/delete-permanently`, { method: 'POST', body }),
+    deletionPolicy: (id: string) => request<{ canDeletePermanently: boolean; reason: string | null; expectedUpdatedAt: string; reversesLedger: boolean; linkedCreditDeletion?: { canDelete: boolean; reason: string | null; notes: Array<{ id: string; noteNumber: string; status: string; total: string; currency: string; expectedUpdatedAt: string }> } | null }>(`/api/invoices/${id}/deletion-policy`),
+    deletePermanently: (id: string, body: { expectedUpdatedAt: string; confirmInvoiceNumber: string; reason?: string; linkedCredits?: Array<{ id: string; expectedUpdatedAt: string }> }) => request<{ deleted: boolean; id: string }>(`/api/invoices/${id}/delete-permanently`, { method: 'POST', body }),
     notes: (id: string) => request<{ notes: string | null; termsConditions: string | null; updatedAt: string; canEdit: boolean }>(`/api/invoices/${id}/notes`),
     updateNotes: (id: string, body: { expectedUpdatedAt: string; reason: string; notes: string | null; termsConditions: string | null }) => request<{ notes: string | null; termsConditions: string | null; updatedAt: string }>(`/api/invoices/${id}/notes`, { method: 'PATCH', body }),
     voidInvoiceAdmin: (id: string, body: { reason: string; expectedUpdatedAt: string }) => request<Invoice>(`/api/invoices/${id}/void-admin`, { method: 'POST', body }),

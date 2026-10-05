@@ -60,20 +60,20 @@ test('bulk removal reviews blockers, retains failed input, and retries only fail
   await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await expect(page.getByTestId('removal-PAID')).toContainText('Linked payments or settlements');
   await expect(page.getByTestId('removal-SIGNED')).toContainText('protected e-invoicing record');
-  await expect(page.getByRole('button', { name: 'Apply available (2)', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Void selected (2)', exact: true })).toBeDisabled();
   expect(writes).toEqual([]);
-  await page.getByLabel('Reason for voiding issued invoices').fill('Duplicate synthetic invoice');
-  await page.getByRole('button', { name: 'Apply available (2)', exact: true }).click();
+  await page.getByLabel('Reason for deletion or voiding').fill('Duplicate synthetic invoice');
+  await page.getByRole('button', { name: 'Void selected (2)', exact: true }).click();
   expect(writes).toEqual([]);
   await page.getByRole('button', { name: 'Yes', exact: true }).click();
   await expect(page.getByTestId('removal-DRAFT')).toContainText('Completed');
   await expect(page.getByTestId('removal-APPROVED').getByRole('alert')).toBeVisible();
-  await expect(page.getByLabel('Reason for voiding issued invoices')).toHaveValue('Duplicate synthetic invoice');
-  await page.getByRole('button', { name: 'Apply available (1)', exact: true }).click();
+  await expect(page.getByLabel('Reason for deletion or voiding')).toHaveValue('Duplicate synthetic invoice');
+  await page.getByRole('button', { name: 'Void selected (1)', exact: true }).click();
   await page.getByRole('button', { name: 'Yes', exact: true }).click();
   await expect(page.getByTestId('removal-APPROVED')).toContainText('Completed');
   expect(writes).toEqual(['DRAFT', 'APPROVED', 'APPROVED']);
-  await expect(page.getByRole('button', { name: 'Apply available (0)', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Void selected (0)', exact: true })).toBeDisabled();
 });
 
 test('filtering removes hidden selection and changed draft cannot be deleted', async ({ page }) => {
@@ -85,7 +85,7 @@ test('filtering removes hidden selection and changed draft cannot be deleted', a
   await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await expect(page.getByTestId('removal-DRAFT')).toContainText('Delete draft');
   changed.add('DRAFT');
-  await page.getByRole('button', { name: 'Apply available (1)', exact: true }).click();
+  await page.getByRole('button', { name: 'Void selected (1)', exact: true }).click();
   await page.getByRole('button', { name: 'Yes', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Invoice or action access changed');
   expect(writes).toEqual([]);
@@ -97,10 +97,10 @@ test('failed permission check allows retry but no mutation', async ({ page }) =>
   await page.goto('/app/invoices'); await page.getByRole('row').filter({ hasText: 'TEST-DRAFT' }).getByTestId('invoice-row-remove').click();
   await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
   await expect(page.getByRole('alert')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Apply available (0)', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Void selected (0)', exact: true })).toBeDisabled();
   await page.unroute('**/api/invoices/DRAFT/amendment-policy');
   await page.getByRole('button', { name: 'Recheck', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Apply available (1)', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Void selected (1)', exact: true })).toBeEnabled();
   expect(writes).toEqual([]);
 });
 
@@ -115,7 +115,7 @@ test('review links return to the selected invoice and double confirmation cannot
   await page.goto('/app/invoices');
   await page.getByRole('row').filter({ hasText: 'TEST-DRAFT' }).getByTestId('invoice-row-remove').click();
   await page.getByRole('radio', { name: 'Void and retain invoice', exact: true }).check();
-  await page.getByRole('button', { name: 'Apply available (1)', exact: true }).click();
+  await page.getByRole('button', { name: 'Void selected (1)', exact: true }).click();
   await page.getByRole('button', { name: 'Yes', exact: true }).evaluate(button => { (button as HTMLButtonElement).click(); (button as HTMLButtonElement).click(); });
   await expect(page.getByTestId('removal-DRAFT')).toContainText('Completed');
   expect(writes).toEqual(['DRAFT']);
