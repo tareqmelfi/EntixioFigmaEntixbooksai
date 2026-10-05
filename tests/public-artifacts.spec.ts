@@ -18,7 +18,7 @@ const STATIC_PUBLIC_ROUTES = ['/connect'] as const
 test('static connect document is published with its own canonical URL', async () => {
   const html = await readFile(artifact('/connect'), 'utf8')
   expect(html).toContain('<link rel="canonical" href="https://entix.io/connect">')
-  expect(html).toContain('Connect Claude to Entix Books')
+  expect(html).toContain('Connect ChatGPT or Claude to Entix Books')
   expect(html).not.toContain('data-page="market-locale-chooser"')
 })
 
