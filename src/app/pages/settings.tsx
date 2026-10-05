@@ -29,6 +29,7 @@ import { ExternalSourcesTab } from "../components/external-sources-tab";
 import { BrandThemeCard } from "../components/brand-theme-card";
 import { SocialLinksCard } from "../components/social-links-card";
 import { AccountProfile } from "../components/account-profile";
+import { AiConnectionOptions } from "../components/ai-connection-options";
 
 /**
  * CONTACT-FIELD VALIDATION (CEO 2026-09-20 · readiness pass).
@@ -595,10 +596,11 @@ export function Settings() {
       {tab === "ai" && (
         <Card className="border-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground"><Sparkles className="h-5 w-5" /> {t("الذكاء الاصطناعي · الاشتراك والمفتاح", "AI · subscription & key")}</CardTitle>
-            <CardDescription>{t("اختر الباقة · أو ضع مفتاحك الخاص (BYOK) · لا تكاليف إضافية علينا", "Choose a plan · or use your own key (BYOK) · no extra cost from us")}</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-foreground"><Sparkles className="h-5 w-5" /> {t("الذكاء الاصطناعي · الربط والاستخدام", "AI · connections & usage")}</CardTitle>
+            <CardDescription>{t("اربط دفاترك بمساعدك المفضل، أو استخدم مساعد Entix بمفتاحك الخاص أو رصيد المنصة.", "Connect your books to your preferred assistant, or use the Entix assistant with your own key or platform credit.")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <AiConnectionOptions />
             {!aiConfig ? (
               <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
             ) : (
