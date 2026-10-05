@@ -89,7 +89,7 @@ server {
 
   # Canonicalize established public documents to no trailing slash. With
   # absolute_redirect disabled these remain same-origin HTTPS at the edge.
-  location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)/$ {
+  location ~ ^/(features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password|connect)/$ {
     return 308 /$1$is_args$args;
   }
   location ~ ^/(solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce|contracting|freelancers|agencies)|support/ios)/$ {
@@ -98,7 +98,7 @@ server {
 
   # Established public routes are real prerendered documents. Exact matching and
   # $uri/index.html prevent neutral-root shell substitution if an artifact is absent.
-  location ~ ^/(?:features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password)$ {
+  location ~ ^/(?:features|pricing|referrals|about|contact|blog|docs|help|videos|glossary|case-studies|changelog|roadmap|partners|careers|team|integration|privacy|terms|refund|sla|login|register|forgot-password|reset-password|connect)$ {
     try_files $uri/index.html =404;
   }
   location ~ ^/solutions/(?:small-business|accountants|enterprises|restaurants|ecommerce|contracting|freelancers|agencies)$ {
