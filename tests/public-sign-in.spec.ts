@@ -72,3 +72,15 @@ test('connector guide exposes sign-in on a narrow phone', async ({ page }) => {
   await login.click()
   await expect(page).toHaveURL(/\/login$/)
 })
+
+
+test('root entry offers direct sign-in before choosing a market', async ({ page }) => {
+  await guest(page, 'en')
+  await page.setViewportSize({ width: 320, height: 640 })
+  await page.goto('/')
+  const login = page.getByRole('link', { name: /تسجيل الدخول.*Sign in/ })
+  await expect(login).toBeInViewport()
+  await login.click()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('textbox', { name: 'Email', exact: true })).toBeVisible()
+})
