@@ -113,3 +113,21 @@ test('drilldowns respect opening balances, comparison periods and partial months
   expect(reportDrilldownRange(report,'2026-03')).toEqual({from:'2026-03-01',to:'2026-03-05'});
   expect(reportDrilldownRange(report,'closingCredit')).toEqual(report.period);
 });
+
+test('imported movements without a document show an inert source placeholder', async ({page})=>{
+  await setup(page,'ar');
+  const report = statement();
+  const imported = report.sections[0].rows[1] as any;
+  imported.values.source = '';
+  delete imported.sourceLink;
+  await page.route('**/api/reports/account-statement-detail?*',r=>r.fulfill({json:report}));
+  await page.goto('/app/reports/account-statement-detail?accountId=mercury');
+  const row = page.getByRole('row').filter({has:page.getByRole('button',{name:'JV-1',exact:true})});
+  const source = row.getByRole('cell').nth(3);
+  await expect(source).toHaveText('—');
+  await expect(source.getByRole('button')).toHaveCount(0);
+  await expect(source.getByRole('link')).toHaveCount(0);
+  await expect(page.locator('[title="undefined"]')).toHaveCount(0);
+  await row.getByRole('button',{name:'JV-1',exact:true}).click();
+  await expect(page).toHaveURL(/journal-entries\?entryId=entry-1/);
+});
