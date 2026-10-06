@@ -327,7 +327,7 @@ export function Invoices() {
   useEffect(() => {
     if (location.pathname.endsWith("/new") || searchParams.get("new") === "1") {
       const prefillContact = searchParams.get("contactId") || "";
-      setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, contactId: prefillContact, projectId: searchParams.get("projectId") || "" });
       setLines([newLine(defaultTaxRate)]);
       setTaxMode("all-exclusive");
       setCreateError(null);
@@ -444,7 +444,7 @@ export function Invoices() {
   const openCreate = () => {
     setSourceFiles([]);
     const prefillContact = searchParams.get("contactId") || "";
-    setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, contactId: prefillContact, projectId: searchParams.get("projectId") || "" });
     setLines([newLine(defaultTaxRate)]);
     setTaxMode("all-exclusive");
     setCreateError(null);

@@ -1078,8 +1078,21 @@ export const api = {
     remove: (id: string) => request<void>(`/api/cost-centers/${id}`, { method: 'DELETE' }),
   },
 
+  projectFolders: {
+    list: () => request<{items: any[]}>('/api/project-folders'),
+    save: (id: string | null, body: any) => request<any>(id ? `/api/project-folders/${id}` : '/api/project-folders', {method: id ? 'PUT' : 'POST', body}),
+    remove: (id: string) => request<any>(`/api/project-folders/${id}`, {method: 'DELETE'}),
+  },
+  projectAccess: {
+    accept: (token: string) => request<{projectId: string}>(`/api/project-access/accept/${token}`, {method: 'POST'}),
+    get: (id: string) => request<any>(`/api/project-access/${id}`),
+  },
   // Projects
   projects: {
+    overview: (id: string) => request<any>(`/api/projects/${id}/overview`),
+    people: (id: string) => request<{items: any[]}>(`/api/projects/${id}/people`),
+    invite: (id: string, email: string) => request<any>(`/api/projects/${id}/people`, {method: 'POST', body: {email}}),
+    revoke: (id: string, accessId: string) => request<any>(`/api/projects/${id}/people/${accessId}`, {method: 'DELETE'}),
     list: () => request<{ items: any[]; total: number }>('/api/projects'),
     get: (id: string) => request<any>(`/api/projects/${id}`),
     create: (data: any) => request<any>('/api/projects', { method: 'POST', body: data }),

@@ -256,7 +256,7 @@ test.describe('SPEC-05 L3 · after the award', () => {
     const card = page.getByTestId('project-cost-budget')
     await expect(card).toBeVisible()
     await expect(card).toContainText('بلا سعر بيع أو نسبة ربح')
-    await expect(page.getByTestId('budget-cost-total')).toHaveText('84,000.00 SAR')
+    await expect(page.getByTestId('budget-cost-total')).toHaveText('84,000.00 USD')
     // the estimate's sale figures (unitPrice 62.50 · lineTotal 75,000) must not appear
     await expect(card).not.toContainText('75,000.00')
     await expect(card).not.toContainText('62.50')

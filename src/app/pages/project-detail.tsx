@@ -1,3 +1,6 @@
+import { ProjectWorkspace, ProjectPeople } from "../components/project-workspace";
+import { folderPath } from "../components/project-folders";
+import { useOrgRegion } from "../lib/use-org-region";
 import { displayLocale, displayDigits } from "../lib/number-display";
 /**
  * Project full page — app-wide standard (no slide-overs):
@@ -8,7 +11,7 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  * W5 will extend this page with contractor payments, hours and performance.
  */
 import { useEffect, useState, useCallback } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { ArrowRight, Banknote, CheckCircle2, Clock3, Edit2, ExternalLink, Loader2, Plus, Save, ShoppingCart, Sparkles, StickyNote, Trash2, X } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
@@ -45,23 +48,28 @@ const DOC_STATUS_LABELS: Record<string, { ar: string; en: string }> = {
   VOID: { ar: "ملغى", en: "Void" },
 };
 
-const EMPTY_FORM = { code: "", name: "", startDate: "", endDate: "", status: "ACTIVE", budget: "", notes: "", contractValue: "", retentionPct: "", percentComplete: "", clientContactId: "", clientName: "" };
+const EMPTY_FORM = { folderId: "", projectType: "", code: "", name: "", startDate: "", endDate: "", status: "ACTIVE", budget: "", notes: "", contractValue: "", retentionPct: "", percentComplete: "", clientContactId: "", clientName: "" };
 
 /** PL1 · the document kinds a project may be linked to · order matches the sales flow. */
 const LINK_KINDS: Array<{ kind: ProjectLinkKind; ar: string; en: string; route: (id: string) => string }> = [
   { kind: "QUOTE", ar: "عرض سعر", en: "Quote", route: (id) => `/app/quotes/${id}` },
   { kind: "ESTIMATE", ar: "دراسة/ميزانية", en: "Cost study / budget", route: (id) => `/app/estimates/${id}` },
+  { kind: "BILL", ar: "فاتورة مشتريات", en: "Purchase bill", route: (id) => `/app/purchases/bills/${id}` },
   { kind: "INVOICE", ar: "فاتورة", en: "Invoice", route: (id) => `/app/invoices/${id}` },
 ];
 
 export function ProjectDetail() {
   const { t, language } = useLanguage();
   const { id } = useParams();
+  const [params] = useSearchParams();
+  const {currency} = useOrgRegion();
+  const [folders, setFolders] = useState<any[]>([]);
+  useEffect(() => { api.projectFolders.list().then(d=>setFolders(d.items)).catch(()=>{}); }, []);
   const navigate = useNavigate();
   const isNew = !id || id === "new";
 
   const { toasts, push, dismiss } = useToasts();
-  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [form, setForm] = useState({ ...EMPTY_FORM, folderId: params.get("folderId") || "" });
   const [project, setProject] = useState<any | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const [busy, setBusy] = useState(false);
@@ -97,6 +105,7 @@ export function ProjectDetail() {
   const applyProject = useCallback((p: any) => {
     setProject(p);
     setForm({
+      folderId: p.folderId || "", projectType: p.projectType || (p.code?.includes("-CLI-") ? "CLIENT" : p.code?.includes("-PRJ-") ? "INTERNAL" : ""),
       code: p.code || "", name: p.name || "",
       startDate: (p.startDate || "").slice(0, 10), endDate: (p.endDate || "").slice(0, 10),
       status: p.status || "ACTIVE",
@@ -201,13 +210,13 @@ export function ProjectDetail() {
   // PL1 · candidate documents per kind, always scoped to the chosen client.
   useEffect(() => {
     const contactId = form.clientContactId;
-    if (!contactId) { setLinkOptions({}); return; }
+    if (!contactId && isNew) { setLinkOptions({}); return; }
     let cancelled = false;
     Promise.all(LINK_KINDS.map(async ({ kind }) => {
       try {
         const res = isNew
           ? await api.projects.linkableForContact({ kind, contactId })
-          : await api.projects.linkable(id!, { kind, contactId });
+          : await api.projects.linkable(id!, { kind, ...(kind !== "BILL" && contactId ? {contactId} : {}) });
         return [kind, res.items || []] as const;
       } catch { return [kind, [] as LinkedDocument[]] as const; }
     })).then((entries) => { if (!cancelled) setLinkOptions(Object.fromEntries(entries)); });
@@ -247,7 +256,7 @@ export function ProjectDetail() {
     if (!form.code.trim() || !form.name.trim()) { setError(t("الرمز والاسم مطلوبان", "Code and name are required")); return; }
     setBusy(true); setError(null);
     try {
-      const payload = { code: form.code.trim(), name: form.name.trim(), startDate: form.startDate || null, endDate: form.endDate || null, status: form.status, budget: form.budget ? Number(form.budget) : null, notes: form.notes || null, contractValue: form.contractValue ? Number(form.contractValue) : null, retentionPct: form.retentionPct ? Number(form.retentionPct) : null, percentComplete: form.percentComplete ? Number(form.percentComplete) : null, clientContactId: form.clientContactId || null };
+      const payload = { folderId: form.folderId || null, projectType: form.projectType || null, code: form.code.trim(), name: form.name.trim(), startDate: form.startDate || null, endDate: form.endDate || null, status: form.status, budget: form.budget ? Number(form.budget) : null, notes: form.notes || null, contractValue: form.contractValue ? Number(form.contractValue) : null, retentionPct: form.retentionPct ? Number(form.retentionPct) : null, percentComplete: form.percentComplete ? Number(form.percentComplete) : null, clientContactId: form.clientContactId || null };
       const saved = isNew ? await api.projects.create(payload) : await api.projects.update(id!, payload);
       // PL1 · links staged on the new-project form are recorded now that the project exists.
       if (isNew && pendingLinks.length) {
@@ -339,7 +348,7 @@ export function ProjectDetail() {
           </span>
         </div>
 
-        {!form.clientContactId ? (
+        {!form.clientContactId && isNew ? (
           <p className="text-xs text-muted-foreground">{t("اختر العميل أولاً لعرض مستنداته", "Choose the client first to see their documents")}</p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -376,7 +385,7 @@ export function ProjectDetail() {
                 </Link>
                 <span className="ms-auto flex shrink-0 items-center gap-3 font-english text-xs text-content-secondary" dir="ltr">
                   <span>{docDate(l.document?.date ?? null)}</span>
-                  <span className="text-foreground">{money(l.document?.total)} {l.document?.currency || "SAR"}</span>
+                  <span className="text-foreground">{money(l.document?.total)} {l.document?.currency || currency}</span>
                   <span className="font-sans">{docStatus(l.document?.status)}</span>
                 </span>
                 <button type="button" onClick={() => setPendingUnlink(l.id)} aria-label={t("إلغاء الربط", "Remove link")} className="shrink-0 rounded p-1 text-content-secondary hover:text-danger">
@@ -492,7 +501,7 @@ export function ProjectDetail() {
               </div>
               <div className="flex flex-wrap items-baseline justify-between gap-2 border-t border-border pt-3">
                 <span className="text-xs text-content-secondary">{t("إجمالي التكلفة المخططة", "Total planned cost")}</span>
-                <span data-testid="budget-cost-total" className="font-english text-foreground" dir="ltr" style={{ fontWeight: 700 }}>{money(budget.costTotal)} SAR</span>
+                <span data-testid="budget-cost-total" className="font-english text-foreground" dir="ltr" style={{ fontWeight: 700 }}>{money(budget.costTotal)} {currency}</span>
               </div>
             </>
           )}
@@ -513,7 +522,7 @@ export function ProjectDetail() {
                   <span className="min-w-0 truncate"><bdi dir="auto">{item.label}</bdi></span>
                   <span className="ms-auto flex shrink-0 items-center gap-3 font-english text-xs" dir="ltr">
                     <span className="text-content-secondary">{qty(item.percent)}%</span>
-                    <span className="text-foreground">{money(item.amount)} SAR</span>
+                    <span className="text-foreground">{money(item.amount)} {currency}</span>
                   </span>
                   {item.invoiceId ? (
                     <span className="shrink-0 rounded-full bg-success-subtle px-2 py-0.5 text-[11px] text-success">{t("مفوترة", "Invoiced")}</span>
@@ -563,6 +572,11 @@ export function ProjectDetail() {
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
       <Card className="border-border">
         <CardContent className="p-5 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="text-sm">{t("المجلد", "Folder")}<select aria-label={t("المجلد", "Folder")} className="mt-2 w-full rounded-md border border-border bg-background p-2" value={form.folderId} onChange={e=>setForm({...form,folderId:e.target.value})}><option value="">{t("بدون مجلد", "No folder")}</option>{folders.map(f=><option key={f.id} value={f.id}>{folderPath(f.id,folders)}</option>)}</select></label>
+            <div className="space-y-2"><Label>{t("نوع المشروع", "Project type")}</Label><div className="flex flex-wrap gap-2">{[["CLIENT",t("عميل · CLI","Client · CLI")],["INTERNAL",t("داخلي · PRJ","Internal · PRJ")]].map(([value,label])=><Button type="button" key={value} variant={form.projectType===value?"default":"outline"} onClick={()=>setForm({...form,projectType:value})}>{label}</Button>)}</div></div>
+          </div>
+
           <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات المشروع", "Project details")}</div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="min-w-0 space-y-2">
@@ -669,24 +683,26 @@ export function ProjectDetail() {
 
   const detailView = project && figures && (
     <div className="space-y-8">
+      <nav aria-label={t("أقسام المشروع","Project sections")} className="flex flex-wrap gap-4 border-b border-border pb-3 text-sm">{[["project-overview",t("نظرة عامة","Overview")],["project-tasks",t("المهام والمواعيد","Tasks & dates")],["project-documents",t("المستندات","Documents")],["project-people",t("المشاركة","Sharing")]].map(([key,label])=><a key={key} href={`#${key}`} className="text-primary hover:underline">{label}</a>)}</nav>
+      <ProjectWorkspace project={project} version={links.length} />
       <MetricStrip className="xl:grid-cols-5" data-testid="project-figures">
         <Metric
           label={t("قيمة العقد", "Contract value")}
-          value={figures.contractValue === null ? "—" : <LedgerFigure value={figures.contractValue} currency="SAR" />}
+          value={figures.contractValue === null ? "—" : <LedgerFigure value={figures.contractValue} currency={currency} />}
         />
         <Metric
           label={t("الميزانية", "Budget")}
-          value={figures.plannedCost === null ? "—" : <LedgerFigure value={figures.plannedCost} currency="SAR" />}
+          value={figures.plannedCost === null ? "—" : <LedgerFigure value={figures.plannedCost} currency={currency} />}
           hint={budget ? (budget.status === "APPROVED" ? t("معتمدة · سقف الصرف", "Approved · spending ceiling") : t("مسودة", "Draft")) : undefined}
         />
         <Metric
           label={t("التكلفة الفعلية", "Actual cost")}
-          value={figures.actualCost === null ? "—" : <LedgerFigure value={figures.actualCost} currency="SAR" />}
+          value={figures.actualCost === null ? "—" : <LedgerFigure value={figures.actualCost} currency={currency} />}
           hint={t("من المصروفات وفواتير الموردين وأوامر الشراء", "From expenses, supplier bills and purchase orders")}
         />
         <Metric
           label={t("المتبقي", "Remaining")}
-          value={figures.remaining === null ? "—" : <LedgerFigure value={figures.remaining} currency="SAR" />}
+          value={figures.remaining === null ? "—" : <LedgerFigure value={figures.remaining} currency={currency} />}
           tone={figures.remaining !== null && figures.remaining < 0 ? "critical" : "neutral"}
         />
         <Metric
@@ -696,11 +712,12 @@ export function ProjectDetail() {
       </MetricStrip>
 
       {/* البنود / المهام · the pipeline (SPEC-05 §5) */}
-      <ProjectTasksSection projectId={project.id} onSummary={setTaskSummary} />
+      <ProjectTasksSection projectId={project.id} currency={currency} onSummary={setTaskSummary} />
+      <ProjectPeople projectId={project.id} />
 
       {lifecycleSection}
 
-      <section className="space-y-3" data-testid="project-documents">
+      <section id="project-documents" className="space-y-3 scroll-mt-20" data-testid="project-documents">
         <h2 className="text-section font-semibold text-foreground">{t("المستندات المرتبطة", "Linked documents")}</h2>
         {linkPickers}
       </section>
@@ -733,11 +750,11 @@ export function ProjectDetail() {
               value={<>{displayDigits(hrsFmt(perf.totals?.totalHours))}</>}
               hint={<>{t("قابلة للفوترة:", "billable:")} <span className="font-english" dir="ltr">{displayDigits(hrsFmt(perf.totals?.billableHours))}</span></>}
             />
-            <Metric label={t("تكلفة العمالة", "Labor cost")} value={<LedgerFigure value={Number(perf.totals?.laborCost || 0)} currency="SAR" />} />
-            <Metric label={t("المدفوع للمقاولين", "Paid out")} value={<LedgerFigure value={Number(perf.totals?.paidOut || 0)} currency="SAR" />} tone="success" />
+            <Metric label={t("تكلفة العمالة", "Labor cost")} value={<LedgerFigure value={Number(perf.totals?.laborCost || 0)} currency={currency} />} />
+            <Metric label={t("المدفوع للمقاولين", "Paid out")} value={<LedgerFigure value={Number(perf.totals?.paidOut || 0)} currency={currency} />} tone="success" />
             <Metric
               label={t("المتبقي من الميزانية", "Budget margin")}
-              value={perf.totals?.margin != null ? <LedgerFigure value={Number(perf.totals.margin)} currency="SAR" /> : "—"}
+              value={perf.totals?.margin != null ? <LedgerFigure value={Number(perf.totals.margin)} currency={currency} /> : "—"}
               tone={perf.totals?.margin != null && perf.totals.margin < 0 ? "critical" : "neutral"}
               hint={perf.totals?.budgetUsedPct != null ? <>{t("المستهلك:", "used:")} <span className="font-english" dir="ltr">{displayDigits(perf.totals.budgetUsedPct.toFixed(0))}%</span></> : undefined}
             />

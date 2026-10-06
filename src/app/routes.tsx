@@ -135,6 +135,8 @@ export const router = createBrowserRouter([
   { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
   { path: "/forgot-password", element: <ForgotPassword />, errorElement: <ErrorBoundary /> },
   { path: "/reset-password", element: <ResetPassword />, errorElement: <ErrorBoundary /> },
+  { path: "/project-invite/:token", element: lazyElement(() => import("./pages/project-guest"), "ProjectGuest"), errorElement: <ErrorBoundary /> },
+  { path: "/project-space/:id", element: lazyElement(() => import("./pages/project-guest"), "ProjectGuest"), errorElement: <ErrorBoundary /> },
   { path: "/invite/:token", element: lazyElement(() => import("./pages/invite"), "InvitePage"), errorElement: <ErrorBoundary /> },
   { path: "/admin/join/:token", element: lazyElement(() => import("./pages/admin-join"), "AdminJoinPage"), errorElement: <ErrorBoundary /> },
   { path: "/verify-email", element: lazyElement(() => import("./pages/verify-email"), "VerifyEmail"), errorElement: <ErrorBoundary /> },
