@@ -221,36 +221,46 @@ export function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-foreground mb-2" style={{ fontSize: "13px", fontWeight: 600 }}>{t("البريد الإلكتروني", "Email")}</label>
+              <label htmlFor="sign-in-email" className="block text-foreground mb-2" style={{ fontSize: "13px", fontWeight: 600 }}>{t("البريد الإلكتروني", "Email")}</label>
               <input
+                id="sign-in-email"
+                name="email"
                 type="email"
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="example@company.sa"
                 className="w-full min-h-[44px] h-11 px-3.5 rounded-lg border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
-                style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
+                style={{ fontSize: "16px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                 required
               />
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>{t("كلمة المرور", "Password")}</label>
+                <label htmlFor="sign-in-password" className="text-foreground" style={{ fontSize: "13px", fontWeight: 600 }}>{t("كلمة المرور", "Password")}</label>
                 <Link to="/forgot-password" className="text-primary hover:underline" style={{ fontSize: "13px" }}>{t("نسيت كلمة المرور؟", "Forgot password?")}</Link>
               </div>
               <div className="relative">
                 <input
+                  id="sign-in-password"
+                  name="password"
+                  autoComplete="current-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="w-full min-h-[44px] h-11 px-3.5 pe-12 rounded-lg border border-border bg-card focus:border-foreground focus:ring-2 focus:ring-ring/20 outline-none transition-colors"
-                  style={{ fontSize: "14px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
+                  style={{ fontSize: "16px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", textAlign: language === "ar" ? "right" : "left" }}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-3.5 top-1/2 -translate-y-1/2 text-content-secondary hover:text-foreground cursor-pointer"
+                  aria-label={showPassword ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")}
+                  aria-pressed={showPassword}
+                  className="absolute end-0 top-1/2 -translate-y-1/2 inline-flex h-[44px] w-[44px] items-center justify-center text-content-secondary hover:text-foreground cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

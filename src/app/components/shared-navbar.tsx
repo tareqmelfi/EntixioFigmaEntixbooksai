@@ -98,14 +98,14 @@ export function SharedNavbar() {
         scrolled ? "bg-background/95 backdrop-blur" : "bg-background/90 backdrop-blur"
       } border-b border-border`}
     >
-      <div className="mx-auto w-full max-w-[1536px] px-5 sm:px-8 lg:px-[72px] h-[64px] lg:h-[88px] flex items-center justify-between gap-6">
+      <div className="mx-auto w-full max-w-[1536px] px-3 sm:px-8 xl:px-10 2xl:px-[72px] h-[64px] xl:h-[88px] flex items-center justify-between gap-2">
         {/* Logo */}
-        <Link to={publicHref("")} className="flex items-center hover:opacity-80 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
+        <Link to={publicHref("")} className="flex shrink-0 items-center hover:opacity-80 transition-opacity cursor-pointer" aria-label="ENTIX.IO">
           <EntixWordmark size={20} />
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-6 xl:gap-9" ref={dropdownRef}>
+        <div className="hidden xl:flex items-center gap-6 xl:gap-9" ref={dropdownRef}>
           {navItems.map((item) => (
             <div key={item.label} className="relative">
               {item.dropdown ? (
@@ -168,15 +168,16 @@ export function SharedNavbar() {
         </div>
 
         {/* CTA Buttons */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden xl:flex items-center gap-3">
           <PublicPreferenceSelector />
-          <button
-            onClick={() => navigate(publicHref("/login"))}
-            className="text-foreground hover:text-primary transition-colors cursor-pointer px-2"
-            style={{ fontSize: "15px", fontWeight: 500 }}
+          <Link
+            to={publicHref("/login")}
+            data-testid="nav-sign-in"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center whitespace-nowrap rounded-full border border-foreground px-4 text-foreground transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            style={{ fontSize: "15px", fontWeight: 600 }}
           >
             {t("تسجيل الدخول", "Sign in")}
-          </button>
+          </Link>
           {/* ONE primary, and it leads to the plans — not to registration.
               Sending buyers to /register first was the biggest drop-off
               (CEO 2026-09-08). The free path stays available on /pricing. */}
@@ -191,23 +192,20 @@ export function SharedNavbar() {
         </div>
 
         {/* Mobile CTA + hamburger */}
-        <div className="lg:hidden flex items-center gap-2">
-          {/* Language switch stays OUTSIDE the hamburger — on a phone it must be
-              one tap from the first paint (CEO 2026-09-08). */}
-          <PublicLanguageToggle />
-          <button
-            onClick={() => navigate(publicHref("/pricing"))}
-            data-testid="nav-subscribe-mobile"
-            className="inline-flex h-10 items-center rounded-full bg-foreground px-3.5 text-background transition-colors hover:bg-primary cursor-pointer"
-            style={{ fontSize: "13px", fontWeight: 600 }}
+        <div className="xl:hidden flex items-center gap-2">
+          <Link
+            to={publicHref("/login")}
+            data-testid="nav-sign-in-mobile"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-foreground px-3 sm:px-4 text-background transition-colors hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            style={{ fontSize: "14px", fontWeight: 600 }}
           >
-            {t("اشترك", "Subscribe")}
-          </button>
+            {t("تسجيل الدخول", "Sign in")}
+          </Link>
         <button
           onClick={() => setMobileNav(!mobileNav)}
           aria-label={mobileNav ? t("إغلاق القائمة", "Close menu") : t("فتح القائمة", "Open menu")}
           aria-expanded={mobileNav}
-          className="h-11 w-11 inline-flex items-center justify-center text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
+          className="h-[44px] w-[44px] shrink-0 inline-flex items-center justify-center text-foreground hover:bg-surface-hover rounded-md transition-colors cursor-pointer"
         >
           {mobileNav ? <X className="w-[22px] h-[22px]" strokeWidth={1.8} /> : <Menu className="w-[22px] h-[22px]" strokeWidth={1.8} />}
         </button>
@@ -221,7 +219,7 @@ export function SharedNavbar() {
             initial={{ opacity: 0, height: 0 }} 
             animate={{ opacity: 1, height: "auto" }} 
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden bg-card border-t border-border shadow-popover overflow-hidden"
+            className="xl:hidden bg-card border-t border-border shadow-popover overflow-hidden"
           >
             <div className="px-4 py-4 space-y-2 max-h-[calc(100vh-68px)] overflow-y-auto">
               {navItems.map((item) => (
@@ -289,13 +287,14 @@ export function SharedNavbar() {
 
     {/* Mobile fixed-bottom CTA · outside fixed nav so it stays anchored to viewport bottom */}
     {!mobileNav && (
-      <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border px-4 py-3 safe-area-inset-bottom">
-        {/* Both paths, paid first — the phone bar is where most visitors decide. */}
+      <div className="xl:hidden fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border px-4 py-3 safe-area-inset-bottom">
+        {/* Keep language one tap away without crowding the always-visible sign-in header. */}
         <div className="flex items-center gap-2">
+          <PublicLanguageToggle />
           <button
             onClick={() => navigate(publicHref("/pricing"))}
             data-testid="sticky-subscribe"
-            className="flex-[3] bg-foreground text-background py-3 rounded-full hover:bg-primary transition-colors cursor-pointer"
+            className="min-w-0 flex-1 whitespace-nowrap bg-foreground text-background py-3 rounded-full hover:bg-primary transition-colors cursor-pointer"
             style={{ fontSize: "15px", fontWeight: 600 }}
           >
             {t("اشترك", "Subscribe")}
@@ -303,7 +302,7 @@ export function SharedNavbar() {
           <button
             onClick={() => navigate(publicHref("/register"))}
             data-testid="sticky-start-free"
-            className="flex-[2] border border-border text-content-secondary py-3 rounded-full hover:bg-surface-hover hover:text-foreground transition-colors cursor-pointer"
+            className="min-w-0 flex-1 whitespace-nowrap border border-border text-content-secondary py-3 rounded-full hover:bg-surface-hover hover:text-foreground transition-colors cursor-pointer"
             style={{ fontSize: "14px", fontWeight: 600 }}
           >
             {t("ابدأ مجانًا", "Start free")}
