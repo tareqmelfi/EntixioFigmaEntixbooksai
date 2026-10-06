@@ -1,3 +1,4 @@
+import { reportDrilldownRange } from '../lib/report-drilldown';
 import { DuesSettlementsReport } from './dues-settlements-report';
 import { compareReport, comparisonMode } from '../lib/report-comparison';
 import { ReportComparisonSelect } from '../components/report-comparison-select';
@@ -175,14 +176,16 @@ function SingleReportView() {
   const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${id === "income-statement" ? `&comparison=${comparison}` : ""}${monthly && id === "income-statement" ? "&groupBy=month" : ""}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${accountId ? `&accountId=${encodeURIComponent(accountId)}` : ""}${requestedReturn ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
   const printHref = `/print/report/${id}?${printQuery}`;
 
-  const openReportRow = (row: ReportRow) => {
+  const openReportRow = (row: ReportRow, column?: string) => {
+    if (column === "comparisonDelta" || column === "comparisonPercent") { setSelectedRow(row); return; }
     if (!row.link?.href) { setSelectedRow(row); return; }
     const target = new URL(row.link.href, window.location.origin);
     if (target.origin !== window.location.origin || !target.pathname.startsWith('/app/')) return;
     const selectedAccount = target.searchParams.get('account');
     if (row.link.type === 'account' && selectedAccount) {
-      const scope = new URLSearchParams({ accountId: selectedAccount, to, returnTo: `/app/reports/${id}?${searchParams}` });
-      if (from) scope.set('from', from); else scope.set('allTime', '1');
+      const period = report ? reportDrilldownRange(report, column) : { from, to };
+      const scope = new URLSearchParams({ accountId: selectedAccount, to: period.to, returnTo: `/app/reports/${id}?${searchParams}` });
+      if (period.from) scope.set('from', period.from); else scope.set('allTime', '1');
       if (branchId) scope.set('branchId', branchId);
       if (projectId) scope.set('projectId', projectId);
       navigate(`/app/reports/account-statement-detail?${scope}`);

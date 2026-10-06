@@ -1,3 +1,4 @@
+import { reportDrilldownRange } from '../src/app/lib/report-drilldown';
 import { test, expect, type Page } from '@playwright/test';
 import ExcelJS from 'exceljs';
 import { readFile } from 'node:fs/promises';
@@ -102,4 +103,13 @@ for (const path of ['/app/reports/account-statement-detail','/print/report/accou
   await expect(page.getByText(/scope could not be verified|Could not verify the account for printing/)).toBeVisible();
   await expect(page.getByTestId('report-data-table')).toHaveCount(0);
   await expect(page.getByTestId('report-output-pages')).toHaveCount(0);
+});
+
+test('drilldowns respect opening balances, comparison periods and partial months',()=>{
+  const report = {...statement('2026-01-15','2026-03-05'), comparePeriod:{from:'2025-01-15',to:'2025-03-05'}} as any;
+  expect(reportDrilldownRange(report,'openingDebit')).toEqual({from:null,to:'2026-01-14'});
+  expect(reportDrilldownRange(report,'priorAmount')).toEqual(report.comparePeriod);
+  expect(reportDrilldownRange(report,'2026-01')).toEqual({from:'2026-01-15',to:'2026-01-31'});
+  expect(reportDrilldownRange(report,'2026-03')).toEqual({from:'2026-03-01',to:'2026-03-05'});
+  expect(reportDrilldownRange(report,'closingCredit')).toEqual(report.period);
 });

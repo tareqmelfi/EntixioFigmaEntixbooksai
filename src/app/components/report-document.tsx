@@ -60,7 +60,7 @@ export function ReportDocument({
   report: ReportPayload;
   settings?: ReportPrintSettings | null;
   mode?: "screen" | "print";
-  onRowClick?: (row: ReportRow) => void;
+  onRowClick?: (row: ReportRow, column?: string) => void;
 }) {
   const { language: appLanguage } = useLanguage();
   // The document language follows the org's explicit print-setting when set;
@@ -184,7 +184,7 @@ export function ReportDocument({
                       key={row.id}
                       data-total={totalRow || undefined} data-depth={row.depth || 0}
                       className={`${rowIndex % 2 === 1 && !totalRow ? "bg-surface-subtle/70" : ""}${onRowClick ? " cursor-pointer transition hover:bg-surface-hover/70" : ""}`}
-                      onClick={() => onRowClick?.(row)}
+                      onClick={(event) => onRowClick?.(row, columns[(event.target as HTMLElement).closest('td')?.cellIndex ?? 0]?.key)}
                     >
                       {columns.map((column) => {
                         // Tree hierarchy: the label cell indents by row.depth
