@@ -26,3 +26,15 @@ for(const language of ['en','ar'] as const) {
   await page.screenshot({path:`/tmp/project-workspace-${language}.png`,fullPage:true})
  })
 }
+
+test('guest accepts into a schedule-only space',async({page})=>{
+ await prepareVisualApp(page,'en')
+ await page.route('**/api/project-access/accept/test-token',r=>r.fulfill({json:{projectId:'shared-project'}}))
+ await page.route('**/api/project-access/shared-project',r=>r.fulfill({json:{project:{id:'shared-project',name:'Shared delivery',code:'EN-PRJ-42',endDate:'2026-12-31'},tasks:[{id:'task1',title:'Review milestone',dueDate:'2026-11-01',progressPct:'25'}]}}))
+ await page.goto('/project-invite/test-token')
+ await page.getByRole('button',{name:'Accept invitation',exact:true}).click()
+ await expect(page).toHaveURL(/\/project-space\/shared-project$/)
+ await expect(page.getByRole('heading',{name:'Shared delivery',exact:true})).toBeVisible()
+ await expect(page.getByText('Review milestone',{exact:true})).toBeVisible()
+ await expect(page.getByRole('link',{name:'Invoices',exact:true})).toHaveCount(0)
+})
