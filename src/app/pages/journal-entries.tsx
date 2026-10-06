@@ -355,7 +355,12 @@ export function JournalEntries() {
 
       <div className={`space-y-6 transition-all ${selected ? "min-w-0 flex-1" : "w-full"}`}>
         <PageHeader
-          eyebrow={t("المحاسبة", "Accounting")}
+          eyebrow={(() => {
+            const back = new URLSearchParams(location.search).get('returnTo');
+            return back && /^\/app\/reports(?:\/|\?)/.test(back)
+              ? <Link to={back} className="text-primary hover:underline">{t('الرجوع لكشف الحساب', 'Back to account statement')}</Link>
+              : t("المحاسبة", "Accounting");
+          })()}
           title={t("قيود اليومية", "Journal Entries")}
           description={t("قيود محاسبية يدوية مع التحقق من توازن المدين والدائن", "Manual accounting entries with debit/credit balance verification")}
           actions={(

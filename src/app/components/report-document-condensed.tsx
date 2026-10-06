@@ -57,7 +57,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   report: ReportPayload;
   resolved: NormalizedReportSettings & { language: "ar" | "en" };
   mode: "screen" | "print";
-  onRowClick?: (row: ReportRow) => void;
+  onRowClick?: (row: ReportRow, column?: string) => void;
   t: (ar: string, en: string) => string;
 }) {
   const lang = resolved.language;
@@ -137,7 +137,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                     const total = isTotalRow(row);
                     const depth = Math.min(Math.max(row.depth ?? 0, 0), 5);
                     return (
-                      <tr key={row.id} data-total={total || undefined} data-depth={depth} className={`${i % 2 === 1 && !total ? "bg-[#F5F7FB]" : ""}${onRowClick ? " cursor-pointer hover:bg-surface-hover/70" : ""}`} onClick={() => onRowClick?.(row)} style={{ borderBottom: "1px solid #EEF1F6" }}>
+                      <tr key={row.id} data-total={total || undefined} data-depth={depth} className={`${i % 2 === 1 && !total ? "bg-[#F5F7FB]" : ""}${onRowClick ? " cursor-pointer hover:bg-surface-hover/70" : ""}`} onClick={(event) => onRowClick?.(row, columns[(event.target as HTMLElement).closest('td')?.cellIndex ?? 0]?.key)} style={{ borderBottom: "1px solid #EEF1F6" }}>
                         {columns.map((column) => {
                           const v = row.values[column.key];
                           const money = column.kind === "money" || moneyKeys.has(column.key);

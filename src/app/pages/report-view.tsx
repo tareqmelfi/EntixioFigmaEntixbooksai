@@ -1,3 +1,4 @@
+import { reportDrilldownRange } from '../lib/report-drilldown';
 import { DuesSettlementsReport } from './dues-settlements-report';
 import { compareReport, comparisonMode } from '../lib/report-comparison';
 import { ReportComparisonSelect } from '../components/report-comparison-select';
@@ -9,7 +10,7 @@ import { ReportMonthStrip } from '../components/report-month-strip';
 import { summarizeReport } from "../lib/report-layout";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronDown, Download, ExternalLink, ListTree, ListX, Loader2, Printer, RefreshCw } from "lucide-react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { Button } from "../components/ui/button";
 import { InlineAlert, PageHeader } from "../components/product";
 import { DateInput } from "../components/date-input";
@@ -72,7 +73,9 @@ function ExportMenu({ onCsv, onPdf, onExcel, disabled }: { onExcel: () => void; 
 
 export function ReportView() {
   const { id } = useParams();
-  return id === "dues-settlements" ? <DuesSettlementsReport /> : id === "owner-management" ? <OwnerManagementReport /> : id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView />;
+  const location = useLocation();
+  const accountKey = new URLSearchParams(location.search).get("accountId") || "";
+  return id === "dues-settlements" ? <DuesSettlementsReport /> : id === "owner-management" ? <OwnerManagementReport /> : id === "management-pdf" ? <ManagementReportBook /> : <SingleReportView key={`${id}:${accountKey}`} />;
 }
 
 function SingleReportView() {
@@ -94,6 +97,9 @@ function SingleReportView() {
   const [compare, setCompare] = useState(searchParams.get("compare") === "1");
   // B1 · branch scope ("" = all · "none" = unassigned · id)
   const [branchId, setBranchId] = useState(searchParams.get("branchId") || "");
+  const accountId = searchParams.get("accountId") || "";
+  const requestedReturn = searchParams.get("returnTo") || "";
+  const returnTo = /^\/app(?:\/|\?|$)/.test(requestedReturn) ? requestedReturn : "/app/reports";
   const [contactId] = useState(searchParams.get("contactId") || "");
   const [projectId, setProjectId] = useState(searchParams.get("projectId") || "");
   const compareTo = useMemo(() => {
@@ -120,8 +126,8 @@ function SingleReportView() {
   };
 
   useEffect(() => {
-    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(id === "income-statement" ? { comparison } : {}), ...(monthly && id === "income-statement" ? {groupBy:"month"} : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
-  }, [from, to, allTime, compare, comparison, monthly, id, branchId, projectId, contactId, setSearchParams]);
+    setSearchParams({ ...(from ? { from } : {}), to, ...(allTime ? { allTime: "1" } : {}), ...(compare ? { compare: "1" } : {}), ...(id === "income-statement" ? { comparison } : {}), ...(monthly && id === "income-statement" ? {groupBy:"month"} : {}), ...(accountId ? { accountId } : {}), ...(requestedReturn ? { returnTo } : {}), ...(contactId ? { contactId } : {}), ...(branchId ? { branchId } : {}), ...(projectId ? { projectId } : {}) }, { replace: true });
+  }, [from, to, allTime, compare, comparison, monthly, id, branchId, projectId, contactId, accountId, returnTo, requestedReturn, setSearchParams]);
 
   useEffect(() => {
     let alive = true;
@@ -130,14 +136,15 @@ function SingleReportView() {
       setError(null);
       try {
         // Bilingual labels («ar␟en») — the Condensed template shows both, the classic one collapses to the document language.
-        let data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
+        let data = await api.reports.get(id, { from: from || undefined, to, allTime: allTime ? 1 : undefined, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, accountId: accountId || undefined, contactId: contactId || undefined, branchId: branchId || undefined, projectId: projectId || undefined });
+        if (accountId && data.account?.id !== accountId) throw new ApiError(409, t("تعذر تأكيد نطاق الحساب. أعد تحميل كشف الحساب؛ لم تُعرض بيانات حسابات أخرى.", "Account scope could not be verified. Reload the statement; other accounts were not displayed."));
         if (monthly && id === "income-statement" && !allTime) {
           const base = data;
           data = await monthlyReport(base, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId:branchId||undefined,projectId:projectId||undefined,contactId:contactId||undefined},base.org.id));
         }
         if (!monthly && !allTime) {
           const base = data;
-          data = await compareReport(base, comparison, period => api.reports.get(id, { ...period, bilingual: 1, branchId: branchId || undefined, projectId: projectId || undefined, contactId: contactId || undefined }, base.org.id));
+          data = await compareReport(base, comparison, period => api.reports.get(id, { ...period, bilingual: 1, accountId: accountId || undefined, branchId: branchId || undefined, projectId: projectId || undefined, contactId: contactId || undefined }, base.org.id));
         }
         if (alive) {
           setReport(data);
@@ -152,7 +159,7 @@ function SingleReportView() {
     return () => {
       alive = false;
     };
-  }, [id, from, to, allTime, compareTo, comparison, monthly, branchId, projectId, contactId, refreshVersion]);
+  }, [id, from, to, allTime, compareTo, comparison, monthly, branchId, projectId, contactId, accountId, refreshVersion]);
 
   const settings = useMemo(() => normalizeReportSettings(report?.org.paymentSettings?.reports), [report]);
 
@@ -166,8 +173,27 @@ function SingleReportView() {
   // PRINT LAW (2026-09-16): the printable sheet lives OUTSIDE the app shell.
   // Printing from inside it produced a blank page — `h-dvh` + `overflow:hidden`
   // ancestors clipped the document before the print stylesheet ever ran.
-  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${id === "income-statement" ? `&comparison=${comparison}` : ""}${monthly && id === "income-statement" ? "&groupBy=month" : ""}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
+  const printQuery = `orgId=${encodeURIComponent(report?.org.id || '')}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&detail=${detailMode}${id === "income-statement" ? `&comparison=${comparison}` : ""}${monthly && id === "income-statement" ? "&groupBy=month" : ""}${allTime ? "&allTime=1" : ""}${compareTo ? `&compareTo=${encodeURIComponent(compareTo)}` : ""}${branchId ? `&branchId=${encodeURIComponent(branchId)}` : ""}${accountId ? `&accountId=${encodeURIComponent(accountId)}` : ""}${requestedReturn ? `&returnTo=${encodeURIComponent(returnTo)}` : ""}${contactId ? `&contactId=${encodeURIComponent(contactId)}` : ""}${projectId ? `&projectId=${encodeURIComponent(projectId)}` : ""}`;
   const printHref = `/print/report/${id}?${printQuery}`;
+
+  const openReportRow = (row: ReportRow, column?: string) => {
+    if (column === "comparisonDelta" || column === "comparisonPercent") { setSelectedRow(row); return; }
+    if (!row.link?.href) { setSelectedRow(row); return; }
+    const target = new URL(row.link.href, window.location.origin);
+    if (target.origin !== window.location.origin || !target.pathname.startsWith('/app/')) return;
+    const selectedAccount = target.searchParams.get('account');
+    if (row.link.type === 'account' && selectedAccount) {
+      const period = report ? reportDrilldownRange(report, column) : { from, to };
+      const scope = new URLSearchParams({ accountId: selectedAccount, to: period.to, returnTo: `/app/reports/${id}?${searchParams}` });
+      if (period.from) scope.set('from', period.from); else scope.set('allTime', '1');
+      if (branchId) scope.set('branchId', branchId);
+      if (projectId) scope.set('projectId', projectId);
+      navigate(`/app/reports/account-statement-detail?${scope}`);
+    } else {
+      target.searchParams.set('returnTo', `/app/reports/${id}?${searchParams}`);
+      navigate(`${target.pathname}${target.search}`);
+    }
+  };
 
   const exportCsv = () => { if (visibleReport) exportReportCsv(visibleReport, language); };
   const exportExcel = async () => {
@@ -182,8 +208,8 @@ function SingleReportView() {
     <div className="space-y-2">
       <PageHeader className="[&_h1]:text-2xl"
         eyebrow={(
-          <button onClick={() => navigate("/app/reports")} className="inline-flex items-center gap-2 text-xs text-content-secondary hover:text-foreground">
-            <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("التقارير", "Reports")}
+          <button onClick={() => navigate(returnTo)} className="inline-flex items-center gap-2 text-xs text-content-secondary hover:text-foreground">
+            <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {accountId ? t("الرجوع للقائمة", "Back to list") : t("التقارير", "Reports")}
           </button>
         )}
         title={language === "en" ? (report?.englishTitle || report?.title || t("تقرير", "Report")) : (report?.title || t("تقرير", "Report"))}
@@ -226,7 +252,7 @@ function SingleReportView() {
           </label>
           <BranchFilter value={branchId} onChange={setBranchId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
           <ProjectFilter value={projectId} onChange={setProjectId} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground" />
-          {id === "income-statement" ? <ReportComparisonSelect value={comparison} onChange={setComparison} disabled={allTime || monthly} /> : <button
+          {!accountId && (id === "income-statement" ? <ReportComparisonSelect value={comparison} onChange={setComparison} disabled={allTime || monthly} /> : <button
             type="button"
             disabled={allTime || monthly}
             onClick={() => setCompare((v) => !v)}
@@ -234,7 +260,7 @@ function SingleReportView() {
             title={t("قارن بالفترة السابقة وفق نطاق التقرير", "Compare against the preceding report period")}
           >
             {t("مقارنة بالفترة السابقة", "Compare previous period")}
-          </button>}
+          </button>)}
           <div className="rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80">
             {t("الحالة:", "Status:")} <span className="font-semibold text-foreground">{loading ? t("جارٍ التحميل", "Loading") : report?.dataBasis?.status === "unavailable" ? t("غير متاح من البيانات المسجلة", "Unavailable from recorded data") : report?.dataBasis?.status === "no_activity" ? t("لا توجد بيانات مسجلة للفترة", "No recorded data for this period") : report?.dataBasis?.status === "available" ? t("بحسب البيانات المسجلة", "Based on recorded data") : report?.status === "live" ? t("بحسب البيانات المتاحة", "Based on available data") : t("فارغ", "Empty")}</span>
           </div>
@@ -253,7 +279,7 @@ function SingleReportView() {
         </div>
       ) : !error && report && visibleReport ? (
         <div className={`grid gap-4 ${selectedRow ? "xl:grid-cols-[minmax(0,1fr)_280px]" : ""}`}>
-          <div className="min-w-0">{compact ? <ReportDataTable report={visibleReport} onRowClick={setSelectedRow} /> : <div className="overflow-x-auto rounded-lg bg-surface-subtle p-4"><ReportDocument report={visibleReport} settings={settings} onRowClick={setSelectedRow} /></div>}</div>
+          <div className="min-w-0">{compact ? <ReportDataTable report={visibleReport} onRowClick={openReportRow} /> : <div className="overflow-x-auto rounded-lg bg-surface-subtle p-4"><ReportDocument report={visibleReport} settings={settings} onRowClick={openReportRow} /></div>}</div>
           {selectedRow && <aside className="space-y-3"><button type="button" className="text-xs text-primary" onClick={()=>setSelectedRow(null)}>{t("إغلاق التفاصيل", "Close details")}</button>
             <Card className="border-border">
               <CardContent className="p-4">

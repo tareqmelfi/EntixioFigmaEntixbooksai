@@ -50,6 +50,12 @@ export async function reportWorkbook(report:ReportPayload,language:string, optio
   }
  }
  sheet.getColumn(1).width=48;for(let i=2;i<=count;i++)sheet.getColumn(i).width=17;
+ if (report.account) {
+  report.sections[0]?.columns.forEach((column,index)=>{
+   sheet.getColumn(index+1).width=column.key==='description'?48:column.key==='label'?27:column.key==='date'?15:17;
+   if (column.key==='description') sheet.getColumn(index+1).alignment={wrapText:true};
+  });
+ }
  firstHeader ||= 4+logoRow;
  sheet.views=[{rightToLeft:language==='ar',state:'frozen',ySplit:firstHeader,xSplit:1}];
  sheet.pageSetup.printTitlesRow=report.sections.length===1?`${firstHeader}:${firstHeader}`:undefined;
