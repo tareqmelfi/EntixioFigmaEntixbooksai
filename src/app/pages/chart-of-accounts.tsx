@@ -13,7 +13,7 @@ import { displayLocale } from "../lib/number-display";
  *
  * Tree view: accounts indented by depth so the user sees the hierarchy.
  */
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { AlertTriangle, ArrowRightLeft, BookOpen, Plus, Trash2, Loader2, X, ChevronDown, ChevronRight as ChevronRightIcon, Edit2, Download, Upload, History, Sparkles, Wallet, CreditCard, Landmark, TrendingUp, TrendingDown, PlusCircle } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
@@ -25,7 +25,7 @@ import { ToastStack, useToasts } from "../components/side-panel";
 import { SmartImportWizard } from "../components/smart-import-wizard";
 import { useLanguage } from "../components/LanguageContext";
 import { displayName, secondaryName } from "../lib/display-name";
-import { api, ApiError, Account, AccountTransactions } from "../lib/api";
+import { api, ApiError, Account } from "../lib/api";
 
 type AccountType = "ASSET" | "LIABILITY" | "EQUITY" | "REVENUE" | "EXPENSE";
 type CashFlowType = "OPERATING" | "INVESTING" | "FINANCING" | "NON_CASH";
@@ -208,6 +208,7 @@ function flattenTree(roots: TreeNode[], expanded: Set<string>, query = ""): Tree
 export function ChartOfAccounts() {
   const [searchParams] = useSearchParams();
   const requestedAccount = searchParams.get("account");
+  const navigate = useNavigate();
   const { t, language } = useLanguage();
   const TYPE_LABELS = buildTypeLabels(t);
   const TYPE_LABELS_PLURAL = buildTypeLabelsPlural(t);
@@ -240,8 +241,6 @@ export function ChartOfAccounts() {
   const [mergeSource, setMergeSource] = useState<Account | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState("");
   const [mergeBusy, setMergeBusy] = useState(false);
-  // Transactions side panel
-  const [txPanel, setTxPanel] = useState<{ accountId: string; data: AccountTransactions | null; loading: boolean; loadingMore?: boolean } | null>(null);
   // AI translate state
   const [aiBusy, setAiBusy] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
@@ -276,37 +275,17 @@ export function ChartOfAccounts() {
     } finally { setAiBusy(false); }
   };
 
-  const openTransactions = async (accountId: string) => {
-    setTxPanel({ accountId, data: null, loading: true });
-    try {
-      const data = await api.accounts.transactions(accountId);
-      setTxPanel(current => current?.accountId === accountId ? { accountId, data, loading: false } : current);
-    } catch (e: any) {
-      push("error", e instanceof ApiError ? e.message : t("فشل تحميل العمليات", "Failed to load transactions"));
-      setTxPanel(current => current?.accountId === accountId ? null : current);
-    }
+  const openTransactions = (accountId: string, replace = false) => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('account');
+    params.set('accountId', accountId);
+    if (!params.has('from')) params.set('allTime', '1');
+    params.set('returnTo', '/app/chart-of-accounts');
+    navigate(`/app/reports/account-statement-detail?${params}`, { replace });
   };
-
   useEffect(() => {
-    if (requestedAccount) void openTransactions(requestedAccount);
-    // A report link selects the account once; closing the panel must not reopen it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (requestedAccount) openTransactions(requestedAccount, true);
   }, [requestedAccount]);
-
-  const loadOlderTransactions = async () => {
-    if (!txPanel?.data?.nextCursor || txPanel.loadingMore) return;
-    const { accountId, data } = txPanel;
-    setTxPanel(current => current?.accountId === accountId ? { ...current, loadingMore: true } : current);
-    try {
-      const next = await api.accounts.transactions(accountId, data.nextCursor!);
-      setTxPanel(current => current?.accountId === accountId && current.data ? {
-        ...current, loadingMore: false, data: { ...next, transactions: [...current.data.transactions, ...next.transactions.filter(row => !current.data!.transactions.some(existing => existing.id === row.id))] }
-      } : current);
-    } catch (error) {
-      push("error", error instanceof ApiError ? error.message : t("تعذر تحميل الحركات الأقدم", "Could not load older transactions"));
-      setTxPanel(current => current?.accountId === accountId ? { ...current, loadingMore: false } : current);
-    }
-  };
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -676,7 +655,7 @@ export function ChartOfAccounts() {
                               )}
                             </button>
                             {/* Balance */}
-                            <div className="font-english text-xs shrink-0 text-end tabular-nums" dir="ltr" style={{ minWidth: "80px" }}>
+                            <button type="button" onClick={() => openTransactions(node.id)} aria-label={`${displayName(node)} · ${t("كشف الحساب", "Account statement")}`} className="font-english text-xs shrink-0 text-end tabular-nums min-h-8 hover:underline" dir="ltr" style={{ minWidth: "80px" }}>
                               {(node.balance ?? 0) !== 0 ? (
                                 <span className={`font-semibold ${(node.balance ?? 0) >= 0 ? "text-foreground" : "text-warning"}`}>
                                   {(node.balance ?? 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -684,7 +663,7 @@ export function ChartOfAccounts() {
                               ) : (
                                 <span className="text-muted-foreground">0.00</span>
                               )}
-                            </div>
+                            </button>
                             {/* Hover actions */}
                             <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition shrink-0">
                               <button
@@ -720,74 +699,6 @@ export function ChartOfAccounts() {
               </Card>
             );
           })}
-        </div>
-      )}
-
-      {/* Transactions slide-over panel */}
-      {txPanel && (
-        <div className="fixed inset-0 z-50 bg-foreground/40 flex justify-end" onClick={() => setTxPanel(null)}>
-          <div className="bg-card w-full max-w-3xl h-full overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-card border-b border-border/50 p-5 flex items-center justify-between z-10">
-              <div>
-                <h2 className="text-base text-foreground flex items-center gap-2" style={{ fontWeight: 700 }}>
-                  <History className="h-5 w-5 text-primary" />
-                  {txPanel.data ? `${txPanel.data.account.code} · ${displayName(txPanel.data.account)}` : t("جارٍ التحميل...", "Loading...")}
-                </h2>
-                {txPanel.data && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {txPanel.data.total} {t("عملية · كل القيود المرحلة", "transactions · all posted entries")}
-                    <span className={`font-english font-bold ms-1 ${txPanel.data.finalBalance >= 0 ? "text-foreground" : "text-warning"}`}>
-                      {t("الرصيد:", "Balance:")} {txPanel.data.finalBalance.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </p>
-                )}
-              </div>
-              <button onClick={() => setTxPanel(null)} className="p-1 hover:bg-muted/50 rounded"><X className="h-5 w-5 text-muted-foreground" /></button>
-            </div>
-
-            <div className="p-5">
-              {txPanel.loading ? (
-                <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
-              ) : !txPanel.data || txPanel.data.transactions.length === 0 ? (
-                <div className="py-12 text-center">
-                  <BookOpen className="h-10 w-10 text-muted mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">{t("لا توجد عمليات على هذا الحساب بعد", "No transactions on this account yet")}</p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">{t("العمليات ستظهر هنا عند ربط الفواتير والمصروفات بهذا الحساب", "Transactions will appear here when invoices and expenses are linked to this account")}</p>
-                </div>
-              ) : (
-                <div className="rounded-lg border border-border overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted text-xs text-muted-foreground sticky top-0">
-                      <tr>
-                        <th className="text-start px-3 py-2 font-medium">{t("التاريخ", "Date")}</th>
-                        <th className="text-start px-3 py-2 font-medium">{t("رقم القيد", "Entry No.")}</th>
-                        <th className="text-start px-3 py-2 font-medium">{t("الوصف", "Description")}</th>
-                        <th className="text-end px-3 py-2 font-medium">{t("مدين", "Debit")}</th>
-                        <th className="text-end px-3 py-2 font-medium">{t("دائن", "Credit")}</th>
-                        <th className="text-end px-3 py-2 font-medium">{t("الرصيد", "Balance")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {txPanel.data.transactions.map((t) => (
-                        <tr key={t.id} className="border-t border-border/50 hover:bg-primary/5">
-                          <td className="px-3 py-2 text-start"><span dir="ltr" className="font-english whitespace-nowrap text-foreground/80" style={{ fontVariantNumeric: "tabular-nums" }}>{t.date.slice(0, 10)}</span></td>
-                          <td className="px-3 py-2 font-code font-semibold text-foreground whitespace-nowrap">{t.journalNumber}</td>
-                          <td className="px-3 py-2">
-                            <div className="text-foreground max-w-[320px] truncate" title={t.description}><bdi dir="auto">{t.description}</bdi></div>
-                            {t.lineDescription && t.lineDescription !== t.description && <div className="text-xs text-muted-foreground/60 mt-0.5">{t.lineDescription}</div>}
-                          </td>
-                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.debit > 0 ? t.debit.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.credit > 0 ? t.credit.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "—"}</td>
-                          <td className="px-3 py-2 text-end font-english font-semibold text-foreground whitespace-nowrap" style={{ fontVariantNumeric: "tabular-nums" }}>{t.runningBalance.toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {txPanel.data.nextCursor && <div className="p-3"><Button variant="outline" disabled={txPanel.loadingMore} onClick={loadOlderTransactions}>{txPanel.loadingMore ? t("جارٍ التحميل...", "Loading...") : t("تحميل الحركات الأقدم", "Load older transactions")}</Button><span className="ms-3 text-xs text-muted-foreground">{txPanel.data.transactions.length} / {txPanel.data.total}</span></div>}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       )}
 

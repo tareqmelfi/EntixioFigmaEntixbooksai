@@ -93,19 +93,6 @@ test('matched comparisons use exact ranges, never invented percentage when previ
   await expect(comparison.locator('tr').filter({hasText:'الإيرادات'})).not.toContainText('%');
 });
 
-test('COA older-page append keeps complete final balance and total; all entries posted scope',async({page})=>{
-  await setup(page);
-  await page.route('https://api.entix.io/api/accounts',route=>route.fulfill({json:{items:[{id:'synthetic-account',orgId:visualOrgId,code:'1010',name:'Bank',nameAr:'بنك',type:'ASSET',balance:600,isActive:true}],total:1}}));
-  const calls:string[]=[];
-  await page.route('https://api.entix.io/api/accounts/synthetic-account/transactions**',route=>{const cursor=new URL(route.request().url()).searchParams.get('cursor');calls.push(cursor||'first');return route.fulfill({json:{account:{id:'synthetic-account',code:'1010',name:'Bank',nameAr:'بنك',type:'ASSET'},transactions:[{id:cursor?'old':'new',journalNumber:cursor?'JE-2022':'JE-2026',date:cursor?'2022-12-31':'2026-09-16',description:'Synthetic entry',lineDescription:null,source:null,reference:null,debit:300,credit:0,runningBalance:cursor?300:600}],total:2,returned:1,finalBalance:600,openingBalance:cursor?0:300,nextCursor:cursor?null:'new',balanceScope:'all_posted_dates'}});});
-  await page.goto('/app/chart-of-accounts?account=synthetic-account&__qa_auth=1');
-  await expect(page.getByText('كل القيود المرحلة',{exact:false})).toBeVisible();
-  await page.getByRole('button',{name:'تحميل الحركات الأقدم',exact:true}).click();
-  await expect(page.getByText('JE-2022',{exact:true})).toBeVisible();
-  await expect(page.getByText('JE-2026',{exact:true})).toBeVisible();
-  await expect(page.getByText('الرصيد: 600.00',{exact:false})).toBeVisible();
-  expect(calls).toEqual(['first','new']);
-});
 
 async function expandPreviewForFullPage(page:Page) {
   // Capture the complete nested scroll area; this style exists only in the isolated test tab.

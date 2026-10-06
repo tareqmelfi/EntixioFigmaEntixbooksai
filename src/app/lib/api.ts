@@ -1034,7 +1034,7 @@ export const api = {
 
   // Reports · live report viewer + print designer payload
   reports: {
-    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; compareTo?: string; allTime?: 1; bilingual?: 1 }, printOrgId?: string) =>
+    get: (id: string, params?: { from?: string; to?: string; branchId?: string; projectId?: string; costCenterId?: string; contactId?: string; accountId?: string; compareTo?: string; allTime?: 1; bilingual?: 1 }, printOrgId?: string) =>
       request<ReportPayload>(`/api/reports/${id}`, { query: params, ...(printOrgId ? { skipOrg: true, headers: reportScopeHeaders(printOrgId) } : {}) }),
   },
 
@@ -2437,6 +2437,7 @@ export interface ReportRow {
   note?: string | null
   status?: string | null
   link?: { label: string; href: string; type: string } | null
+  sourceLink?: { label: string; href: string; type: string } | null
   /** Tree depth within its section (0 = section root) — up to 5 levels render indented (Wave-style hierarchy) */
   depth?: number
 }
@@ -2450,6 +2451,7 @@ export interface ReportSection {
 }
 
 export interface ReportPayload {
+  account?: { id: string; code: string; name: string; nameAr?: string | null };
   dataBasis?: {source:'ledger'|'documents'|'unavailable';status:'available'|'no_activity'|'unavailable';dateBasis:'period'|'as_of';from:string|null;to:string;postedEntriesOnly:boolean};
   id: string
   title: string
