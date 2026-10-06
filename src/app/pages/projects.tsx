@@ -43,15 +43,16 @@ export function Projects() {
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const visible = items.filter(p => includesProjectFolder(p.folderId, folderId, folders) && (!projectType || (p.projectType || (p.code.includes("-CLI-") ? "CLIENT" : p.code.includes("-PRJ-") ? "INTERNAL" : "")) === projectType) && (!statusFilter || p.status === statusFilter) && `${p.code} ${p.name}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => {
+  const scoped = items.filter(p => includesProjectFolder(p.folderId, folderId, folders) && (!projectType || (p.projectType || (p.code.includes("-CLI-") ? "CLIENT" : p.code.includes("-PRJ-") ? "INTERNAL" : "")) === projectType));
+  const visible = scoped.filter(p => (!statusFilter || p.status === statusFilter) && `${p.code} ${p.name}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => {
     const rank = (p: any) => p.status === "ACTIVE" ? 0 : p.status === "ON_HOLD" ? 1 : 2;
     return rank(a) - rank(b) || (a.endDate || "9999").localeCompare(b.endDate || "9999");
   });
   const metrics = [
-    [t("نشطة", "Active"), items.filter(p => p.status === "ACTIVE").length],
-    [t("متأخرة", "Overdue"), items.filter(p => projectTimeline(p).overdue).length],
-    [t("متوقفة", "On hold"), items.filter(p => p.status === "ON_HOLD").length],
-    [t("مكتملة", "Completed"), items.filter(p => p.status === "COMPLETED").length],
+    [t("نشطة", "Active"), scoped.filter(p => p.status === "ACTIVE").length],
+    [t("متأخرة", "Overdue"), scoped.filter(p => projectTimeline(p).overdue).length],
+    [t("متوقفة", "On hold"), scoped.filter(p => p.status === "ON_HOLD").length],
+    [t("مكتملة", "Completed"), scoped.filter(p => p.status === "COMPLETED").length],
   ];
   if (intakeOpen) {
     return (
