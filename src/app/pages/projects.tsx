@@ -1,3 +1,4 @@
+import { ProjectFolders, includesProjectFolder } from "../components/project-folders";
 /**
  * Projects list — app-wide standard: rows open the FULL detail page
  * (/app/projects/:id) instead of a slide-over. New project → /app/projects/new.
@@ -5,7 +6,7 @@
 import { projectTimeline } from "../lib/project-timeline";
 import { useEffect, useState, useCallback } from "react";
 import { FolderKanban, Plus, Loader2, ChevronLeft, FileUp } from "lucide-react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { EmptyState, InlineAlert, PageHeader, StatusBadge } from "../components/product";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Button } from "../components/ui/button";
@@ -21,6 +22,11 @@ const STATUS_TONES: Record<string, "success" | "warning" | "info" | "neutral"> =
 export function Projects() {
   const { t, language } = useLanguage();
   const navigate = useNavigate();
+  const [folders, setFolders] = useState<any[]>([]);
+  const [params, setParams] = useSearchParams();
+  const folderId = params.get("folderId");
+  const setFolderId = (id: string | null) => { const next = new URLSearchParams(params); if(id)next.set("folderId",id);else next.delete("folderId");setParams(next); };
+  const [projectType, setProjectType] = useState("");
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -31,13 +37,13 @@ export function Projects() {
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
-    try { setItems((await api.projects.list()).items); }
+    try { const [p, f] = await Promise.all([api.projects.list(), api.projectFolders.list()]); setItems(p.items); setFolders(f.items); }
     catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load")); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 
-  const visible = items.filter(p => (!statusFilter || p.status === statusFilter) && `${p.code} ${p.name}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => {
+  const visible = items.filter(p => includesProjectFolder(p.folderId, folderId, folders) && (!projectType || (p.projectType || (p.code.includes("-CLI-") ? "CLIENT" : p.code.includes("-PRJ-") ? "INTERNAL" : "")) === projectType) && (!statusFilter || p.status === statusFilter) && `${p.code} ${p.name}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => {
     const rank = (p: any) => p.status === "ACTIVE" ? 0 : p.status === "ON_HOLD" ? 1 : 2;
     return rank(a) - rank(b) || (a.endDate || "9999").localeCompare(b.endDate || "9999");
   });
@@ -66,22 +72,24 @@ export function Projects() {
           <Button variant="outline" onClick={() => setIntakeOpen(true)} data-testid="project-intake-open">
             <FileUp className="me-2 h-4 w-4" strokeWidth={1.75} />{t("إنشاء مشروع من ملف", "Create from a file")}
           </Button>
-          <Button onClick={() => navigate("/app/projects/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("مشروع جديد", "New Project")}</Button>
+          <Button onClick={() => navigate(`/app/projects/new${folderId ? `?folderId=${encodeURIComponent(folderId)}` : ""}`)}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("مشروع جديد", "New Project")}</Button>
         </>}
       />
 
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
+      <ProjectFolders folders={folders} selected={folderId} onSelect={setFolderId} onSaved={refresh} />
+      <div className="flex flex-wrap gap-2">{[["",t("كل المشاريع","All projects")],["CLIENT",t("مشاريع العملاء · CLI","Client projects · CLI")],["INTERNAL",t("المشاريع الداخلية · PRJ","Internal projects · PRJ")]].map(([value,label]) => <Button key={value} variant={projectType === value ? "default" : "outline"} onClick={() => setProjectType(value)}>{label}</Button>)}</div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{metrics.map(([label, count]) => <div key={label} className="rounded-xl border border-border bg-card p-4"><p className="text-sm text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold tabular-nums">{loading ? "—" : count}</p></div>)}</div>
       <div className="flex flex-wrap gap-3"><input aria-label={t("بحث المشاريع", "Search projects")} placeholder={t("ابحث بالاسم أو الرمز…", "Search name or code…")} value={search} onChange={e => setSearch(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-border bg-card p-3" /><select aria-label={t("حالة المشروع", "Project status")} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="rounded-lg border border-border bg-card p-3"><option value="">{t("كل الحالات", "All statuses")}</option>{Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{language === "ar" ? label.ar : label.en}</option>)}</select></div>
       <section className="space-y-3">
-        <h2 className="text-section font-semibold text-foreground">{t("القائمة", "List")} · <span className="font-english tabular-nums">{items.length}</span></h2>
+        <h2 className="text-section font-semibold text-foreground">{t("القائمة", "List")} · <span className="font-english tabular-nums">{visible.length}</span></h2>
         {loading ? <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div> :
          items.length === 0 ? (
           <EmptyState
             icon={<FolderKanban className="h-10 w-10" strokeWidth={1.5} />}
             title={t("لا توجد مشاريع", "No projects")}
-            action={<Button onClick={() => navigate("/app/projects/new")}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("مشروع جديد", "New Project")}</Button>}
+            action={<Button onClick={() => navigate(`/app/projects/new${folderId ? `?folderId=${encodeURIComponent(folderId)}` : ""}`)}><Plus className="me-2 h-4 w-4" strokeWidth={1.75} />{t("مشروع جديد", "New Project")}</Button>}
           />
          ) :
         (<div className="ledger-table overflow-x-auto">

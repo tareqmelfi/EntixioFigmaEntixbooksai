@@ -107,6 +107,7 @@ const planFromApi = (plan: PaymentPlan | null | undefined): PlanRow[] =>
   }));
 
 const EMPTY_FORM = {
+  originProjectId: "",
   contactId: "",
   /**
    * PROJECT / DOCUMENT TITLE (CEO 2026-09-21 · «وين احط اسم المشروع؟»).
@@ -397,7 +398,7 @@ export function Quotes() {
   useEffect(() => {
     if (searchParams.get("new") === "1") {
       const prefillContact = searchParams.get("contactId") || "";
-      setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, contactId: prefillContact, originProjectId: searchParams.get("projectId") || "" });
       setLines([newLine()]);
       setTaxMode("all-exclusive");
       setCreateError(null);
@@ -525,7 +526,7 @@ export function Quotes() {
     setEditId(null);
     setSourceFiles([]);
     const prefillContact = searchParams.get("contactId") || "";
-    setForm(prefillContact ? { ...EMPTY_FORM, contactId: prefillContact } : EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, contactId: prefillContact, originProjectId: searchParams.get("projectId") || "" });
     setLines([newLine()]);
     setTaxMode("all-exclusive");
     setCreateError(null);
@@ -568,6 +569,7 @@ export function Quotes() {
         notes: form.notes || null,
         branchId: form.branchId ?? null,
         // Reference lives in its OWN column · terms are the per-document override (never packed together)
+        originProjectId: !editId ? form.originProjectId || undefined : undefined,
         reference: form.reference || null,
         termsConditions: form.termsConditions || null,
         templateId: form.templateId || null,

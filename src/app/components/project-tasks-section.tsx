@@ -63,6 +63,8 @@ export function ProjectTasksSection({
   onSummary?: (summary: ProjectTaskList["summary"] | null) => void;
 }) {
   const { t, language } = useLanguage();
+  const [contacts, setContacts] = useState<any[]>([]);
+  useEffect(() => {api.contacts.list().then(d=>setContacts(d.items)).catch(()=>{});}, [projectId]);
   const [data, setData] = useState<ProjectTaskList | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -146,7 +148,7 @@ export function ProjectTasksSection({
   const counts = useMemo(() => data?.summary.byHealth || { GREEN: 0, AMBER: 0, RED: 0 }, [data]);
 
   return (
-    <section className="space-y-3" data-testid="project-tasks">
+    <section id="project-tasks" className="space-y-3 scroll-mt-20" data-testid="project-tasks">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="min-w-0">
           <h2 className="text-section font-semibold text-foreground">
@@ -256,6 +258,7 @@ export function ProjectTasksSection({
                         />
                         <span className="min-w-0 truncate text-foreground" title={task.title}><bdi dir="auto">{task.title}</bdi></span>
                       </span>
+                      <select aria-label={t("المسؤول عن المهمة", "Task assignee")} className="mt-2 max-w-full rounded border border-border bg-background p-1 text-xs" value={task.assigneeContactId || ""} disabled={busy === `assignee-${task.id}`} onChange={e=>run(`assignee-${task.id}`,async()=>{await api.tasks.update(task.id,{assigneeContactId:e.target.value || null} as any);},t("حُدّث المسؤول","Assignee updated"),t("تعذر التحديث","Could not update"))}><option value="">{t("غير مسندة","Unassigned")}</option>{contacts.map(c=><option key={c.id} value={c.id}>{c.displayName}</option>)}</select>
                     </TableCell>
                     <TableCell>
                       <select
@@ -269,7 +272,7 @@ export function ProjectTasksSection({
                       </select>
                     </TableCell>
                     <TableCell className="font-english text-xs tabular-nums" dir="ltr">
-                      <span className={task.overdue ? "text-warning" : "text-muted-foreground"}>{task.dueDate?.slice(0, 10) || "—"}</span>
+                      <input type="date" aria-label={t("موعد المهمة", "Task deadline")} className="max-w-full rounded border border-border bg-background p-1" defaultValue={task.dueDate?.slice(0,10) || ""} key={task.dueDate || "empty"} disabled={busy === `date-${task.id}`} onBlur={e=>{const value=e.target.value;if(value !== (task.dueDate?.slice(0,10)||""))void run(`date-${task.id}`,async()=>{await api.tasks.update(task.id,{dueDate:value || null} as any);},t("حُدّث الموعد","Deadline updated"),t("تعذر التحديث","Could not update"));}} />
                     </TableCell>
                     <TableCell className="text-end font-english tabular-nums text-foreground" dir="ltr">{money(task.plannedCost)}</TableCell>
                     <TableCell
