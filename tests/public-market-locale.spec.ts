@@ -337,7 +337,7 @@ test('client navigation from canonical login to app applies account locale befor
 
   await page.goto('/us/en')
   await expectLocaleState(page, 'US', 'en')
-  await page.getByRole('navigation').getByRole('button', { name: 'Sign in' }).click()
+  await page.getByRole('navigation').getByRole('link', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.getByRole('heading', { name: 'Welcome back.' })).toBeVisible()
 

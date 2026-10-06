@@ -49,6 +49,13 @@ export function MarketLocaleChooser() {
     <main data-page="market-locale-chooser" className="min-h-screen bg-background px-5 py-14" dir="ltr">
       <div className="mx-auto max-w-4xl">
         <div className="flex justify-center"><EntixWordmark size={30} /></div>
+        <div className="mt-6 flex justify-center">
+          <Link to="/login" className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-foreground px-6 py-2 text-background font-semibold transition-colors hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <span lang="ar" dir="rtl">تسجيل الدخول</span>
+            <span aria-hidden="true">·</span>
+            <span lang="en">Sign in</span>
+          </Link>
+        </div>
         <p className="mt-10 text-center text-sm font-medium text-content-secondary">
           Taking you to your market… · جاري تحويلك لسوقك…
         </p>
