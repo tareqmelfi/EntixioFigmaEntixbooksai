@@ -10,7 +10,7 @@ import { Link, useNavigate, useSearchParams } from "react-router";
 import { EmptyState, InlineAlert, PageHeader, StatusBadge } from "../components/product";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../components/ui/table";
 import { Button } from "../components/ui/button";
-import { api, ApiError } from "../lib/api";
+import { api } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { ProjectIntakeWizard } from "../components/project-intake-wizard";
 
@@ -37,9 +37,12 @@ export function Projects() {
 
   const refresh = useCallback(async () => {
     setLoading(true); setError(null);
-    try { const [p, f] = await Promise.all([api.projects.list(), api.projectFolders.list()]); setItems(p.items); setFolders(f.items); }
-    catch (e: any) { setError(e instanceof ApiError ? e.message : t("فشل التحميل", "Failed to load")); }
-    finally { setLoading(false); }
+    const [projects, folders] = await Promise.allSettled([api.projects.list(), api.projectFolders.list()]);
+    if (projects.status === "fulfilled") setItems(projects.value.items);
+    else setError(t("تعذر تحميل المشاريع. حاول مرة أخرى.", "Could not load projects. Please try again."));
+    if (folders.status === "fulfilled") setFolders(folders.value.items);
+    else if (projects.status === "fulfilled") setError(t("تعذر تحميل المجلدات؛ ما زالت المشاريع متاحة. حاول تحديث الصفحة.", "Could not load folders; projects remain available. Please refresh to retry."));
+    setLoading(false);
   }, []);
   useEffect(() => { refresh(); }, [refresh]);
 

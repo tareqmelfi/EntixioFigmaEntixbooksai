@@ -39,3 +39,13 @@ test('guest accepts into a schedule-only space',async({page})=>{
  await expect(page.getByText('Review milestone',{exact:true})).toBeVisible()
  await expect(page.getByRole('link',{name:'Invoices',exact:true})).toHaveCount(0)
 })
+
+test('folder service failure preserves the project list',async({page})=>{
+ await prepareVisualApp(page,'en')
+ await page.route('**/api/project-folders',r=>r.fulfill({status:503,json:{error:'unavailable'}}))
+ await page.route('**/api/projects',r=>r.fulfill({json:{items:[{id:'available',code:'EN-PRJ-AVAILABLE',name:'Available project',status:'ACTIVE',percentComplete:35}]}}))
+ await page.goto('/app/projects')
+ await expect(page.getByRole('link',{name:'EN-PRJ-AVAILABLE',exact:true})).toBeVisible()
+ await expect(page.getByText('Could not load folders; projects remain available. Please refresh to retry.',{exact:true})).toBeVisible()
+ await expect(page.getByText('35%',{exact:true})).toBeVisible()
+})
