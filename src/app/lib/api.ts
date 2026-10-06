@@ -1200,6 +1200,8 @@ export const api = {
   },
 
   fixedAssets: {
+    setupComputerAccounts: () => request<{cost:Account;expense:Account;accumulated:Account}>('/api/fixed-assets/computer-accounts', {method:'POST'}),
+    purchaseOptions: (q='') => request<{items:any[]}>(`/api/fixed-assets/purchase-options?q=${encodeURIComponent(q)}`),
     intake: () => request<{ items: AssetIntakeCandidate[] }>('/api/fixed-assets/intake'),
     registerIntake: (data: any) => request<any>('/api/fixed-assets/intake/register', { method: 'POST', body: data }),
     dismissIntake: (data: { sourceKey: string; fingerprint: string }) => request<{ok:boolean}>('/api/fixed-assets/intake/dismiss', { method: 'POST', body: data }),

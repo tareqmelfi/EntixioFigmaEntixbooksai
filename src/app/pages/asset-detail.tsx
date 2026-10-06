@@ -1,7 +1,9 @@
+import { useOrgRegion } from '../lib/use-org-region';
+import { AssetPurchaseLink } from '../components/asset-purchase-link';
 import { displayLocale } from "../lib/number-display";
 /**
  * Fixed Asset full page — the app-wide standard (no slide-overs):
- *   /app/assets/new  → register form (auto-generated editable code FA-0001…)
+ *   /app/assets/new  → register form (auto-generated editable code EN-00001…)
  *   /app/assets/:id  → asset detail (account links, purchase link,
  *                      dispose/restore, edit, delete)
  *
@@ -13,7 +15,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
   Archive, ArrowRight, Building2, Edit2, ExternalLink, Loader2, RotateCcw,
-  Save, Sparkles, Trash2,
+  Save, Sparkles, Trash2, Laptop,
 } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import { InlineAlert, PageHeader, StatusBadge } from "../components/product";
@@ -32,11 +34,12 @@ const EMPTY_FORM = {
   acquisitionDate: new Date().toISOString().slice(0, 10),
   acquisitionCost: "", salvageValue: "0", usefulLifeYears: "5",
   accountId: "", depreciationExpenseAccountId: "", accumulatedDepreciationAccountId: "",
-  purchaseBillId: "", purchaseExpenseId: "", notes: "",
+  purchaseBillId: "", purchaseExpenseId: "", notes: "", imageData:"", serialNumber:"", inServiceDate:"",
 };
 
 export function AssetDetail() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { isUS, currency } = useOrgRegion();
   const { id } = useParams();
   const [params] = useSearchParams();
   const intakeKey = params.get("intake");
@@ -49,6 +52,8 @@ export function AssetDetail() {
   const [asset, setAsset] = useState<any | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(!isNew);
+  const [setupBusy, setSetupBusy] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(isNew);
@@ -57,7 +62,7 @@ export function AssetDetail() {
   const [disposeBusy, setDisposeBusy] = useState(false);
 
   useEffect(() => {
-    api.accounts.list().then((d) => setAccounts(d.items)).catch(() => {});
+    api.accounts.list().then((d) => setAccounts(d.items)).catch(() => setError(t("تعذر تحميل الحسابات", "Could not load accounts")));
   }, []);
 
   const applyAsset = useCallback((a: any) => {
@@ -67,7 +72,7 @@ export function AssetDetail() {
       acquisitionDate: (a.acquisitionDate || "").slice(0, 10) || new Date().toISOString().slice(0, 10),
       acquisitionCost: String(a.acquisitionCost ?? ""), salvageValue: String(a.salvageValue ?? "0"), usefulLifeYears: String(a.usefulLifeYears ?? "5"),
       accountId: a.accountId || "", depreciationExpenseAccountId: a.depreciationExpenseAccountId || "", accumulatedDepreciationAccountId: a.accumulatedDepreciationAccountId || "",
-      purchaseBillId: a.purchaseBillId || "", purchaseExpenseId: a.purchaseExpenseId || "", notes: a.notes || "",
+      purchaseBillId: a.purchaseBillId || "", purchaseExpenseId: a.purchaseExpenseId || "", notes: a.notes || "", imageData:a.imageData || "", serialNumber:a.serialNumber || "", inServiceDate:(a.inServiceDate || "").slice(0,10),
     });
   }, []);
 
@@ -101,12 +106,24 @@ export function AssetDetail() {
   }, [id, isNew, intakeKey, applyAsset, t]);
   useEffect(() => { load(); }, [load]);
 
-  const assetAccounts = accounts.filter(a => a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: secondaryName(a) || undefined }));
-  const expenseAccounts = accounts.filter(a => a.type === "EXPENSE").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a)}`, sublabel: secondaryName(a) || undefined }));
+  const leaf = (a:Account) => a.isActive && a.allowPosting && !accounts.some(child=>child.parentId===a.id);
+  const option = (a:Account) => ({id:a.id,label:`${a.code} · ${displayName(a,language)}`,sublabel:secondaryName(a,language) || undefined,searchTerms:`${a.name} ${a.nameAr || ""}`.normalize("NFKD").replace(/\p{M}/gu, "")});
+  const assetAccounts = accounts.filter(a=>leaf(a) && a.type==='ASSET' && /fixed|intangible/.test(a.subtype || '') && !/contra|accumulated/.test(a.subtype || '')).map(option);
+  const expenseAccounts = accounts.filter(a=>leaf(a) && a.type==='EXPENSE' && /depreciation/.test(a.subtype || '')).map(option);
+  const accumulatedAccounts = accounts.filter(a=>leaf(a) && a.type==='ASSET' && ['contra-fixed','accumulated-depreciation'].includes(a.subtype || '')).map(option);
+  const setupAccounts = async () => {
+    setSetupBusy(true);setError(null);
+    try {
+      const a=await api.fixedAssets.setupComputerAccounts();
+      setAccounts(previous=>[...previous.filter(p=>![a.cost.id,a.expense.id,a.accumulated.id].includes(p.id)),a.cost,a.expense,a.accumulated]);
+      setForm(f=>({...f,accountId:candidate ? f.accountId : a.cost.id,depreciationExpenseAccountId:a.expense.id,accumulatedDepreciationAccountId:a.accumulated.id}));setSetupOpen(false);
+    } catch(e:any){setError(e.message || t('تعذر تجهيز الحسابات','Could not set up accounts'))}finally{setSetupBusy(false)}
+  };
+  const photo = <div className="h-24 w-24 shrink-0 rounded-lg border border-border bg-card flex items-center justify-center overflow-hidden">{form.imageData ? <img src={form.imageData} alt={form.name} className="h-full w-full object-contain" /> : <Laptop className="h-10 w-10 text-muted-foreground" aria-label={t('صورة جهاز افتراضية','Device placeholder')} />}</div>;
   const accountLabel = (accountId?: string | null) => {
     if (!accountId) return "—";
     const a = accounts.find(x => x.id === accountId);
-    return a ? `${a.code} · ${a.name}` : "—";
+    return a ? `${a.code} · ${displayName(a,language)}` : "—";
   };
   const formatMoney = (value: any) => Number(value || 0).toLocaleString(displayLocale(undefined), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -127,12 +144,12 @@ export function AssetDetail() {
         accumulatedDepreciationAccountId: form.accumulatedDepreciationAccountId || null,
         purchaseBillId: form.purchaseBillId || null,
         purchaseExpenseId: form.purchaseExpenseId || null,
-        notes: form.notes || null,
+        notes: form.notes || null, imageData:form.imageData || null,serialNumber:form.serialNumber || null,inServiceDate:form.inServiceDate || null,
       };
       const saved = candidate ? await api.fixedAssets.registerIntake({...payload, sourceKey:candidate.sourceKey, fingerprint:candidate.fingerprint}) : isNew ? await api.fixedAssets.create(payload) : await api.fixedAssets.update(id!, payload);
       push("success", isNew ? t("تم تسجيل الأصل", "Asset registered") : t("تم تحديث الأصل", "Asset updated"));
       if (isNew) navigate("/app/assets");
-      else { applyAsset(saved); setEditMode(false); }
+      else { applyAsset(saved); setEditMode(false); await load(); }
     } catch (e: any) {
       setError(e instanceof ApiError ? (e.message === "code_exists" ? t("الرمز موجود", "Code already exists") : e.message) : t("فشل الحفظ", "Failed to save"));
     } finally { setBusy(false); }
@@ -181,12 +198,18 @@ export function AssetDetail() {
         <Card className="border-border">
           <CardContent className="p-5 space-y-4">
             <div className="text-sm text-foreground" style={{ fontWeight: 700 }}>{t("بيانات الأصل", "Asset details")}</div>
+            <div className="flex flex-wrap items-center gap-4">{photo}<div className="space-y-2 flex-1 min-w-0">
+              <Label htmlFor="asset-photo" className="inline-flex cursor-pointer rounded-md border border-border px-3 py-2">{t('اختيار صورة الجهاز','Choose device photo')}</Label>
+              <Input id="asset-photo" className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>512000 || !['image/png','image/jpeg','image/webp'].includes(file.type)){setError(t('اختر صورة PNG أو JPEG أو WebP أصغر من 500 كيلوبايت','Choose a PNG, JPEG or WebP photo under 500 KB'));return}const reader=new FileReader();reader.onload=()=>setForm(f=>({...f,imageData:String(reader.result)}));reader.onerror=()=>setError(t('تعذر قراءة الصورة','Could not read photo'));reader.readAsDataURL(file)}} />
+              {form.imageData && <Button type="button" variant="ghost" onClick={()=>setForm(f=>({...f,imageData:''}))}>{t('إزالة الصورة','Remove photo')}</Button>}
+              <p className="text-xs text-muted-foreground">PNG · JPEG · WebP · 500 KB</p>
+            </div></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>{t("الرمز", "Code")} *</Label>
                 <div className="flex gap-1.5">
-                  <Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="FA-0001" dir="ltr" className="font-english" />
-                  {isNew && (
+                  <Input required value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="EN-00001" dir="ltr" className="font-english" />
+                  {(
                     <button
                       type="button"
                       onClick={async () => { try { const { code } = await api.fixedAssets.nextCode(); setForm((f) => ({ ...f, code })); } catch { /* keep manual */ } }}
@@ -205,8 +228,12 @@ export function AssetDetail() {
               <div className="space-y-2"><Label>{t("العمر الإنتاجي (سنوات)", "Useful life (years)")} *</Label><Input aria-label={t("العمر الإنتاجي (سنوات)", "Useful life (years)")} type="number" min="1" max="200" required value={form.usefulLifeYears} onChange={(e) => setForm({ ...form, usefulLifeYears: e.target.value })} dir="ltr" className="font-english" /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label htmlFor="asset-cost">{t("التكلفة", "Cost")} *</Label><Input id="asset-cost" type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
+              <div className="space-y-2"><Label htmlFor="asset-cost">{t("التكلفة", "Cost")} {currency && `(${currency})`} *</Label><Input id="asset-cost" type="number" step="0.01" min="0" required value={form.acquisitionCost} onChange={(e) => setForm({ ...form, acquisitionCost: e.target.value })} dir="ltr" className="font-english" /></div>
               <div className="space-y-2"><Label>{t("القيمة المتبقية", "Salvage value")}</Label><Input type="number" step="0.01" min="0" value={form.salvageValue} onChange={(e) => setForm({ ...form, salvageValue: e.target.value })} dir="ltr" className="font-english" /></div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2"><Label htmlFor="asset-serial">{t('الرقم التسلسلي للجهاز','Device serial number')}</Label><Input id="asset-serial" value={form.serialNumber} onChange={e=>setForm({...form,serialNumber:e.target.value})} dir="ltr" /></div>
+              <div className="space-y-2"><Label htmlFor="asset-service-date">{t('تاريخ بدء الاستخدام','Placed in service')}</Label><DateInput id="asset-service-date" value={form.inServiceDate} onChange={value=>setForm({...form,inServiceDate:value})} /></div>
             </div>
             <div className="space-y-2"><Label>{t("ملاحظات", "Notes")}</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("اختياري", "Optional")} /></div>
           </CardContent>
@@ -230,8 +257,15 @@ export function AssetDetail() {
             </div>
             <div className="space-y-2">
               <Label>{t("حساب مجمع الإهلاك", "Accumulated depreciation account")}</Label>
-              <SearchableCombobox value={form.accumulatedDepreciationAccountId} onChange={(accumulatedDepreciationAccountId) => setForm({ ...form, accumulatedDepreciationAccountId })} items={assetAccounts} placeholder={t("اختر حساب مجمع الإهلاك...", "Choose accumulated depreciation account...")} />
+              <SearchableCombobox value={form.accumulatedDepreciationAccountId} onChange={(accumulatedDepreciationAccountId) => setForm({ ...form, accumulatedDepreciationAccountId })} items={accumulatedAccounts} placeholder={t("اختر حساب مجمع الإهلاك...", "Choose accumulated depreciation account...")} />
             </div>
+            <Button type="button" variant="outline" onClick={()=>setSetupOpen(!setupOpen)}>{t('تجهيز حسابات أجهزة الكمبيوتر','Set up computer equipment accounts')}</Button>
+            {setupOpen && <div className="rounded-lg border border-border p-3 space-y-3 text-sm">
+              <p>{t('سيُنشأ أو يُعاد استخدام ثلاثة حسابات: أجهزة الكمبيوتر، مصروف إهلاك أجهزة الكمبيوتر، ومجمع إهلاك أجهزة الكمبيوتر. لا ينشئ هذا أي قيد مالي.','Create or reuse three posting accounts: Computer Equipment, Depreciation — Computer Equipment, and Accumulated Depreciation — Computer Equipment. This creates no journal entry.')}</p>
+              <Button type="button" disabled={setupBusy} onClick={setupAccounts}>{setupBusy ? '…' : t('تجهيز الحسابات واختيارها','Set up and select accounts')}</Button>
+            </div>}
+            <p className="text-xs text-muted-foreground leading-5">{t('عند إثبات الإهلاك: مدين مصروف الإهلاك، ودائن مجمع الإهلاك. الحسابات هنا للإهلاك الدفتري.','Depreciation entry: debit depreciation expense, credit accumulated depreciation. These links are for book depreciation.')} {isUS && t('MACRS وSection 179 وخيارات الضريبة الأمريكية تُراجع بشكل منفصل حسب سياسة الشركة.','US MACRS, Section 179 and tax elections require separate review under company policy.')}</p>
+            {!candidate && <AssetPurchaseLink billId={form.purchaseBillId} expenseId={form.purchaseExpenseId} onChange={(purchaseBillId,purchaseExpenseId)=>setForm(f=>({...f,purchaseBillId,purchaseExpenseId}))} />}
           </CardContent>
         </Card>
       </div>
@@ -247,11 +281,12 @@ export function AssetDetail() {
 
   const detailView = asset && (
     <div className="space-y-5">
+      <div className="flex items-center gap-4">{photo}<div className="space-y-1 text-sm"><p>{t('الرقم التسلسلي','Serial number')}: <bdi>{asset.serialNumber || '—'}</bdi></p><p>{t('بدء الاستخدام','Placed in service')}: {asset.inServiceDate?.slice(0,10) || '—'}</p></div></div>
       {asset.sourceJournal && <p className="rounded-lg border border-border p-3 text-sm">{t("القيد المصدر", "Source journal")}: <span dir="ltr">{asset.sourceJournal.entryNumber}</span> · {asset.sourceJournal.isPosted ? t("مرحّل", "Posted") : t("يحتاج مراجعة", "Needs review")}</p>}
       {(asset.purchaseBillId || asset.purchaseExpenseId) && (
         <button
           type="button"
-          onClick={() => navigate(asset.purchaseBillId ? `/app/purchases/bills` : `/app/expenses`)}
+          onClick={() => navigate(asset.purchaseBillId ? `/app/purchases/bills/${asset.purchaseBillId}` : `/app/expenses/${asset.purchaseExpenseId}`)}
           className="flex w-full items-center justify-between rounded-lg border border-primary/30 bg-info-subtle/50 px-3 py-2 text-sm text-primary hover:bg-info-subtle"
         >
           <span>{asset.purchaseBillId ? t("مرتبط بفاتورة مشتريات · عرض", "Linked to a purchase bill · view") : t("مرتبط بمصروف · عرض", "Linked to an expense · view")}</span>

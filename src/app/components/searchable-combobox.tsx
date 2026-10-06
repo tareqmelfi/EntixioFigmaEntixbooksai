@@ -25,6 +25,7 @@ import { BidiText, NumericText } from "./bidi-text";
 export interface ComboboxItem {
   id: string;
   label: string;
+  searchTerms?: string; // optional search aliases; never shown as labels
   sublabel?: string; // e.g. email · displayed below label in muted text
 }
 
@@ -92,7 +93,8 @@ export function SearchableCombobox({
     return items.filter(
       (i) =>
         i.label.toLowerCase().includes(q) ||
-        (i.sublabel || "").toLowerCase().includes(q),
+        (i.sublabel || "").toLowerCase().includes(q) ||
+        (i.searchTerms || "").toLowerCase().includes(q),
     );
   }, [items, query]);
 

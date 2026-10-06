@@ -55,10 +55,11 @@ export function FixedAssets() {
 
       <MetricStrip className="xl:grid-cols-3">
         <Metric label={t("إجمالي التكلفة", "Total Cost")} value={<LedgerFigure value={stats.totalCost} />} />
-        <Metric tone="warning" label={t("الإهلاك المتراكم", "Accumulated Depreciation")} value={<LedgerFigure value={stats.totalDepreciation} />} />
-        <Metric tone="success" label={t("صافي القيمة الدفترية", "Net Book Value")} value={<LedgerFigure value={stats.netBookValue} />} />
+        <Metric tone="warning" label={t("إهلاك تقديري غير مرحّل", "Estimated depreciation · unposted")} value={<LedgerFigure value={stats.totalDepreciation} />} />
+        <Metric tone="success" label={t("القيمة المتبقية التقديرية", "Estimated remaining value")} value={<LedgerFigure value={stats.netBookValue} />} />
       </MetricStrip>
 
+      <p className="text-xs text-muted-foreground">{t("التقدير بالقسط الثابت من تاريخ بدء الاستخدام المحدد؛ لا يمثل رصيد الأستاذ أو الإهلاك الضريبي. الأصول دون تاريخ بدء استخدام لا يشملها تقدير الإهلاك.", "Straight-line estimate from the specified in-service date; this is not the ledger balance or tax depreciation. Assets without an in-service date are excluded from the depreciation estimate.")}</p>
       {error && <InlineAlert tone="critical">{error}</InlineAlert>}
 
       <section aria-label={t("أصول تحتاج تسجيلًا", "Assets awaiting registration")} className="rounded-lg border border-border p-4 space-y-3">
