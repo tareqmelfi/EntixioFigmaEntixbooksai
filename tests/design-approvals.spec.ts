@@ -19,7 +19,7 @@ async function prepare(page:Page,lang:'ar'|'en'='ar') {
   });return{rows,setFail:()=>{fail=true;}};
 }
 test('gallery opens approval forms; reuse, edit and reload preserve separate customer copy',async({page})=>{
-  const f=await prepare(page);await page.goto('/app/templates');await page.getByRole('button',{name:/اعتماد المخططات — قوالب/}).click();
+  const f=await prepare(page);await page.goto('/app/templates');await page.getByRole('button',{name:/اعتماد التصاميم 2D \/ 3D — قوالب/}).click();
   await page.getByRole('button',{name:'استخدام لعميل',exact:true}).click();await expect(page).toHaveURL(/design-approvals\/copy/);
   await page.getByLabel('اسم العميل',{exact:true}).fill('عميل اختبار');await page.getByLabel('اسم المشروع وموقعه',{exact:true}).fill('مشروع تجريبي');
   await expect(page.getByRole('button',{name:'تنزيل PDF للإرسال',exact:true})).toBeDisabled();
@@ -43,7 +43,7 @@ test('branded preview fits every sheet, embeds drawing, downloads a non-empty PD
   const download=page.waitForEvent('download');await page.getByRole('button',{name:'تنزيل PDF للإرسال',exact:true}).click();const file=await download;expect(file.suggestedFilename()).toMatch(/\.pdf$/);await file.saveAs('test-results/design-approval.pdf');await expect(page.getByRole('alert')).toHaveCount(0);
 });
 test('English controls and creation stay usable',async({page})=>{
-  await prepare(page,'en');await page.goto('/app/templates/design-approvals/new');await expect(page.getByRole('heading',{name:'2D design approvals',exact:true})).toBeVisible();await page.getByLabel('Saved name').fill('EDG 2D template');await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page).toHaveURL(/design-approvals\/created-doc$/);await expect(page.getByLabel('Saved name')).toHaveValue('EDG 2D template');
+  await prepare(page,'en');await page.goto('/app/templates/design-approvals/new');await expect(page.getByRole('heading',{name:'Design approvals',exact:true})).toBeVisible();await page.getByLabel('Saved name').fill('EDG 2D template');await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page).toHaveURL(/design-approvals\/created-doc$/);await expect(page.getByLabel('Saved name')).toHaveValue('EDG 2D template');
 });
 
 test('long introduction paginates and uploaded drawings survive reopening',async({page})=>{
@@ -55,4 +55,38 @@ test('long introduction paginates and uploaded drawings survive reopening',async
   const image=await preview.locator('.approval-cover').screenshot();
   await page.getByLabel('صورة المخطط 1',{exact:true}).setInputFiles({name:'synthetic-drawing.png',mimeType:'image/png',buffer:image});
   await expect(preview.locator('.drawing-image')).toHaveCount(1);await page.getByRole('button',{name:'حفظ',exact:true}).click();await expect(page.getByRole('status')).toHaveText('تم الحفظ');await page.reload();await expect(page.getByTestId('approval-document').locator('.drawing-image')).toHaveCount(1);expect(f.rows[0].content.drawings[0].image).toMatch(/^data:image\/png;base64,/);
+});
+
+
+test('3D template saves, reloads and exports with matching cover and wording',async({page})=>{
+  test.setTimeout(120000);const f=await prepare(page);await page.goto('/app/templates/design-approvals');
+  await page.getByRole('button',{name:'إضافة قالب 3D',exact:true}).click();
+  await expect(page.getByLabel('نوع التصميم',{exact:true})).toHaveValue('3D');
+  await expect(page.getByTestId('approval-document').locator('.approval-cover-label')).toHaveText('DESIGN APPROVAL · 3D');
+  await expect(page.getByLabel('المقدمة',{exact:true})).not.toHaveValue(/ثنائية/);
+  await page.getByLabel('اسم الحفظ',{exact:true}).fill('EDG 3D');await page.getByRole('button',{name:'حفظ',exact:true}).click();
+  await expect(page).toHaveURL(/created-doc$/);await page.reload();
+  await expect(page.getByLabel('نوع التصميم',{exact:true})).toHaveValue('3D');
+  expect(f.rows[0].content).toEqual(blankApproval());expect(f.rows[1].content.designType).toBe('3D');
+  const preview=page.getByTestId('approval-document');await page.evaluate(()=>document.fonts.ready);
+  for(const d of await preview.locator('.approval-sheet').evaluateAll(ns=>ns.map(n=>({s:n.scrollHeight,h:n.clientHeight}))))expect(d.s).toBeLessThanOrEqual(d.h+1);
+  await preview.locator('.approval-cover').screenshot({path:'test-results/design-approval-3d-cover.png'});
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'تنزيل PDF للإرسال',exact:true}).click();await(await download).saveAs('test-results/design-approval-3d.pdf');
+  await page.setViewportSize({width:390,height:844});await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('duplicate as template clears client material and edits never mutate the original',async({page})=>{
+  const f=await prepare(page);Object.assign(f.rows[0].content,{client:'Private client',project:'Private project',number:'DOC-1',reference:'QUOTE-1'});
+  const original=structuredClone(f.rows[0]);await page.goto('/app/templates/design-approvals/template');
+  await page.getByRole('button',{name:'نسخ كقالب جديد',exact:true}).click();await expect(page).toHaveURL(/new\?copy=template/);
+  await expect(page.getByLabel('اسم العميل',{exact:true})).toHaveValue('');await expect(page.getByLabel('رقم المستند',{exact:true})).toHaveValue('');
+  await page.getByLabel('نوع التصميم',{exact:true}).selectOption('3D');
+  await expect(page.getByLabel('المقدمة',{exact:true})).toHaveValue(original.content.introduction);
+  await page.getByLabel('عنوان المستند',{exact:true}).fill('تصميم مستقل');await page.getByRole('button',{name:'حفظ',exact:true}).click();await expect(page).toHaveURL(/created-doc$/);
+  expect(f.rows[0]).toEqual(original);expect(f.rows[1].isTemplate).toBe(true);expect(f.rows[1].identityTemplateId).toBe('brand');
+});
+
+test('existing 3D documents display the correct cover without rewriting saved content',async({page})=>{
+  const f=await prepare(page);f.rows[0].content.title='اعتماد التصميم ثلاثي الأبعاد 3D';const before=structuredClone(f.rows[0]);
+  await page.goto('/app/templates/design-approvals/template');await expect(page.getByTestId('approval-document').locator('.approval-cover-label')).toHaveText('DESIGN APPROVAL · 3D');expect(f.rows[0]).toEqual(before);
 });

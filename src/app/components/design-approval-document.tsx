@@ -1,11 +1,11 @@
-import type { ApprovalRecord } from '../lib/design-approval';
+import { approvalType,type ApprovalRecord } from '../lib/design-approval';
 
 const safeImage = (value:string) => /^(data:image\/(png|jpeg|webp);base64,|https:\/\/)/.test(value || '') ? value : '';
 const color = (value:string, fallback:string) => /^#[a-f\d]{6}$/i.test(value || '') ? value : fallback;
 
 /** A non-financial customer document, rendered identically for preview and PDF. */
 export function DesignApprovalDocument({record}:{record:ApprovalRecord}) {
-  const c=record.content,b=record.identity;
+  const c=record.content,b=record.identity,type=approvalType(c),noun=type==='3D'?'التصاميم':'المخططات';
   const pages:string[][]=[[]];
   for(const term of c.terms) {
     // Each bounded text block remains intact; long forms gain pages, never clip text.
@@ -35,17 +35,17 @@ export function DesignApprovalDocument({record}:{record:ApprovalRecord}) {
     <section className="approval-sheet approval-cover" style={{backgroundColor:color(b.coverColor,'#1B2A41')}}>
       {safeImage(b.coverImage)&&<img className="approval-cover-image" src={safeImage(b.coverImage)} alt=""/>}
       <div>{safeImage(b.logoLight)?<img className="approval-light-logo" src={safeImage(b.logoLight)} alt={b.company}/>:<strong>{b.company}</strong>}</div>
-      <div><div className="approval-cover-label" dir="ltr">DESIGN APPROVAL · 2D</div><h1>{c.title}</h1><p className="approval-cover-project">{c.project || 'اسم المشروع'}<br/>{c.client || 'اسم العميل'}</p></div>
+      <div><div className="approval-cover-label" dir="ltr">DESIGN APPROVAL · {type}</div><h1>{c.title}</h1><p className="approval-cover-project">{c.project || 'اسم المشروع'}<br/>{c.client || 'اسم العميل'}</p></div>
       <div className="approval-cover-facts"><div><small>مرجع المستند</small><strong className="mono" dir="ltr">{c.number || 'يحدد عند الاستخدام'}</strong></div><div><small>الإصدار · التاريخ</small><strong dir="ltr">{c.revision} · {c.date}</strong></div><div><small>الجهة المصدرة</small>{b.company}</div><div><small>الحالة</small>{record.isTemplate?'قالب قابل لإعادة الاستخدام':'بانتظار توقيع العميل'}</div></div>
     </section>
     {pages.map((terms,i)=><section className="approval-sheet" key={`terms-${i}`}>
       {safeImage(b.watermark)&&<img className="approval-watermark" src={safeImage(b.watermark)} alt=""/>}{header()}
-      <h2>{i?'تتمة إقرار الاعتماد':'إقرار اعتماد المخططات'}</h2>
+      <h2>{i?'تتمة إقرار الاعتماد':`إقرار اعتماد ${noun}`}</h2>
       {i===0&&<><div className="approval-meta"><div><small>العميل</small><strong>{c.client||'________________'}</strong></div><div><small>المشروع</small><strong>{c.project||'________________'}</strong></div><div><small>مرجع العرض</small><strong dir="ltr">{c.reference||'—'}</strong></div><div><small>التاريخ · الإصدار</small><strong dir="ltr">{c.date} · {c.revision}</strong></div></div><p className="approval-intro">{c.introduction}</p></>}
       <ol className="approval-terms">{terms.map((term,j)=><li key={j}>{term}</li>)}</ol>{footer()}
     </section>)}
-    {registerPages.map((drawings,i)=><section className="approval-sheet" key={`register-${i}`}>{header()}<h2>سجل المخططات المرفقة</h2><table><thead><tr><th>المخطط</th><th>الوصف</th><th>الإصدار</th></tr></thead><tbody>{drawings.map((d,j)=><tr key={j}><td dir="ltr">{d.code}</td><td>{d.title}</td><td dir="ltr">{d.revision}</td></tr>)}</tbody></table>
-      {i===registerPages.length-1&&<><p>يشمل الاعتماد المخططات المدرجة وإصداراتها فقط. يرجى مراجعة جميع الصفحات قبل التوقيع.</p><div className="approval-signatures"><article><h3>اعتماد العميل</h3><div>{c.client||'الاسم: __________________'}</div><div className="signature-space"/><small>التوقيع · التاريخ: __________________</small></article><article><h3>ممثل الشركة</h3><div>{c.companySigner||'الاسم: __________________'}</div><small>{c.companyRole}</small><div className="signature-space"/><small>التوقيع · التاريخ: __________________</small></article></div></>}{footer()}</section>)}
-    {c.drawings.map((d,i)=><section className="approval-sheet approval-drawing" data-pdf-landscape="true" key={`drawing-${i}`}>{header()}<div className="flex justify-between"><h3>{d.title}</h3><span dir="ltr">{d.code} · {d.revision}</span></div>{safeImage(d.image)?<img className="drawing-image" src={d.image} alt={d.title}/>:<div className="drawing-placeholder">مكان المخطط — يرفق عند إعداد نسخة العميل</div>}<div className="drawing-sign"><span>توقيع العميل: __________________</span><span>التاريخ: __________________</span></div>{footer()}</section>)}
+    {registerPages.map((drawings,i)=><section className="approval-sheet" key={`register-${i}`}>{header()}<h2>سجل {noun} المرفقة</h2><table><thead><tr><th>{type==='3D'?'التصميم':'المخطط'}</th><th>الوصف</th><th>الإصدار</th></tr></thead><tbody>{drawings.map((d,j)=><tr key={j}><td dir="ltr">{d.code}</td><td>{d.title}</td><td dir="ltr">{d.revision}</td></tr>)}</tbody></table>
+      {i===registerPages.length-1&&<><p>يشمل الاعتماد {noun} المدرجة وإصداراتها فقط. يرجى مراجعة جميع الصفحات قبل التوقيع.</p><div className="approval-signatures"><article><h3>اعتماد العميل</h3><div>{c.client||'الاسم: __________________'}</div><div className="signature-space"/><small>التوقيع · التاريخ: __________________</small></article><article><h3>ممثل الشركة</h3><div>{c.companySigner||'الاسم: __________________'}</div><small>{c.companyRole}</small><div className="signature-space"/><small>التوقيع · التاريخ: __________________</small></article></div></>}{footer()}</section>)}
+    {c.drawings.map((d,i)=><section className="approval-sheet approval-drawing" data-pdf-landscape="true" key={`drawing-${i}`}>{header()}<div className="flex justify-between"><h3>{d.title}</h3><span dir="ltr">{d.code} · {d.revision}</span></div>{safeImage(d.image)?<img className="drawing-image" src={d.image} alt={d.title}/>:<div className="drawing-placeholder">مكان {type==='3D'?'التصميم':'المخطط'} — يرفق عند إعداد نسخة العميل</div>}<div className="drawing-sign"><span>توقيع العميل: __________________</span><span>التاريخ: __________________</span></div>{footer()}</section>)}
   </div>;
 }
