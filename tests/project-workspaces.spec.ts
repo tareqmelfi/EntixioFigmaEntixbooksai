@@ -12,6 +12,7 @@ for(const language of ['en','ar'] as const) {
   await page.route('**/api/projects/p1/people',r=>r.fulfill({json:r.request().method()==='POST'?{invitationPath:'/project-invite/example'}:{items:[]}}))
   await page.goto('/app/projects')
   await page.getByRole('button',{name:'Internal 0',exact:true}).click()
+  await page.reload()
   await expect(page.getByRole('link',{name:'EN-PRJ-BOOK',exact:true})).toBeVisible()
   await expect(page.getByRole('link',{name:'EN-CLI-EDG',exact:true})).toHaveCount(0)
   await page.getByRole('link',{name:'EN-PRJ-BOOK',exact:true}).click()
