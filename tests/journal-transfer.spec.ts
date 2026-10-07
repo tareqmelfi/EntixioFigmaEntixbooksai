@@ -28,6 +28,13 @@ test('Excel and CSV export all 503 entries, preserve amounts and honor date scop
   const csvEvent=page.waitForEvent('download');await page.getByRole('button',{name:'Export CSV',exact:true}).click();const csv=await csvEvent;
   const fs=await import('node:fs/promises');const text=await fs.readFile((await csv.path())!,'utf8');expect(text).toContain("'=Dangerous");expect(text).not.toContain('JV-502');expect(text.split('\r\n')).toHaveLength(3);
 });
+test('full journal print preserves all sections beyond the loaded list',async({page})=>{
+  await setup(page);await page.getByRole('button',{name:'Print / PDF',exact:true}).click();
+  await expect(page.getByTestId('report-output-pages')).toHaveAttribute('data-ready','true',{timeout:15000});
+  const output=page.getByTestId('report-output-pages');
+  await expect(output.locator('tbody tr')).toHaveCount(1006);
+  await expect(output).toContainText('JV-502');
+});
 test('selected journal prints only itself and can return to list',async({page})=>{
   await setup(page);await page.goto('/app/journal-entries?entryId=entry-2');
   await page.getByRole('button',{name:'Print / export this entry',exact:true}).click();
