@@ -29,8 +29,11 @@ test('Excel and CSV export all 503 entries, preserve amounts and honor date scop
   const fs=await import('node:fs/promises');const text=await fs.readFile((await csv.path())!,'utf8');expect(text).toContain("'=Dangerous");expect(text).not.toContain('JV-502');expect(text.split('\r\n')).toHaveLength(3);
 });
 test('full journal print preserves all sections beyond the loaded list',async({page})=>{
+  // This checks complete output across API pages. Responsiveness is covered by
+  // the dedicated heartbeat test; shared CI workers are not a timing benchmark.
+  test.setTimeout(90000);
   await setup(page);await page.getByRole('button',{name:'Print / PDF',exact:true}).click();
-  await expect(page.getByTestId('report-output-pages')).toHaveAttribute('data-ready','true',{timeout:15000});
+  await expect(page.getByTestId('report-output-pages')).toHaveAttribute('data-ready','true',{timeout:60000});
   const output=page.getByTestId('report-output-pages');
   await expect(output.locator('tbody tr')).toHaveCount(1006);
   await expect(output).toContainText('JV-502');
