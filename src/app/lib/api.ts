@@ -2608,6 +2608,8 @@ export interface Contact {
 }
 
 export interface JournalEntryLine {
+  costCenterId?: string | null
+  projectId?: string | null
   id?: string
   accountId: string
   accountCode?: string
@@ -2659,6 +2661,7 @@ export interface JournalEntryRow {
 }
 
 export interface JournalEntryInput {
+  importKey?: string
   /** Branch dimension (B1) · omitted → member default · null → none */
   branchId?: string | null
   /** Project / job-costing dimension (C2) */
@@ -2668,6 +2671,8 @@ export interface JournalEntryInput {
   reference?: string | null
   postOnSave?: boolean
   lines: Array<{
+    costCenterId?: string | null
+    projectId?: string | null
     accountId: string
     debit?: number
     credit?: number

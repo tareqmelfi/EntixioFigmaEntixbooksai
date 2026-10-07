@@ -18,6 +18,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes, renderChap
   const pages = useRef<HTMLDivElement>(null);
   const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const first = reports[0];
   const [appearance, setAppearance] = useState<ReportPrintSettings>(() => ({
@@ -67,6 +68,7 @@ export function ReportBookOutput({ reports, title, preparedBy, notes, renderChap
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     setCount(0); setError('');
     void (async () => {
       if (!source.current) return;
@@ -83,7 +85,8 @@ export function ReportBookOutput({ reports, title, preparedBy, notes, renderChap
         };
         copyCover('[data-cover-kind="front"]');
         const articles = source.current.querySelectorAll<HTMLElement>('.entix-report-paper');
-        const buckets = Array.from(articles, (original, index) => {
+        const buckets: HTMLDivElement[] = [];
+        for (const [index, original] of Array.from(articles).entries()) {
           if (index > 0) copyCover(`[data-divider-index="${index - 1}"] > article`);
           const article = original.cloneNode(true) as HTMLElement;
           article.classList.add('report-book-page');
@@ -91,9 +94,10 @@ export function ReportBookOutput({ reports, title, preparedBy, notes, renderChap
           if (footerTitle) footerTitle.textContent = `${title} · ${first.org.name}`;
           const bucket = document.createElement('div'); target.append(bucket);
           attachReportSocialFooter(article, first.org, language);
-          paginateReport(article, bucket, settings);
-          return bucket;
-        });
+          await paginateReport(article, bucket, settings, controller.signal);
+          if (cancelled) return;
+          buckets.push(bucket);
+        }
         const introPages = buckets[0].childElementCount;
         let offset = (settings.showCover ? 2 : 1) + introPages;
         // Contents row count is bounded by the five selectable chapters.
@@ -115,25 +119,26 @@ export function ReportBookOutput({ reports, title, preparedBy, notes, renderChap
         applySocialFooterPages(Array.from(sheets));
         setCount(sheets.length);
       } catch {
+        if (cancelled) return;
         target.replaceChildren();
         setError(t('تعذر توزيع المحتوى على الصفحات. اختصر الفقرة الطويلة أو جرّب عددًا أقل من الفصول.', 'The content could not fit the pages. Shorten long commentary or try fewer chapters.'));
       }
     })();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [reports, settings, title, preparedBy, notes, language, numberingSystem, renderChapter]);
 
   async function download() {
     if (!pages.current || !count || busy) return;
     if (readTabOrgId() !== first.org.id) { setError(t('تغيّرت الشركة. أعد تجهيز الملف.', 'Company changed. Prepare the book again.')); return; }
-    setBusy(true); setError('');
-    try { await downloadReportPdf(pages.current, settings, `${title}-${first.period.to}`); }
+    setBusy(true); setError(''); setProgress('');
+    try { await downloadReportPdf(pages.current, settings, `${title}-${first.period.to}`, (page, total) => setProgress(`${page} / ${total}`)); }
     catch { setError(t('تعذر تحميل PDF. أعد المحاولة أو استخدم الطباعة.', 'PDF download failed. Retry or use Print.')); }
     finally { setBusy(false); }
   }
 
   return <div>
     <style>{pageStyle}</style>
-    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{count ? t(`${count} صفحة · ${reports.length} فصول · ${settings.paper}`, `${count} pages · ${reports.length} chapters · ${settings.paper}`) : t('تجهيز الصفحات…', 'Preparing pages…')}</p><div className="flex gap-2"><label className="flex items-center gap-2 text-sm">{t("الاتجاه", "Orientation")}<select aria-label={t("الاتجاه", "Orientation")} value={orientation} onChange={event=>setOrientation(event.target.value as typeof orientation)} className="rounded-md border border-border bg-card px-2"><option value="auto">{t("تلقائي حسب التقرير", "Automatic for report")}</option><option value="portrait">{t("طولي", "Portrait")}</option><option value="landscape">{t("عرضي", "Landscape")}</option></select></label><Button variant="outline" disabled={!count || busy} onClick={() => print()}>{t('طباعة', 'Print')}</Button><Button data-testid="book-download" disabled={!count || busy} onClick={download}>{busy ? t('تجهيز PDF…', 'Preparing PDF…') : t('تحميل ملف PDF', 'Download PDF book')}</Button></div></div>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-muted-foreground">{count ? t(`${count} صفحة · ${reports.length} فصول · ${settings.paper}`, `${count} pages · ${reports.length} chapters · ${settings.paper}`) : t('تجهيز الصفحات…', 'Preparing pages…')}</p><div className="flex gap-2"><label className="flex items-center gap-2 text-sm">{t("الاتجاه", "Orientation")}<select aria-label={t("الاتجاه", "Orientation")} value={orientation} onChange={event=>setOrientation(event.target.value as typeof orientation)} className="rounded-md border border-border bg-card px-2"><option value="auto">{t("تلقائي حسب التقرير", "Automatic for report")}</option><option value="portrait">{t("طولي", "Portrait")}</option><option value="landscape">{t("عرضي", "Landscape")}</option></select></label><Button variant="outline" disabled={!count || busy} onClick={() => print()}>{t('طباعة', 'Print')}</Button><Button data-testid="book-download" disabled={!count || busy} onClick={download}>{busy ? t(`تجهيز PDF… ${progress}`, `Preparing PDF… ${progress}`) : t('تحميل ملف PDF', 'Download PDF book')}</Button></div></div>
     <details className="no-print mb-4 rounded-lg border border-border p-3"><summary className="cursor-pointer text-sm font-semibold">{t('تصميم الملف والأغلفة', 'Book design and covers')}</summary><div className="mt-3 max-w-md"><ReportDesignControls settings={settings} book onChange={patch => setAppearance(current => ({ ...current, ...patch }))} /></div></details>
     {error && <p role="alert" className="mb-4 text-danger">{error}</p>}
     <div ref={source} className="report-measure-source" aria-hidden="true" style={{ width: `${width}mm` }}>

@@ -44,12 +44,11 @@ export function ReportPrintView() {
       setLoading(true); setError(null);
       try {
         if (!printOrgId) throw new ApiError(400, t("افتح التقرير من داخل الشركة ثم اختر الطباعة.", "Open the report from your company, then choose Print."));
-        let payload = await api.reports.get(id, { from, to, allTime, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, branchId, projectId, accountId, contactId }, printOrgId);
+        let [payload, fullOrg] = await Promise.all([api.reports.get(id, { from, to, allTime, compareTo: id === "income-statement" ? undefined : compareTo, bilingual: 1, branchId, projectId, accountId, contactId }, printOrgId), api.orgs.get(printOrgId)]);
         if (accountId && payload.account?.id !== accountId) throw new ApiError(409, t("تعذر تأكيد الحساب المطلوب للطباعة. أعد فتح كشف الحساب.", "Could not verify the account for printing. Reopen the account statement."));
         if (payload.org.id !== printOrgId) throw new ApiError(409, t("تغيّرت الشركة. أعد فتح التقرير من الشركة المطلوبة.", "Company mismatch. Reopen the report from the intended company."));
         if (monthly) payload = await monthlyReport(payload, period => api.reports.get(id, {from:period.from,to:period.to,bilingual:1,branchId,projectId,accountId,contactId},printOrgId));
         if (!monthly && !allTime) payload = await compareReport(payload, comparison, period => api.reports.get(id, { ...period, bilingual: 1, branchId, projectId, accountId, contactId }, printOrgId));
-        const fullOrg = await api.orgs.get(payload.org.id);
         if (!alive) return;
         setReport(payload);
         setSettings(normalizeReportSettings(fullOrg.paymentSettings?.reports || payload.org.paymentSettings?.reports));
