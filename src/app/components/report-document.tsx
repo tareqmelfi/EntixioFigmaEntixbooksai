@@ -79,7 +79,7 @@ export function ReportDocument({
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 14 : resolved.fontScale === "compact" ? 11.5 : 12.5;
   // Compact-first density: large charts of accounts must fit on fewer pages.
-  const cellPadding = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "2px 5px" : "3px 6px";
+  const cellPadding = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "2px 5px" : report.id === "account-statement-detail" ? "2px 5px" : "3px 6px";
   const paperWidth = mode === "print" ? "100%" : `${reportPaperSize(resolved).width}mm`;
 
   const style = {
@@ -161,13 +161,13 @@ export function ReportDocument({
               <h2 className="document-section-title" style={{ color: "var(--report-primary)" }}><BidiText mode="plaintext">{one(section.title)}</BidiText></h2>
               {section.description && <p className="mt-0.5 text-xs text-muted-foreground"><BidiText mode="plaintext">{one(section.description)}</BidiText></p>}
             </div>
-            <table className="document-table report-readable-table w-full border-collapse">
+            <table className={`document-table report-readable-table w-full border-collapse${report.id === 'account-statement-detail' ? ' report-account-statement' : ''}`}>
               <colgroup>{columns.map(column => <col key={column.key} style={reportColumnWidth(section, column)} />)}</colgroup>
               <thead>
                 <tr style={{ borderTop: "1.5px solid var(--report-primary)", borderBottom: "1px solid #cbd5e1" }}>
                   {columns.map((column) => (
                     <th
-                      key={column.key}
+                      key={column.key} data-column={column.key}
                       className="whitespace-nowrap text-[11px] font-bold uppercase tracking-wide text-muted-foreground"
                       style={{ padding: "var(--report-cell-padding)", textAlign: alignToCss(column.align) }}
                     >
@@ -193,7 +193,7 @@ export function ReportDocument({
                         const depth = Math.min(Math.max(row.depth ?? 0, 0), 5);
                         return (
                         <td
-                          key={`${row.id}-${column.key}`}
+                          key={`${row.id}-${column.key}`} data-column={column.key}
                           className={`${totalRow ? "border-t border-border font-bold text-foreground" : "text-foreground"}${column.key === "label" ? " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap" : " whitespace-nowrap"}${depth > 0 && column.key === "label" ? " text-muted-foreground" : ""}`}
                           style={{
                             padding: "var(--report-cell-padding)",

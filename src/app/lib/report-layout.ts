@@ -3,6 +3,8 @@ import type { ReportColumn, ReportPayload, ReportPrintSettings, ReportSection } 
 export const isMonthlyReport = (report: ReportPayload) => report.sections.some(section => section.columns.some(column => /^\d{4}-\d{2}$/.test(column.key)));
 
 export function reportColumnWidth(section: ReportSection, column: ReportColumn) {
+  // Keep references content-sized; descriptions receive the remaining width.
+  if (section.id === 'account-movements' || section.id.startsWith('account-movements-panel-')) return column.key === 'description' ? undefined : { width: '1%' };
   if (section.columns.some(c => /^(opening|closing)(Debit|Credit)$/.test(c.key))) return { width: column.key === 'label' ? '28%' : column.key === 'type' ? '12%' : `${60 / (section.columns.length - 2)}%` };
   if (section.columns.some(c => /^\d{4}-\d{2}$/.test(c.key))) return { width: column.key === 'label' ? '30%' : `${70 / (section.columns.length - 1)}%` };
   return isCompactReportColumn(column) ? { width: '1%' } : undefined;
