@@ -58,7 +58,7 @@ export function invalidateOrgsCache() { orgsCache = null }
 function listOrgsCached(): Promise<Org[]> {
   if (orgsCache && Date.now() - orgsCache.at < ORGS_TTL_MS) return Promise.resolve(orgsCache.data)
   if (orgsInflight) return orgsInflight
-  orgsInflight = request<Org[]>('/orgs', { skipOrg: true })
+  orgsInflight = request<Org[]>('/orgs', { skipOrg: true, timeoutMs: 20_000 })
     .then((data) => { orgsCache = { at: Date.now(), data }; return data })
     .finally(() => { orgsInflight = null })
   return orgsInflight
@@ -154,6 +154,7 @@ type FetchOpts = {
   query?: Record<string, string | number | undefined | null>
   skipOrg?: boolean
   signal?: AbortSignal
+  timeoutMs?: number
   headers?: Record<string, string>
 }
 
@@ -179,7 +180,33 @@ async function uploadFile<T>(path: string, file: File, fields?: Record<string, s
   return data as T
 }
 
+// Opt-in deadlines include response-body reading, not just receipt of headers.
+// Writes deliberately retain their existing semantics: a timeout is not proof
+// that a write failed, and must never trigger an automatic duplicate submission.
 async function request<T>(path: string, opts: FetchOpts = {}): Promise<T> {
+  if (!opts.timeoutMs) return requestCore<T>(path, opts)
+  const controller = new AbortController()
+  const abort = () => controller.abort(opts.signal?.reason)
+  if (opts.signal?.aborted) abort()
+  else opts.signal?.addEventListener('abort', abort, { once: true })
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      requestCore<T>(path, { ...opts, signal: controller.signal }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new ApiError(0, 'request_timeout', undefined, { code: 'request_timeout', requestId: clientErrorRef() }))
+          controller.abort()
+        }, opts.timeoutMs)
+      }),
+    ])
+  } finally {
+    clearTimeout(timer)
+    opts.signal?.removeEventListener('abort', abort)
+  }
+}
+
+async function requestCore<T>(path: string, opts: FetchOpts = {}): Promise<T> {
   const url = new URL(`${API_BASE}${path}`)
   if (opts.query) {
     for (const [k, v] of Object.entries(opts.query)) {
@@ -776,15 +803,16 @@ export const api = {
 
   // Journal Entries
   journals: {
-    list: (status?: 'POSTED' | 'DRAFT', opts?: { limit?: number; offset?: number }) =>
+    list: (status?: 'POSTED' | 'DRAFT', opts?: { limit?: number; offset?: number; signal?: AbortSignal }) =>
       request<{ items: JournalEntryRow[]; total: number; limit: number; offset: number; hasMore: boolean }>('/api/journals', {
+        timeoutMs: 20_000, signal: opts?.signal,
         query: {
           ...(status ? { status } : {}),
           ...(opts?.limit != null ? { limit: String(opts.limit) } : {}),
           ...(opts?.offset ? { offset: String(opts.offset) } : {}),
         },
       }),
-    get: (id: string) => request<JournalEntryRow>(`/api/journals/${id}`),
+    get: (id: string) => request<JournalEntryRow>(`/api/journals/${id}`, { timeoutMs: 20_000 }),
     create: (data: JournalEntryInput) => request<JournalEntryRow>('/api/journals', { method: 'POST', body: data }),
     update: (id: string, data: Partial<JournalEntryInput>) =>
       request<JournalEntryRow>(`/api/journals/${id}`, { method: 'PATCH', body: data }),
@@ -792,7 +820,7 @@ export const api = {
     unpost: (id: string) => request<{ ok: true }>(`/api/journals/${id}/unpost`, { method: 'POST' }),
     /** Ledger linkage probe — posted documents missing their auto journal entry, per source. */
     coverage: () =>
-      request<{ unposted: { invoices: number; bills: number; expenses: number; receipts: number; payments: number }; linked: boolean }>('/api/journals/coverage'),
+      request<{ unposted: { invoices: number; bills: number; expenses: number; receipts: number; payments: number }; linked: boolean }>('/api/journals/coverage', { timeoutMs: 20_000 }),
     remove: (id: string) => request<void>(`/api/journals/${id}`, { method: 'DELETE' }),
     attachments: {
       list: (id: string) => request<{ items: JournalAttachment[] }>(`/api/journals/${id}/attachments`),
@@ -827,7 +855,7 @@ export const api = {
     ledgerMapping: () => request<{ roles: LedgerRoleRow[] }>('/api/accounts/ledger-mapping'),
     setLedgerMapping: (data: Record<string, string | null>) => request<{ ok: true; roles: LedgerRoleRow[] }>('/api/accounts/ledger-mapping', { method: 'PUT', body: data }),
     inactive: () => request<{ items: any[] }>('/api/accounts/inactive'),
-    list: () => request<{ items: Account[]; total: number }>('/api/accounts'),
+    list: (opts?: { timeoutMs?: number; signal?: AbortSignal }) => request<{ items: Account[]; total: number }>('/api/accounts', opts),
     get: (id: string) => request<Account>(`/api/accounts/${id}`),
     create: (data: AccountInput) =>
       request<Account>('/api/accounts', { method: 'POST', body: data }),
