@@ -69,7 +69,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
   const dir = isEn ? "ltr" : "rtl";
   const logo = resolved.logoSource === "none" ? null : resolved.logoSource === "main" ? report.org.logoUrl : report.org.printLogoUrl || report.org.logoUrl;
   const fontSize = resolved.fontScale === "large" ? 12.5 : resolved.fontScale === "compact" ? 10 : 10.5;
-  const pad = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "1.5px 4px" : "2px 5px";
+  const pad = resolved.density === "comfortable" ? "6px 8px" : resolved.density === "compact" ? "1.5px 4px" : report.id === "account-statement-detail" ? "1.5px 4px" : "2px 5px";
   const dimensions = reportPaperSize(resolved);
   const style = { ...reportAppearance(resolved), "--report-accent": resolved.accentColor, "--report-font-size": `${fontSize}px`, "--report-cell-padding": pad, width: mode === "print" ? "100%" : `${dimensions.width}mm`, minHeight: mode === "print" ? undefined : `${dimensions.height}mm` } as CSSProperties;
 
@@ -120,12 +120,12 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                 {!sameTitle && <Bi value={section.title} lang={lang} primary size="md" both={bilingual} />}
                 {section.description ? <div className="mt-0.5 text-[10px] text-muted-foreground"><Bi value={section.description} lang={lang} size="sm" both={bilingual} /></div> : null}
               </div>
-              <table className="document-table report-readable-table w-full border-collapse">
+              <table className={`document-table report-readable-table w-full border-collapse${report.id === 'account-statement-detail' ? ' report-account-statement' : ''}`}>
                 <colgroup>{columns.map(column => <col key={column.key} style={reportColumnWidth(section, column)} />)}</colgroup>
                 <thead>
                   <tr style={{ borderBottom: "1.5px solid var(--report-primary)" }}>
                     {columns.map((column) => (
-                      <th key={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
+                      <th key={column.key} data-column={column.key} className="whitespace-nowrap text-[10px] font-semibold text-muted-foreground" style={{ padding: "var(--report-cell-padding)", textAlign: column.align === "end" ? "end" : column.align === "center" ? "center" : "start" }}>
                         <Bi value={reportColumnLabel(column)} lang={lang} size="sm" both={bilingual}
                           currency={!sectionHasCurrency && (column.kind === "money" || moneyKeys.has(column.key)) ? report.currency : undefined} />
                       </th>
@@ -143,7 +143,7 @@ export function CondensedReportDocument({ report, resolved, mode, onRowClick, t 
                           const money = column.kind === "money" || moneyKeys.has(column.key);
                           const align = column.align === "end" ? "end" : column.align === "center" ? "center" : "start";
                           return (
-                            <td key={`${row.id}-${column.key}`}
+                            <td key={`${row.id}-${column.key}`} data-column={column.key}
                               className={`${total ? "border-t border-border-strong font-bold text-foreground" : "text-foreground"}${column.key === "label" ? (report.id === "trial-balance" ? " whitespace-normal break-words" : " max-w-0 overflow-hidden text-ellipsis whitespace-nowrap") : " whitespace-nowrap"}`}
                               style={{ padding: "var(--report-cell-padding)", textAlign: align, ...(column.key === "label" && depth > 0 ? { paddingInlineStart: `${depth * 16 + 10}px`, color: "#475569" } : {}) }}
                               title={column.key === "label" ? String(v ?? row.label) : undefined}>

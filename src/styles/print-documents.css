@@ -175,6 +175,15 @@
 .entix-report-paper.report-condensed .report-readable-table :is(td, th) { line-height: 1.3; }
 .entix-report-paper.report-condensed .report-readable-table th .report-bilingual > span { font-size: 9px; line-height: 1.3; }
 .entix-report-paper.report-condensed .report-readable-table td .report-bilingual > span { font-size: inherit; line-height: inherit; }
+/* Preserve dates/references in both measurement and PDF clones. Descriptions
+   wrap freely; Arabic UI typography must not inflate statement row heights. */
+.entix-report-paper .report-account-statement :is(td, th) { line-height: 1.25; }
+.entix-report-paper .report-account-statement td :is(.report-bilingual, span, bdi) { line-height: inherit; }
+.entix-report-paper .report-account-statement :is(td, th):is([data-column='date'], [data-column='label'], [data-column='source']),
+.entix-report-paper .report-account-statement :is([data-column='date'], [data-column='label'], [data-column='source']) :is(span, bdi) {
+  white-space: nowrap !important; overflow-wrap: normal; word-break: normal;
+}
+.entix-report-paper .report-account-statement td[data-column='date'] bdi { direction: ltr; unicode-bidi: isolate; }
 .entix-report-paper .report-condensed-footer { display: flex; gap: 3mm; align-items: center; border-top: .5pt solid var(--document-rule); padding-top: 1mm; font-size: 8px; line-height: 1.35; }
 .entix-report-paper .report-footer-company { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entix-report-paper .report-footer-code { flex-shrink: 0; white-space: nowrap; }
