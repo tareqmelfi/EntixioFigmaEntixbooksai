@@ -27,7 +27,7 @@ export function applySocialFooterPages(pages: HTMLElement[]) {
 }
 
 /** Build physical sheets from rendered rows, never slice a tall screenshot through text. */
-export function paginateReport(source: HTMLElement, target: HTMLElement, settings: ReportPrintSettings) {
+export async function paginateReport(source: HTMLElement, target: HTMLElement, settings: ReportPrintSettings, signal?: AbortSignal) {
   const { width, height } = reportPaperSize(settings);
   target.replaceChildren();
   const originalMain = source.querySelector(':scope > main') as HTMLElement | null;
@@ -66,6 +66,7 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
   const fits = () => body.scrollHeight <= body.clientHeight + 1;
   const requireFit = () => { if (!fits()) throw new Error('report_row_too_tall'); };
   newPage();
+  let workedAt = performance.now();
 
   for (const block of Array.from(originalMain.children)) {
     const originalTable = block.querySelector(':scope > table');
@@ -117,6 +118,11 @@ export function paginateReport(source: HTMLElement, target: HTMLElement, setting
     };
     addSection();
     for (const row of rows) {
+      if (performance.now() - workedAt > 16) {
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+        signal?.throwIfAborted();
+        workedAt = performance.now();
+      }
       const clone = row.cloneNode(true) as HTMLElement;
       tbody!.append(clone);
       if (fits()) continue;
@@ -185,17 +191,20 @@ export async function embedReportFonts(root: HTMLElement) {
   for (const sheet of Array.from(document.styleSheets)) {
     try { collect(sheet.cssRules, sheet.href || document.baseURI); } catch { /* Cross-origin stylesheets cannot expose rules. */ }
   }
+  const assets = new Map<string, Promise<string>>();
   return (await Promise.all(rules.map(async ({ css, base }) => {
     const urls = Array.from(css.matchAll(/url\(["']?([^"')]+)["']?\)/g));
     for (const match of urls) {
-      const data = await assetDataUrl(new URL(match[1], base).href);
+      const url = new URL(match[1], base).href;
+      if (!assets.has(url)) assets.set(url, assetDataUrl(url));
+      const data = await assets.get(url)!;
       css = css.replace(match[0], `url("${data}")`);
     }
     return css;
   }))).join('\n');
 }
 
-export async function downloadReportPdf(root: HTMLElement, settings: ReportPrintSettings, filename: string) {
+export async function downloadReportPdf(root: HTMLElement, settings: ReportPrintSettings, filename: string, onProgress?: (page: number, total: number) => void) {
   // A settings/context refresh can replace preview sheets during async rasterization.
   // Keep a mounted snapshot for the entire export, including link measurements.
   const snapshot = root.cloneNode(true) as HTMLElement;
@@ -212,11 +221,11 @@ export async function downloadReportPdf(root: HTMLElement, settings: ReportPrint
   mount.style.cssText = 'position:fixed;left:-100000px;top:0;pointer-events:none;width:max-content;';
   mount.append(snapshot);
   document.body.append(mount);
-  try { await downloadReportSnapshot(snapshot, settings, filename); }
+  try { await downloadReportSnapshot(snapshot, settings, filename, onProgress); }
   finally { mount.remove(); }
 }
 
-async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSettings, filename: string) {
+async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSettings, filename: string, onProgress?: (page: number, total: number) => void) {
   const pages = Array.from(root.querySelectorAll<HTMLElement>('.report-output-sheet'));
   if (!pages.length) throw new Error('report_not_ready');
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import('html2canvas'), import('jspdf')]);
@@ -227,6 +236,8 @@ async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSe
   const images = new Map(await Promise.all(imageUrls.map(async url => [url, await assetDataUrl(url)] as const)));
   pdf.setProperties({ title: filename, creator: 'Entix Books' });
   for (let index = 0; index < pages.length; index++) {
+    onProgress?.(index + 1, pages.length);
+    await new Promise<void>(resolve => setTimeout(resolve, 0));
     if (index) pdf.addPage([width, height], width > height ? 'landscape' : 'portrait');
     // Render every sheet as the first child of its own mounted snapshot. Removing
     // preceding sheets only inside html2canvas's clone shifts later-page geometry.
@@ -237,7 +248,8 @@ async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSe
     document.body.append(pageMount);
     let canvas: HTMLCanvasElement;
     try { canvas = await html2canvas(renderSheet, {
-      ignoreElements: element => element.classList.contains('report-measure-source') || (element.classList.contains('report-output-sheet') && element !== renderSheet),
+      // Exclude unrelated body subtrees before html2canvas clones them, not after.
+      ignoreElements: element => document.body.contains(element) && element !== document.body && !element.contains(renderSheet) && !renderSheet.contains(element),
       foreignObjectRendering: true, scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false,
       onclone: (doc, element) => {
         normalizePdfColors(element);

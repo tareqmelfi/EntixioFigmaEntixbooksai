@@ -50,6 +50,7 @@ import { api, JournalEntryRow, Account, JournalAttachment } from "../lib/api";
 import { displayName } from "../lib/display-name";
 import { humanizeError } from "../lib/error-messages";
 import { useLanguage } from "../components/LanguageContext";
+import { JournalTransfer } from "../components/journal-transfer";
 import { BranchField } from "../components/branch-field";
 import { ProjectField } from "../components/project-field";
 
@@ -85,6 +86,7 @@ export function JournalEntries() {
     if (credit > 0) return { text: isDebitNormal ? t("نقص ↓", "Credit ↓") : t("زاد ↑", "Debit ↑"), tone: isDebitNormal ? "down" : "up" };
     return { text: "", tone: null };
   }
+  const [transfer, setTransfer] = useState<{mode: "print" | "export" | "import"; selected?: JournalEntryRow} | null>(null);
   const [items, setItems] = useState<JournalEntryRow[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -349,6 +351,8 @@ export function JournalEntries() {
   const totalPosted = items.filter(e => e.status === "POSTED").reduce((s, e) => s + e.totalDebit, 0);
   const totalDraft = items.filter(e => e.status === "DRAFT").length;
 
+  if (transfer) return <JournalTransfer {...transfer} accounts={accounts} status={statusFilter || undefined} onClose={() => { setTransfer(null); void refresh(); }} />;
+
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:gap-4">
       <ToastStack toasts={toasts} onDismiss={dismiss} />
@@ -364,9 +368,14 @@ export function JournalEntries() {
           title={t("قيود اليومية", "Journal Entries")}
           description={t("قيود محاسبية يدوية مع التحقق من توازن المدين والدائن", "Manual accounting entries with debit/credit balance verification")}
           actions={(
+            <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setTransfer({mode: 'print'})}>{t('طباعة / PDF', 'Print / PDF')}</Button>
+            <Button variant="outline" onClick={() => setTransfer({mode: 'export'})}>{t('Excel / تصدير', 'Excel / Export')}</Button>
+            <Button variant="outline" onClick={() => setTransfer({mode: 'import'})}>{t('استيراد', 'Import')}</Button>
             <Button onClick={openCreate}>
               <Plus className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("قيد جديد", "New Entry")}
             </Button>
+            </div>
           )}
         />
 
@@ -518,6 +527,7 @@ export function JournalEntries() {
           <CardHeader className="flex flex-row items-center justify-between gap-2 border-b border-border/50">
             <div className="min-w-0 flex-1 overflow-hidden [&>div]:truncate">
               <div className="font-code font-bold text-foreground" dir="ltr">{selected.number}</div>
+              <Button variant="outline" size="sm" className="mt-2" onClick={() => setTransfer({mode: 'print', selected})}>{t('طباعة / تصدير هذا القيد', 'Print / export this entry')}</Button>
               <div className="text-xs text-muted-foreground mt-0.5"><bdi dir="auto">{selected.description}</bdi></div>
             </div>
             <button onClick={() => setSelected(null)} className="p-1 hover:bg-surface-hover rounded">

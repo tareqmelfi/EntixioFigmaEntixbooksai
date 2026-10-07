@@ -18,6 +18,7 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
   const pages = useRef<HTMLDivElement>(null);
   const [count, setCount] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const autoPrinted = useRef(false);
   const { width, height } = reportPaperSize(settings);
@@ -33,6 +34,7 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     setCount(0); setError('');
     const prepare = async () => {
       if (!source.current) return;
@@ -42,7 +44,8 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
         const article = source.current.querySelector<HTMLElement>('.entix-report-paper');
         if (!article) throw new Error('report_content_missing');
         attachReportSocialFooter(article, report.org, settings.language || language);
-        paginateReport(article, pages.current, settings);
+        await paginateReport(article, pages.current, settings, controller.signal);
+        if (cancelled || !pages.current) return;
         for (const kind of ['front', 'back']) {
           const cover = source.current.querySelector<HTMLElement>(`[data-cover-kind="${kind}"]`);
           if (cover) { const clone = cover.cloneNode(true) as HTMLElement; attachReportSocialFooter(clone, report.org, settings.language || language); if (kind === 'front') pages.current.prepend(clone); else pages.current.append(clone); }
@@ -53,12 +56,13 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
         applySocialFooterPages(sheets);
         if (!cancelled) setCount(total);
       } catch {
+        if (cancelled || !pages.current) return;
         pages.current.replaceChildren();
         setError(t('تعذر توزيع أحد البنود على الورق. جرّب الاتجاه العرضي أو خطًا أصغر في مصمم الطباعة.', 'A report row could not fit on the paper. Try landscape or a smaller font in the print designer.'));
       }
     };
     void prepare();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, [report, settings, language, numberingSystem]);
 
   useEffect(() => {
@@ -67,8 +71,8 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
 
   const download = async () => {
     if (!pages.current || !count || busy) return;
-    setBusy(true); setError('');
-    try { await downloadReportPdf(pages.current, settings, `Entix-${report.id}-${report.period.to}`); }
+    setBusy(true); setError(''); setProgress('');
+    try { await downloadReportPdf(pages.current, settings, `Entix-${report.id}-${report.period.to}`, (page, total) => setProgress(`${page} / ${total}`)); }
     catch { setError(t('تعذر تجهيز PDF. حاول مجددًا أو استخدم زر الطباعة.', 'PDF generation failed. Try again or use Print.')); }
     finally { setBusy(false); }
   };
@@ -79,7 +83,7 @@ export function ReportOutput({ report, settings: requestedSettings, autoPrint = 
       <span className="text-xs text-muted-foreground" role="status">{count ? t(`${count} صفحة · ${settings.paper || 'A4'}`, `${count} pages · ${settings.paper || 'A4'}`) : error ? t('تعذر تجهيز الصفحات', 'Unable to prepare pages') : t('جارٍ تجهيز الصفحات…', 'Preparing pages…')}</span>
       <div className="flex items-center gap-2">
         <Button variant="outline" disabled={!count || busy} onClick={() => print()}><Printer className="me-2 h-4 w-4" />{t('طباعة', 'Print')}</Button>
-        <Button disabled={!count || busy} onClick={download} data-testid="report-download-pdf">{busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Download className="me-2 h-4 w-4" />}{busy ? t('تجهيز PDF…', 'Preparing PDF…') : t('تحميل PDF', 'Download PDF')}</Button>
+        <Button disabled={!count || busy} onClick={download} data-testid="report-download-pdf">{busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Download className="me-2 h-4 w-4" />}{busy ? t(`تجهيز PDF… ${progress}`, `Preparing PDF… ${progress}`) : t('تحميل PDF', 'Download PDF')}</Button>
       </div>
     </div>
     {error && <p role="alert" className="no-print mb-4 text-sm text-danger">{error}</p>}
