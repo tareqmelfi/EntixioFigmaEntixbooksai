@@ -16,10 +16,15 @@ test('large reports prepare cooperatively and preserve all rows', async ({page})
    const {paginateReport} = await import(modulePath);
    const article = document.querySelector('.report-measure-source .entix-report-paper') as HTMLElement;
    const target = document.querySelector('[data-testid="report-output-pages"]') as HTMLElement;
-   let beats = 0; const timer = setInterval(() => beats++, 0); const start = performance.now();
-   try { await paginateReport(article,target,{paper:'A4',orientation:'landscape'}); return {beats,ms:performance.now()-start,rows:target.querySelectorAll('tbody tr').length}; }
-   finally {clearInterval(timer);}
+   // Background tabs clamp nested timers. Pagination must yield through tasks
+   // without scheduling one clamped timeout for every work slice.
+   let beats = 0, timerYields = 0; const timer = setInterval(() => beats++, 0); const start = performance.now();
+   const originalTimeout = window.setTimeout;
+   window.setTimeout = ((...args: Parameters<typeof setTimeout>) => { timerYields++; return originalTimeout(...args); }) as typeof setTimeout;
+   try { await paginateReport(article,target,{paper:'A4',orientation:'landscape'}); return {beats,timerYields,ms:performance.now()-start,rows:target.querySelectorAll('tbody tr').length}; }
+   finally {window.setTimeout = originalTimeout; clearInterval(timer);}
  });
  console.log('pagination-responsiveness',JSON.stringify(cooperative));
  expect(cooperative.beats).toBeGreaterThan(5); expect(cooperative.rows).toBe(1200);
+ expect(cooperative.timerYields).toBe(0);
 });

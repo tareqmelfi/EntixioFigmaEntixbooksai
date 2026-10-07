@@ -1,6 +1,19 @@
 import { socialFooterHtml, socialFooterSettings, socialFooterOnPage } from './document-social';
 import type { ReportPrintSettings } from './api';
 
+/** Yield to input/rendering without the one-second timer clamp of background tabs. */
+function yieldReportWork(): Promise<void> {
+  return new Promise(resolve => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      channel.port2.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
+
 export function reportPaperSize(settings: ReportPrintSettings) {
   const portrait = ({ A4: [210, 297], A3: [297, 420], Letter: [215.9, 279.4], Legal: [215.9, 355.6] } as const)[settings.paper || 'A4'];
   const [width, height] = settings.orientation === 'landscape' ? [...portrait].reverse() : portrait;
@@ -34,14 +47,25 @@ export async function paginateReport(source: HTMLElement, target: HTMLElement, s
   if (!originalMain) throw new Error('report_content_missing');
   const footer = source.querySelector(':scope > footer');
   const social = source.querySelector(':scope > .report-social-source');
+  // Fonts/images have settled before pagination. Suspend source layout only
+  // during measurement, restoring it even if this render is cancelled.
+  const sourceVisibility = source.style.contentVisibility;
+  source.style.contentVisibility = 'hidden';
   const pages: HTMLElement[] = [];
   let body: HTMLElement;
   const newPage = () => {
+    // Finished pages retain their fixed dimensions but need no repeated layout
+    // while measuring the next page's rows.
+    if (pages.length) pages[pages.length - 1].style.contentVisibility = 'hidden';
     const sheet = source.cloneNode(false) as HTMLElement;
     sheet.classList.add('report-output-sheet');
     sheet.style.width = `${width}mm`;
     sheet.style.height = `${height}mm`;
     sheet.style.minHeight = '0';
+    // Physical page dimensions are fixed. Isolate each row measurement from
+    // the growing preview and the complete unpaginated source document.
+    sheet.style.contain = 'size layout style';
+    sheet.style.contentVisibility = 'visible';
     for (const child of Array.from(source.children)) {
       if (child === originalMain || child === footer || child === social) continue;
       if (pages.length === 0) sheet.append(child.cloneNode(true));
@@ -65,6 +89,7 @@ export async function paginateReport(source: HTMLElement, target: HTMLElement, s
   };
   const fits = () => body.scrollHeight <= body.clientHeight + 1;
   const requireFit = () => { if (!fits()) throw new Error('report_row_too_tall'); };
+  try {
   newPage();
   let workedAt = performance.now();
 
@@ -119,7 +144,7 @@ export async function paginateReport(source: HTMLElement, target: HTMLElement, s
     addSection();
     for (const row of rows) {
       if (performance.now() - workedAt > 16) {
-        await new Promise<void>(resolve => setTimeout(resolve, 0));
+        await yieldReportWork();
         signal?.throwIfAborted();
         workedAt = performance.now();
       }
@@ -140,11 +165,15 @@ export async function paginateReport(source: HTMLElement, target: HTMLElement, s
     }
   }
   pages.forEach((page, index) => {
+    page.style.contentVisibility = 'visible';
     page.dataset.pageNumber = String(index + 1);
     page.querySelector('.report-page-counter')!.textContent = `${index + 1} / ${pages.length}`;
   });
   applySocialFooterPages(pages);
   return pages.length;
+  } finally {
+    source.style.contentVisibility = sourceVisibility;
+  }
 }
 
 /** html2canvas 1.x cannot parse Tailwind's oklch colors; resolve them to sRGB in its clone. */
@@ -237,7 +266,7 @@ async function downloadReportSnapshot(root: HTMLElement, settings: ReportPrintSe
   pdf.setProperties({ title: filename, creator: 'Entix Books' });
   for (let index = 0; index < pages.length; index++) {
     onProgress?.(index + 1, pages.length);
-    await new Promise<void>(resolve => setTimeout(resolve, 0));
+    await yieldReportWork();
     if (index) pdf.addPage([width, height], width > height ? 'landscape' : 'portrait');
     // Render every sheet as the first child of its own mounted snapshot. Removing
     // preceding sheets only inside html2canvas's clone shifts later-page geometry.
