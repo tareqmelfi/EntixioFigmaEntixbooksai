@@ -93,6 +93,11 @@ export function JournalEntries() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [accountsError, setAccountsError] = useState<string | null>(null);
+  const [accountsReady, setAccountsReady] = useState(false);
+  const requestVersion = useRef(0);
+  const listController = useRef<AbortController | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
@@ -115,23 +120,43 @@ export function JournalEntries() {
   // Draft protection · autosave + restore (CEO 2026-08-25 · never lose a typed entry)
   const draft = useFormDraft({ key: editMode && selected ? `journal:${selected.id}` : "journal:new", open, snapshot: form, restore: (s) => setForm(s) });
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
+  const refreshAccounts = useCallback(async () => {
+    setAccountsError(null);
     try {
-      const [j, a] = await Promise.all([
-        api.journals.list(statusFilter || undefined, { limit: PAGE_SIZE, offset: 0 }),
-        api.accounts.list(),
-      ]);
+      const a = await api.accounts.list({ timeoutMs: 20_000 });
+      setAccounts(a.items);
+      setAccountsReady(true);
+    } catch (e) {
+      setAccountsError(humanizeError(e, language, { ar: "تعذر تحميل دليل الحسابات", en: "Could not load account choices" }));
+    }
+  }, [language]);
+  useEffect(() => { void refreshAccounts(); }, [refreshAccounts]);
+
+  const refresh = useCallback(async () => {
+    const version = ++requestVersion.current;
+    listController.current?.abort();
+    const controller = new AbortController();
+    listController.current = controller;
+    setLoading(true);
+    setLoadError(null);
+    setLoadingMore(false);
+    try {
+      const j = await api.journals.list(statusFilter || undefined, { limit: PAGE_SIZE, offset: 0, signal: controller.signal });
+      if (version !== requestVersion.current) return;
       setItems(j.items);
       setTotalCount(j.total ?? j.items.length);
       setHasMore(!!j.hasMore);
-      setAccounts(a.items);
-      api.journals.coverage().then(setCoverage).catch(() => setCoverage(null));
-    } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل التحميل", en: "Failed to load" }));
-    } finally { setLoading(false); }
-  }, [push, statusFilter]);
-  useEffect(() => { refresh(); }, [refresh]);
+      void api.journals.coverage().then(value => {
+        if (version === requestVersion.current) setCoverage(value);
+      }).catch(() => { if (version === requestVersion.current) setCoverage(null); });
+    } catch (e) {
+      if (version === requestVersion.current) setLoadError(humanizeError(e, language, { ar: "فشل تحميل القيود", en: "Failed to load entries" }));
+    } finally { if (version === requestVersion.current) setLoading(false); }
+  }, [statusFilter, language]);
+  useEffect(() => {
+    void refresh();
+    return () => { ++requestVersion.current; listController.current?.abort(); };
+  }, [refresh]);
 
   // /app/journal-entries/new opens the entry form directly (brief rule 8 · every
   // list row and every "new" route lands on the editor, never a dead page).
@@ -141,15 +166,17 @@ export function JournalEntries() {
   }, [location.pathname]);
 
   const loadMore = useCallback(async () => {
+    const version = requestVersion.current;
     setLoadingMore(true);
     try {
       const j = await api.journals.list(statusFilter || undefined, { limit: PAGE_SIZE, offset: items.length });
+      if (version !== requestVersion.current) return;
       setItems((prev) => [...prev, ...j.items]);
       setTotalCount(j.total ?? 0);
       setHasMore(!!j.hasMore);
     } catch (e: any) {
       push("error", humanizeError(e, language, { ar: "فشل تحميل المزيد", en: "Failed to load more" }));
-    } finally { setLoadingMore(false); }
+    } finally { if (version === requestVersion.current) setLoadingMore(false); }
   }, [items.length, statusFilter, push, t]);
 
   const totalDebit = form.lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
@@ -371,7 +398,7 @@ export function JournalEntries() {
             <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setTransfer({mode: 'print'})}>{t('طباعة / PDF', 'Print / PDF')}</Button>
             <Button variant="outline" onClick={() => setTransfer({mode: 'export'})}>{t('Excel / تصدير', 'Excel / Export')}</Button>
-            <Button variant="outline" onClick={() => setTransfer({mode: 'import'})}>{t('استيراد', 'Import')}</Button>
+            <Button variant="outline" disabled={!accountsReady} onClick={() => setTransfer({mode: 'import'})}>{t('استيراد', 'Import')}</Button>
             <Button onClick={openCreate}>
               <Plus className="me-2 h-4 w-4" strokeWidth={1.75} /> {t("قيد جديد", "New Entry")}
             </Button>
@@ -403,11 +430,15 @@ export function JournalEntries() {
           )
         )}
 
+        {accountsError && <InlineAlert tone="warning">
+          {t("تعذر تحميل خيارات الحسابات. يمكنك قراءة القيود وطباعتها.", "Account choices could not load. You can still read and print entries.")}
+          <Button variant="outline" size="sm" onClick={() => void refreshAccounts()}>{t("إعادة تحميل الحسابات", "Retry account choices")}</Button>
+        </InlineAlert>}
         <MetricStrip>
-          <Metric label={t("إجمالي القيود", "Total Entries")} value={String(totalCount || items.length)} />
-          <Metric tone="success" label={t("المرحّلة", "Posted")} value={String(items.filter(e => e.status === "POSTED").length)} />
-          <Metric tone="warning" label={t("المسودات", "Drafts")} value={String(totalDraft)} />
-          <Metric label={t("إجمالي المبالغ المرحّلة", "Total Posted Amount")} value={<LedgerFigure value={totalPosted} />} />
+          <Metric label={t("إجمالي القيود", "Total Entries")} value={loading || loadError ? "—" : String(totalCount || items.length)} />
+          <Metric tone="success" label={t("المرحّلة", "Posted")} value={loading || loadError ? "—" : String(items.filter(e => e.status === "POSTED").length)} />
+          <Metric tone="warning" label={t("المسودات", "Drafts")} value={loading || loadError ? "—" : String(totalDraft)} />
+          <Metric label={t("إجمالي المبالغ المرحّلة", "Total Posted Amount")} value={loading || loadError ? "—" : <LedgerFigure value={totalPosted} />} />
         </MetricStrip>
 
         <section className="space-y-3">
@@ -424,7 +455,12 @@ export function JournalEntries() {
           </div>
           <div>
             {loading ? (
-              <div className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /></div>
+              <div role="status" className="py-12 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" /><p className="mt-2 text-sm text-muted-foreground">{t("جارٍ تحميل القيود…", "Loading entries…")}</p></div>
+            ) : loadError ? (
+              <div role="alert" className="py-8 text-center space-y-3">
+                <p className="text-sm text-danger">{loadError}</p>
+                <Button variant="outline" onClick={() => void refresh()}>{t("إعادة تحميل القيود", "Retry loading entries")}</Button>
+              </div>
             ) : items.length === 0 ? (
               <div className="py-12 text-center">
                 <BookOpen className="h-12 w-12 mx-auto text-muted mb-3" />
@@ -714,6 +750,10 @@ export function JournalEntries() {
               )}
 
               <div className="p-5 space-y-4">
+                {!accountsReady && <div role="status" className="text-sm">
+                  {accountsError || t("جارٍ تحميل خيارات الحسابات…", "Loading account choices…")}
+                  {accountsError && <Button type="button" variant="outline" onClick={() => void refreshAccounts()}>{t("إعادة تحميل الحسابات", "Retry account choices")}</Button>}
+                </div>}
                 {!editMode && <p className="text-sm rounded-lg bg-muted p-3">{t("لتسجيل فاتورة مورد جديدة، استخدم فواتير المشتريات لتظهر في سجل المورد وتُنشئ قيدها تلقائيًا.", "For a new supplier invoice, use Purchase invoices so it appears in the supplier register and creates its journal automatically.")} <Link className="text-primary underline" to="/app/purchases/bills/new">{t("فاتورة مشتريات جديدة", "New purchase invoice")}</Link></p>}
                 <div className="grid grid-cols-3 gap-3">
                   <div>
@@ -839,7 +879,7 @@ export function JournalEntries() {
 
               <div className="flex items-center justify-end gap-2 p-5 border-t border-border/50">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)} className="border-border">{t("إلغاء", "Cancel")}</Button>
-                <Button type="submit" disabled={busy || !balanced} className="bg-primary hover:bg-primary/90">
+                <Button type="submit" disabled={busy || !balanced || !accountsReady} className="bg-primary hover:bg-primary/90">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : (editMode ? t("حفظ التعديلات", "Save changes") : (form.postOnSave ? t("حفظ وترحيل", "Save & Post") : t("حفظ كمسودة", "Save as Draft")))}
                 </Button>
               </div>

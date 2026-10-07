@@ -66,6 +66,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [demoConflict, setDemoConflict] = useState(false);
   // Starred default company (User.defaultOrgId) — sign-in always lands on it.
@@ -91,6 +92,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   }, []);
 
   const refresh = async () => {
+    setLoading(true);
+    setLoadFailed(false);
     try {
       const list = await api.orgs.list();
       setOrgs(list);
@@ -101,15 +104,8 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
       setActiveOrg(support
         ? { id: support.orgId, name: support.orgName, country: support.country, baseCurrency: support.currency }
         : list.find(o => o.id === activeId) || null);
-      // Load the starred default company alongside the org list.
-      try {
-        const meRes = await fetch(`${API_BASE_URL}/me`, { credentials: 'include' });
-        if (meRes.ok) {
-          const me = await meRes.json();
-          setDefaultOrgId(me?.defaultOrgId || null);
-        }
-      } catch {}
     } catch (e) {
+      setLoadFailed(true);
       console.error("[orgs] load failed", e);
     } finally {
       setLoading(false);
@@ -117,6 +113,16 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   };
 
   useEffect(() => { refresh(); }, []);
+  // A preference lookup must not hide an already verified company indefinitely.
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20_000);
+    void fetch(`${API_BASE_URL}/me`, { credentials: 'include', signal: controller.signal })
+      .then(async res => { if (res.ok) setDefaultOrgId((await res.json())?.defaultOrgId || null); })
+      .catch(() => {})
+      .finally(() => clearTimeout(timer));
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, []);
 
   // Close on outside click — checks BOTH the trigger container and the
   // portaled dropdown content (see dropdownContentRef above).
@@ -185,6 +191,12 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
     } catch {}
     finally { setStarBusy(null); }
   };
+
+  if (loadFailed) return (
+    <button onClick={() => void refresh()} className={`w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-danger ${className || ""}`}>
+      {t("تعذر تحميل الشركات · أعد المحاولة", "Companies could not load · retry")}
+    </button>
+  );
 
   if (loading) {
     return (

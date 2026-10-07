@@ -28,6 +28,10 @@ const MAP: Record<string, { ar: string; en: string }> = {
   gateway_required: { ar: 'اختر حساب بوابة لهذه الطريقة.', en: 'Select a gateway account for this method.' },
   clearing_required: { ar: 'اختر حساب تسوية لهذه الطريقة.', en: 'Select a clearing account for this method.' },
 
+  request_timeout: {
+    ar: 'استغرق الطلب وقتًا أطول من المتوقع · أعد المحاولة',
+    en: 'The request took too long · please retry',
+  },
   // infra
   internal_error: {
     ar: 'خطأ غير متوقع في الخادم',
