@@ -13,6 +13,7 @@
  * while the mobile artboard keeps the 2×2 grid.
  */
 import "./dashboard-figures.css";
+import { Link } from "react-router";
 import type { ReactNode } from "react";
 import { displayDigits, displayLocale } from "../lib/number-display";
 import { cn } from "./ui/utils";
@@ -21,6 +22,7 @@ export type FigureHintTone = "muted" | "primary" | "warning" | "success" | "dang
 
 export interface DashboardFigure {
   key: string;
+  href?: string;
   testId?: string;
   /** Full label (desktop). */
   label: ReactNode;
@@ -76,7 +78,7 @@ export function DashboardFigures({ items, className, columns = 4 }: { items: Das
             )}
           >
             <span className="truncate text-[12px] leading-tight text-content-secondary xl:text-[13px]">
-              <Responsive full={f.label} short={f.labelShort} />
+              {f.href ? <Link to={f.href}><Responsive full={f.label} short={f.labelShort} /></Link> : <Responsive full={f.label} short={f.labelShort} />}
             </span>
             <span
               dir="ltr"
@@ -85,7 +87,7 @@ export function DashboardFigures({ items, className, columns = 4 }: { items: Das
                 f.negative ? "text-danger" : f.positive ? "text-primary" : "text-foreground",
               )}
             >
-              {f.value}
+              {f.href ? <Link to={f.href} className="font-display font-normal focus-visible:outline-2 focus-visible:outline-ring">{f.value}</Link> : f.value}
             </span>
             {f.hint && (
               <span className={cn("truncate text-[11px] leading-tight md:text-[12px]", hintToneClass[f.hintTone ?? "muted"])}>
