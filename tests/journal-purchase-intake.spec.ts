@@ -10,7 +10,7 @@ async function prepare(page: Page, lang: 'ar'|'en', fail = false) {
     const path=new URL(r.request().url()).pathname;
     if(r.request().method()==='POST') {writes.push(r.request().postDataJSON());return r.fulfill({status:fail?409:201,json:fail?{error:'journal_source_changed',message:'The journal changed; refresh and review.',messageAr:'تغير القيد؛ حدّث القائمة وراجع الربط.'}:{id:'linked-bill'}});}
     if(path==='/api/bills/linked-bill') return r.fulfill({json:{id:'linked-bill',billNumber:'PB-JE-REVIEW',status:'DUE',contactId:supplier.id,contact:supplier,issueDate:candidate.date,dueDate:'2026-10-15',currency:'USD',total:115,subtotal:100,taxTotal:15,amountPaid:0,lines:[{...candidate.lines[0],id:'line',subtotal:115,taxRate:{rate:0.15}}],meta:{sourceJournalId:candidate.id,sourceJournalNumber:candidate.number}}});
-    return r.fulfill({json:{items:[],total:0,journalCandidates:{items:[candidate,{...candidate,id:'compound',number:'JE-CASH',eligible:false}],hasMore:false}}});
+    return r.fulfill({json:{items:[{id:'existing-bill',billNumber:'PB-EXISTING',status:'PAID',contact:supplier,issueDate:candidate.date,dueDate:'2026-09-15',currency:'USD',total:42,amountPaid:42}],total:1,journalCandidates:{items:[candidate,{...candidate,id:'compound',number:'JE-CASH',eligible:false}],hasMore:false}}});
   });
   await page.route('**/api/journals**',r=>r.fulfill({json:new URL(r.request().url()).pathname.endsWith('/coverage') ? {linked:true,unposted:{invoices:0,bills:0,expenses:0,receipts:0,payments:0}} : {id:candidate.id,number:candidate.number,date:candidate.date,description:candidate.description,source:'api',status:'POSTED',totalDebit:115,totalCredit:115,lines:[],attachments:[],items:[],total:0}}));
   await page.goto('/app/purchases/bills?journalId=journal-review');
@@ -20,7 +20,7 @@ for(const lang of ['en','ar'] as const) test(`journal purchase review preserves 
   const writes=await prepare(page,lang);
   const region=page.getByRole('region',{name:lang==='ar'?'قيود المشتريات غير المرتبطة':'Unlinked purchase journals'});
   await expect(region).toContainText('JE-REVIEW'); await expect(region).toContainText('JE-CASH'); expect(writes).toHaveLength(0);
-  await region.getByRole('button',{name:lang==='ar'?'استكمال وربط الفاتورة':'Complete and link invoice'}).click();
+  await region.getByRole('button',{name:lang==='ar'?'إضافة مستند مرتبط (اختياري)':'Add linked document (optional)'}).click();
   await region.getByRole('button',{name:lang==='ar'?'ابحث أو أنشئ موردًا':'Search or create a supplier'}).click();
   await page.getByRole('button',{name:'Synthetic Supplier supplier@example.invalid'}).click();
   await region.getByLabel(lang==='ar'?'رقم فاتورة المورد':'Supplier invoice number').fill('SUP-55');
@@ -38,18 +38,61 @@ for(const lang of ['en','ar'] as const) test(`journal purchase review preserves 
 test('a rejected link keeps review details and displays the server reason',async({page})=>{
   const writes=await prepare(page,'en',true);
   const region=page.getByRole('region',{name:'Unlinked purchase journals'});
-  await region.getByRole('button',{name:'Complete and link invoice'}).click();
+  await region.getByRole('button',{name:'Add linked document (optional)'}).click();
   await region.getByRole('button',{name:'Search or create a supplier'}).click();await page.getByRole('button',{name:'Synthetic Supplier supplier@example.invalid'}).click();
   await region.getByLabel('Supplier invoice number').fill('SUP-55');await region.getByLabel('Due date').fill('2026-10-15');await region.getByLabel('Tax % — line 1').fill('15');await region.getByRole('checkbox').check();
   await region.getByRole('button',{name:'Link to existing journal'}).click();await expect(region.getByRole('alert')).toContainText('The journal changed');await expect(region.getByLabel('Supplier invoice number')).toHaveValue('SUP-55');expect(writes).toHaveLength(1);
 });
 test('review fits mobile and viewing a source makes no writes',async({page})=>{
   const writes=await prepare(page,'ar');await page.setViewportSize({width:390,height:844});
-  const region=page.getByRole('region',{name:'قيود المشتريات غير المرتبطة'});await region.getByRole('button',{name:'استكمال وربط الفاتورة'}).click();
+  const region=page.getByRole('region',{name:'قيود المشتريات غير المرتبطة'});await region.getByRole('button',{name:'إضافة مستند مرتبط (اختياري)'}).click();
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);expect(writes).toHaveLength(0);
   await page.goto('/app/purchases/bills');
-  await expect(region.getByRole('button',{name:'استكمال وربط الفاتورة'})).toBeHidden();
-  await region.locator('summary').click();
-  await expect(region.getByRole('button',{name:'استكمال وربط الفاتورة'})).toBeVisible();
+  await expect(region.getByRole('link',{name:'المعلومات والمرفقات'})).toHaveCount(2);
+  await expect(region.getByRole('button',{name:'إضافة مستند مرتبط (اختياري)'})).toHaveCount(0);
   expect(writes).toHaveLength(0);
+});
+
+test('journals are visible below invoices with posted badges and attachments without conversion', async ({page}) => {
+  const writes = await prepare(page, 'en');
+  await page.goto('/app/purchases/bills');
+  const region = page.getByRole('region', {name:'Unlinked purchase journals'});
+  await expect(region.getByText('Journal entry', {exact:true})).toHaveCount(2);
+  await expect(region.getByRole('button', {name:'Add linked document (optional)'})).toHaveCount(0);
+  const cashRow = region.getByRole('listitem').filter({hasText:'JE-CASH'});
+  await expect(cashRow).toContainText('Posted');
+  await expect(cashRow.getByRole('button', {name:'Add linked document (optional)'})).toHaveCount(0);
+  await expect(cashRow.getByRole('link', {name:'Details and attachments'})).toHaveAttribute('href', '/app/journal-entries?entryId=compound');
+  const invoice = page.getByRole('link', {name:'PB-EXISTING',exact:true});
+  await expect(invoice).toBeVisible();
+  const invoiceBounds = await invoice.boundingBox();
+  const journalBounds = await region.boundingBox();
+  expect(journalBounds!.y).toBeGreaterThan(invoiceBounds!.y + invoiceBounds!.height);
+  await expect(page.locator('.ledger-figures')).toContainText('42');
+  await expect(page.locator('.ledger-figures')).not.toContainText('115');
+  expect(writes).toHaveLength(0);
+  await page.screenshot({path:'/tmp/journal-register-visible-en.png',fullPage:true});
+});
+
+test('a posted purchase journal accepts invoice evidence without creating a bill or reposting', async ({page}) => {
+  const billWrites = await prepare(page, 'en');
+  const journalWrites: string[] = [];
+  const uploads: any[] = [];
+  page.on('request', request => {
+    if (request.method() !== 'GET' && new URL(request.url()).pathname.startsWith('/api/journals')) journalWrites.push(new URL(request.url()).pathname);
+  });
+  await page.route('**/api/journals/journal-review/attachments', async route => {
+    if (route.request().method() === 'GET') return route.fulfill({json:{items:[]}});
+    const data = route.request().postDataJSON(); uploads.push(data);
+    return route.fulfill({status:201,json:{id:'evidence',filename:data.filename,contentType:data.contentType,sizeBytes:data.sizeBytes,url:'data:application/pdf;base64,JVBERg=='}});
+  });
+  await page.goto('/app/purchases/bills');
+  const region = page.getByRole('region', {name:'Unlinked purchase journals'});
+  await region.getByRole('listitem').filter({hasText:'JE-REVIEW'}).getByRole('link', {name:'Details and attachments'}).click();
+  await expect(page).toHaveURL(/journal-entries\?entryId=journal-review/);
+  await page.locator('input[type=file]').setInputFiles({name:'synthetic-invoice.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4 synthetic evidence')});
+  await expect(page.getByText('synthetic-invoice.pdf', {exact:true})).toBeVisible();
+  expect(uploads).toHaveLength(1);
+  expect(journalWrites).toEqual(['/api/journals/journal-review/attachments']);
+  expect(billWrites).toHaveLength(0);
 });
