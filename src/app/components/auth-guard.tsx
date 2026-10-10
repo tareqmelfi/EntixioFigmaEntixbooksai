@@ -12,12 +12,14 @@
  * Also: persist last-checked auth result in sessionStorage to skip the loader
  * on subsequent same-tab refreshes (optimistic boot — no flash at all).
  */
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router";
 import { useAuthState } from "./use-auth-state";
 import { authStore } from "./auth-store";
 import { api } from "../lib/api";
-import { OrgSwitcher } from "./org-switcher";
+// Lazy (PERF-02 · 2026-10-10): only the "select an organisation" recovery state
+// needs the switcher; keeping it static put ~66KB of org UI in the public entry chunk.
+const OrgSwitcher = lazy(() => import("./org-switcher").then((m) => ({ default: m.OrgSwitcher })));
 import { useLanguage } from "./LanguageContext";
 import { accountLocale, applyDocumentLocale, LANGUAGE_STORAGE_KEY } from "./public-preferences";
 
@@ -101,7 +103,7 @@ function OrganizationRecovery({ selectionRequired }: { selectionRequired: boolea
     <p className="text-sm text-muted-foreground">{selectionRequired
       ? t("الشركة التي كنت تعمل عليها لم تعد ضمن صلاحيات حسابك. اختر شركة للمتابعة.", "Your previous company is no longer available to this account. Choose a company to continue.")
       : t("تعذر التحقق من الشركة الحالية. احتفظنا باختيارك؛ أعد المحاولة للمتابعة.", "We could not verify the current company. Your selection is preserved; retry to continue.")}</p>
-    {selectionRequired ? <OrgSwitcher /> : <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground" onClick={() => window.location.reload()}>{t("إعادة المحاولة", "Retry")}</button>}
+    {selectionRequired ? <Suspense fallback={null}><OrgSwitcher /></Suspense> : <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground" onClick={() => window.location.reload()}>{t("إعادة المحاولة", "Retry")}</button>}
   </main>;
 }
 

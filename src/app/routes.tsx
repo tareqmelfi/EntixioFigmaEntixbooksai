@@ -1,7 +1,11 @@
 import React, { Suspense } from "react";
 import { createBrowserRouter, Navigate } from "react-router";
-import { Root } from "./layouts/root";
-import { AdminRoot, LegacyAdminRedirect } from "./layouts/admin";
+// App + admin shells are lazy (PERF-02 · 2026-10-10): public landing visitors no
+// longer download/parse the accounting sidebar, header, toasts and admin console
+// — they were ~45% of the entry chunk and the main cause of mobile TBT 1.1s.
+const Root = React.lazy(() => import("./layouts/root").then((m) => ({ default: m.Root })));
+const AdminRoot = React.lazy(() => import("./layouts/admin").then((m) => ({ default: m.AdminRoot })));
+const LegacyAdminRedirect = React.lazy(() => import("./layouts/admin").then((m) => ({ default: m.LegacyAdminRedirect })));
 import { AuthGuard } from "./components/auth-guard";
 import { ErrorBoundary, NotFound } from "./components/error-boundary";
 import { Landing } from "./pages/landing";
@@ -56,7 +60,9 @@ const localizedPublicRoutes = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.
 function ProtectedRoot() {
   return (
     <AuthGuard>
-      <Root />
+      <Suspense fallback={<RouteFallback />}>
+        <Root />
+      </Suspense>
     </AuthGuard>
   );
 }
@@ -192,7 +198,9 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <AuthGuard>
-        <AdminRoot />
+        <Suspense fallback={<RouteFallback />}>
+          <AdminRoot />
+        </Suspense>
       </AuthGuard>
     ),
     errorElement: <ErrorBoundary />,
@@ -366,8 +374,8 @@ export const router = createBrowserRouter([
       { path: "system-status", element: lazyElement(() => import("./pages/system-status"), "SystemStatus"), errorElement: <ErrorBoundary /> },
       { path: "notifications", element: lazyElement(() => import("./pages/notifications"), "Notifications"), errorElement: <ErrorBoundary /> },
       // Z2.1 · the admin console moved to its own shell (/admin/*) · old links redirect
-      { path: "admin/*", element: <LegacyAdminRedirect />, errorElement: <ErrorBoundary /> },
-      { path: "admin", element: <LegacyAdminRedirect />, errorElement: <ErrorBoundary /> },
+      { path: "admin/*", element: <Suspense fallback={<RouteFallback />}><LegacyAdminRedirect /></Suspense>, errorElement: <ErrorBoundary /> },
+      { path: "admin", element: <Suspense fallback={<RouteFallback />}><LegacyAdminRedirect /></Suspense>, errorElement: <ErrorBoundary /> },
       { path: "roadmap", element: lazyElement(() => import("./pages/feature-roadmap"), "FeatureRoadmap"), errorElement: <ErrorBoundary /> },
       { path: "marketplace/accountants", element: <Navigate to="/app/roadmap" replace />, errorElement: <ErrorBoundary /> },
     ],
