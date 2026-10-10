@@ -554,7 +554,7 @@ export function Quotes() {
   const handleFullPreview = async () => {
     const q = await handleSubmit("draft", { stayOpen: true });
     if (!q) return;
-    const params = new URLSearchParams({ noprint: "1", embed: "1" });
+    const params = new URLSearchParams({ noprint: "1", embed: "1", orgId: q.orgId || getOrgId() || "" });
     if (form.language) params.set("lang", form.language);
     if (form.templateId) params.set("templateId", form.templateId);
     setFullPreviewUrl(`/print/proposal/${encodeURIComponent(q.id)}?${params}`);
@@ -1233,7 +1233,7 @@ export function Quotes() {
               <Mail className="me-1.5 h-3.5 w-3.5" strokeWidth={1.75} /> {t("إرسال العرض بالبريد", "Email quote")}
             </Button>
           )}
-      <a href={`/print/proposal/${q.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:border-border-strong" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
+      <a href={`/print/proposal/${encodeURIComponent(q.id)}?orgId=${encodeURIComponent(q.orgId || getOrgId() || "")}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-xs text-foreground hover:border-border-strong" title={t("معاينة/طباعة العرض المتكامل", "Preview / print the proposal")}>
         <Printer className="h-3.5 w-3.5" strokeWidth={1.75} /> {t("معاينة / طباعة العرض", "Preview / print quote")}
       </a>
       {q.status !== "CONVERTED" && q.status !== "REJECTED" && q.status !== "ACCEPTED" && (
@@ -1375,7 +1375,7 @@ export function Quotes() {
                 statusLabel={statusWord(q)}
                 statusMeta={[String(q.issueDate || "").slice(0, 10), q.validUntil ? `→ ${String(q.validUntil).slice(0, 10)}` : ""].filter(Boolean).join(" ")}
                 onSend={q.status !== "CONVERTED" && q.status !== "REJECTED" ? () => setSendComposeFor({ quote: q }) : undefined}
-                onPdf={() => window.open(`/print/proposal/${q.id}`, "_blank", "noopener")}
+                onPdf={() => window.open(`/print/proposal/${encodeURIComponent(q.id)}?orgId=${encodeURIComponent(q.orgId || getOrgId() || "")}`, "_blank", "noopener")}
               />
             </div>
             <aside className="min-w-0 space-y-4">
@@ -1448,7 +1448,7 @@ export function Quotes() {
               <DocumentPagesSection
                 pages={q.pages}
                 disabled={q.status === "CONVERTED"}
-                printHref={`/print/proposal/${q.id}`}
+                printHref={`/print/proposal/${encodeURIComponent(q.id)}?orgId=${encodeURIComponent(q.orgId || getOrgId() || "")}`}
                 onSave={async (pages) => {
                   try {
                     const updated = await api.quotes.update(q.id, { pages });

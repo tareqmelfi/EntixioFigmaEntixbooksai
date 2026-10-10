@@ -68,3 +68,23 @@ test('sender selects placement and no-email link; failure preserves form and dup
   await expect(page.getByRole('button', { name: 'تجهيز رابط التوقيع', exact: true })).toBeDisabled();
   expect(calls).toBe(2);
 });
+
+test('print link carries the quote company and avoids probing other memberships', async ({ page }) => {
+  await setup(page);
+  const quoteCompany = 'org-quote-owner';
+  const requestedCompanies: string[] = [];
+  await page.route('**/api/quotes**', route => {
+    const detail = new URL(route.request().url()).pathname.endsWith('/synthetic-quote');
+    if (detail) requestedCompanies.push(route.request().headers()['x-org-id']);
+    const ownedQuote = { ...quote, orgId: quoteCompany };
+    return route.fulfill({ json: detail ? ownedQuote : { items: [ownedQuote] } });
+  });
+  await page.goto('/app/quotes/synthetic-quote');
+  const printLink = page.getByRole('link', { name: 'معاينة / طباعة العرض', exact: true });
+  await expect(printLink).toHaveAttribute('href', '/print/proposal/synthetic-quote?orgId=org-quote-owner');
+  const href = await printLink.getAttribute('href');
+  requestedCompanies.length = 0;
+  await page.goto(href + '&noprint=1');
+  await expect(page.locator('.sheet')).toHaveCount(source.sheetCount);
+  expect(requestedCompanies).toEqual([quoteCompany]);
+});
