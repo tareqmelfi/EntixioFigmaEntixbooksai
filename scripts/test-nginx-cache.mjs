@@ -73,6 +73,11 @@ try {
     assert.match(asset.headers.get('cache-control'), /immutable/);
     assert.doesNotMatch(asset.headers.get('cache-control'), /no-store/);
     assert.equal((await fetch(`${base}/missing-page`)).status, 404);
+    const stale = await fetch(`${base}/assets/index-gone999.js`);
+    assert.equal(stale.status, 200);
+    assert.equal(stale.headers.get('x-entix-stale-bundle'), '1');
+    assert.match(await stale.text(), /__r=/);
+    assert.equal((await fetch(`${base}/assets/nope.css`)).status, 404);
     console.log('Passed: 20 document/worker routes, immutable asset, security headers, honest 404');
   });
 } finally { rmSync(root, { recursive: true, force: true }); }

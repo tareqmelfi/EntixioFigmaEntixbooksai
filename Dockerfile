@@ -35,6 +35,9 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # each build) → Cloudflare Early Hints (103) so the render-blocking CSS is fetched
 # before the HTML body finishes streaming from the origin.
 COPY --from=build /app/nginx-early-hints.conf /etc/nginx/snippets/early-hints.conf
+# Edge-cache purge on every container start (needs CF_ZONE_ID + CF_PURGE_TOKEN at runtime).
+COPY docker/99-purge-cloudflare.sh /docker-entrypoint.d/99-purge-cloudflare.sh
+RUN chmod +x /docker-entrypoint.d/99-purge-cloudflare.sh
 
 # Custom nginx config · SPA fallback + immutable asset cache
 RUN cat > /etc/nginx/conf.d/default.conf <<'NGINX'
@@ -169,6 +172,28 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  }
+
+  # Self-healing for edge-cached HTML (PERF-03 · 2026-10-10): public documents are
+  # cached at Cloudflare for up to 1h; after a deploy a cached document can still
+  # reference a hashed bundle this container no longer has. Instead of a 404 (blank
+  # page) the missing *module* answers with a tiny script that reloads the page once
+  # with a cache-busting query → fresh HTML from the origin. Hashed assets that exist
+  # are untouched (regex location below). Only /assets/*.js — never other paths.
+  location ~ ^/assets/[\w.-]+\.js$ {
+    try_files $uri @stale-bundle;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  }
+  location @stale-bundle {
+    default_type application/javascript;
+    add_header Cache-Control "no-store" always;
+    add_header X-Entix-Stale-Bundle "1" always;
+    return 200 "(function(){try{var q=location.search;if(q.indexOf('__r=')===-1){location.replace(location.pathname+(q?q+'&':'?')+'__r='+Date.now()+location.hash)}}catch(e){}})();";
   }
 
   # Cache hashed assets aggressively
