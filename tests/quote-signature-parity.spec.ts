@@ -88,3 +88,33 @@ test('print link carries the quote company and avoids probing other memberships'
   await expect(page.locator('.sheet')).toHaveCount(source.sheetCount);
   expect(requestedCompanies).toEqual([quoteCompany]);
 });
+
+test('print rendering stays with its quote while session refresh selects another company', async ({ page }) => {
+  await setup(page);
+  const owner = 'org-quote-owner';
+  const scopes: string[] = [];
+  let releaseSession!: () => void;
+  const quoteStarted = new Promise<void>(resolve => { releaseSession = resolve; });
+  await page.route('**/me', async route => {
+    await quoteStarted;
+    await route.fallback();
+  });
+  await page.route('**/api/quotes/synthetic-quote', async route => {
+    scopes.push(route.request().headers()['x-org-id']);
+    releaseSession();
+    // Hold the quote until the real auth store finishes selecting the tab company.
+    await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('entix_tab_org_v1') || 'null')?.orgId)).toBe(visualOrgId);
+    await route.fulfill({ json: { ...quote, orgId: owner } });
+  });
+  await page.route('**/api/document-templates/render/QUOTE/**', route => {
+    const scope = route.request().headers()['x-org-id'];
+    scopes.push(scope);
+    return scope === owner
+      ? route.fulfill({ contentType: 'text/html', body: html })
+      : route.fulfill({ status: 404, json: { error: 'not_found' } });
+  });
+  await page.goto('/print/proposal/synthetic-quote?orgId=org-quote-owner&noprint=1');
+  await expect(page.locator('.sheet')).toHaveCount(source.sheetCount);
+  expect(scopes).toEqual([owner, owner]);
+  expect(await page.evaluate(() => JSON.parse(sessionStorage.getItem('entix_tab_org_v1') || 'null')?.orgId)).toBe(visualOrgId);
+});
