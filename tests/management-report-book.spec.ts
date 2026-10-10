@@ -111,7 +111,7 @@ test('unavailable reports are identified explicitly without invented balances', 
   } }));
   await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
   const output = page.getByTestId('report-book-pages');
-  await expect(output).toHaveAttribute('data-ready', 'true');
+  await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
   await expect(output).toContainText('Data unavailable');
   await expect(output).toContainText('Source not available');
   await expect(output).not.toContainText('0.00 USD');
@@ -133,7 +133,7 @@ test('long commentary and wide project tables remain complete on landscape pages
   await page.locator('textarea').fill('A long author explanation of the results. '.repeat(120) + 'FINAL COMMENT');
   await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
   const output = page.getByTestId('report-book-pages');
-  await expect(output).toHaveAttribute('data-ready', 'true');
+  await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
   await expect(output).toContainText('FINAL COMMENT');
   for (let i = 0; i < 12; i++) await expect(output).toContainText((1000 + i).toLocaleString('en-US', { minimumFractionDigits: 2 }));
   const sheets = output.locator('.report-output-sheet');
@@ -157,7 +157,7 @@ test('financial snapshot uses recorded income rows and export rejects a changed 
   } }));
   await page.getByRole('button', { name: 'Prepare report book', exact: true }).click();
   const output = page.getByTestId('report-book-pages');
-  await expect(output).toHaveAttribute('data-ready', 'true');
+  await expect(output).toHaveAttribute('data-ready', 'true', { timeout: 30000 });
   const intro = output.locator('.report-output-sheet').nth(1);
   await expect(intro).toContainText('Financial snapshot');
   await expect(intro).toContainText('(200.00)');

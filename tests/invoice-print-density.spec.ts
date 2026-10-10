@@ -42,11 +42,15 @@ for (const lang of ['ar', 'en'] as const) for (const scenario of ['compact', 'ma
   expect((pdf.toString('latin1').match(/\/Type \/Page\b/g) || []).length).toBe(out.sheetCount);
   if (compact) expect(sheets.totals).toBe(sheets.items);
   else expect(await page.locator('.items thead').count()).toBeGreaterThan(1);
-  expect(await page.locator('.pgflow').evaluateAll(flows => flows.every(flow => {
+  const overflow = await page.locator('.pgflow').evaluateAll(flows => flows.flatMap((flow, pageIndex) => {
     const bounds = flow.getBoundingClientRect();
-    return flow.scrollHeight <= flow.clientHeight + 1 && Array.from(flow.querySelectorAll('td, .totals, .qr, .tafqit, .notes')).every(el => {
-      const box = el.getBoundingClientRect(); return box.bottom <= bounds.bottom + 1 && box.right <= bounds.right + 1 && box.left >= bounds.left - 1;
-    });
-  }))).toBe(true);
+    const issues: unknown[] = flow.scrollHeight > flow.clientHeight + 1 ? [{pageIndex, kind:'flow', height:flow.clientHeight, scroll:flow.scrollHeight}] : [];
+    for (const el of flow.querySelectorAll('td, .totals, .qr, .tafqit, .notes')) {
+      const box = el.getBoundingClientRect();
+      if (box.bottom > bounds.bottom + 1 || box.right > bounds.right + 1 || box.left < bounds.left - 1) issues.push({pageIndex,kind:el.className,text:el.textContent?.slice(0,120),bottom:box.bottom,boundBottom:bounds.bottom,left:box.left,boundLeft:bounds.left,right:box.right,boundRight:bounds.right});
+    }
+    return issues;
+  }));
+  expect(overflow).toEqual([]);
   if (compact) { await expect(page.locator('.totals .grand')).toContainText('9,500.00'); await expect(page.locator('.totals')).toContainText('1,239.13'); }
 });

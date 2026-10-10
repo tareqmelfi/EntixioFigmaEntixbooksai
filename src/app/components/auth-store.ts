@@ -33,6 +33,7 @@ export interface User {
   role: 'admin' | 'accountant' | 'viewer'
   avatar?: string
   locale?: 'ar' | 'en'
+  defaultOrgId?: string | null
   /** false = verification link not clicked yet (soft-gate banner shows). */
   emailVerified?: boolean
   createdAt: string
@@ -109,6 +110,12 @@ class AuthStore {
 
   getState(): AuthState {
     return this.state
+  }
+
+  setVerifiedDefaultOrgId(defaultOrgId: string | null) {
+    if (!this.state.user) return
+    this.state = { ...this.state, user: { ...this.state.user, defaultOrgId } }
+    this.notify()
   }
 
   async updateLocale(locale: 'ar' | 'en'): Promise<void> {
@@ -193,6 +200,7 @@ class AuthStore {
               : 'viewer',
           avatar: data.user.image || undefined,
           locale: me?.locale === 'ar' || me?.locale === 'en' ? me.locale : undefined,
+          defaultOrgId: me?.defaultOrgId || null,
           // Soft-gate: false until the verification link is clicked — drives
           // the persistent in-app banner (users enter immediately on signup).
           emailVerified: data.user.emailVerified !== false,

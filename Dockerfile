@@ -220,6 +220,8 @@ server {
 
   # Every HTML document, including prerendered nested route files, must revalidate.
   location ~* \.html$ {
+    # Location-level headers replace inherited headers; keep CSS hints on the app shell.
+    include /etc/nginx/snippets/early-hints.conf;
     add_header Cache-Control "no-cache, no-store, must-revalidate";
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
     add_header X-Content-Type-Options "nosniff" always;

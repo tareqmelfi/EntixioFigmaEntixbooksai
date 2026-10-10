@@ -1,3 +1,4 @@
+import { allocatePayments, balancedPercentages, progressCondition, unitLabel, type QuotePresentation } from './quote-document-fields.js';
 import { roundDocumentMoney } from "./document-money.js";
 import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social.js';
 /**
@@ -347,6 +348,7 @@ export interface BankSpec {
 }
 
 export interface DocSpec {
+  presentation?: QuotePresentation | null;
   kind: DocKind;
   number: string;
   issueDate: string;
@@ -1136,12 +1138,14 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc table.items.tax-columns th,.edoc table.items.tax-columns td{padding-inline:1.4mm;font-size:9pt}
 .edoc table.items.tax-columns th{font-size:8pt;line-height:1.4}
 .edoc table.items.tax-columns td.n{white-space:nowrap}
+.edoc table.items.tax-columns td.n:nth-last-child(-n+4){font-size:8pt}
 .edoc table.items.tax-columns .basis{display:block;font-size:7pt;white-space:normal;font-weight:400}
 .edoc table.items.tax-columns [data-line-rounding] td{font-size:8pt;color:var(--muted)}
 /* Invoice density matches itemsBlock() pagination; quote layouts retain their own geometry. */
 .edoc.invoice .doc-head{padding-bottom:3mm;margin-bottom:3mm}
 .edoc.invoice .meta-strip{margin-bottom:3mm}
 .edoc.invoice .pgflow > :last-child{margin-bottom:0}
+.edoc.invoice .totals-row .notes:last-child{margin-bottom:0}
 .edoc.invoice table.items td{padding-top:1.4mm;padding-bottom:1.4mm;line-height:1.45}
 .edoc.invoice table.items .rest{line-height:1.5}
 /* per-line product image / mark · bare on the paper (LOGO FRAME LAW: no box, no plate) */
@@ -1259,7 +1263,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const lang = input.lang === "en" ? "en" : "ar";
   const ar = lang === "ar";
   const t = (a: string, e: string) => (ar ? a : e);
-  const tpl = input.template || {};
+  const tpl = { ...(input.template || {}), ...(input.doc.kind === "QUOTE" ? input.doc.presentation || {} : {}) };
   const doc = input.doc;
   const org = input.org;
   const contact = input.contact || null;
@@ -1267,7 +1271,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // ── identity (2026-09-14) · themed = tokens drive the palette · identity = any identity
   // field at all (extras stylesheet + boxes). Neither → the Ledger sheet, byte for byte.
   const themed = isThemed(tpl);
-  const identity = hasIdentity(tpl);
+  const identity = hasIdentity(input.template || {});
   const theme = resolveTheme(tpl);
   const brand = themed ? theme.steel : safeColor(tpl.brandColor, DEFAULT_BRAND_COLOR);
   const dark = themed ? theme.navy : safeColor(tpl.coverColor, DEFAULT_COVER_COLOR);
@@ -1283,6 +1287,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const on = (id: SectionId) => sections.find((s) => s.id === id)?.enabled !== false;
   const order = sections.map((s) => s.id);
   const cur = doc.currency || "SAR";
+  const currencyLabel = cur === "SAR" ? t("ريال سعودي", "SAR") : cur;
+  const amount = (value: number) => `<span class="money-value">${num(money(value))} <bdi dir="auto" class="currency-label">${esc(currencyLabel)}</bdi></span>`;
   // Words are printed only for a currency we can spell correctly — never a wrong-currency sentence.
   const wordsCur = ["SAR", "USD", "AED", "EUR", "GBP"].includes(cur.toUpperCase());
   const year = (isoDate(doc.issueDate) || new Date().toISOString()).slice(0, 4);
@@ -1443,7 +1449,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       .replace(/\{client\}/g, `<bdi dir="auto" class="nm"><strong>${esc(clientName)}</strong></bdi>`)
       .replace(/\{number\}/g, num(doc.number))
       .replace(/\{reference\}/g, num(doc.reference || "—"))
-      .replace(/\{total\}/g, num(`${cur} ${money(doc.total)}`))
+      .replace(/\{total\}/g, amount(doc.total))
       .replace(/\{date\}/g, num(issue))
       .replace(/\{title\}/g, `<bdi dir="auto" class="nm"><strong>${esc(doc.title || "")}</strong></bdi>`);
     const introRaw = ((ar ? tpl.coverIntro : (tpl.coverIntroEn || tpl.coverIntro)) || "").trim() || (isQuote
@@ -1465,7 +1471,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       // bottom strip · 3 outlined cards (reference cover): owner/client · contractor (site · C.R.) · date + validity
       const validDays = issue && end ? Math.round((Date.parse(end) - Date.parse(issue)) / 86_400_000) : 0;
       const strip = `<div class="strip cards3">
-    <div class="cd"><div class="k">${t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div><div class="s">${[contact?.city ? bdi(contact.city) : "", contact?.country ? bdi(contact.country) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
+    <div class="cd"><div class="k">${t("العميل", "Client")}</div><div class="v">${bdi(clientName)}</div>${contact?.vatNumber ? `<div class="s customer-vat">${regLabel(contact)} ${num(contact.vatNumber)}</div>` : ""}<div class="s">${[contact?.city ? bdi(contact.city) : "", contact?.country ? bdi(contact.country) : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
     <div class="cd"><div class="k">${isQuote ? t("المقاول", "Contractor") : t("الجهة المُصدِرة", "Issuer")}</div><div class="v">${bdi(orgName)}</div><div class="s">${[org.website ? num(plainHost(org.website)) : "", org.crNumber ? `${regIdLabel(org)} ${num(org.crNumber)}` : ""].filter(Boolean).join(" · ") || "&nbsp;"}</div></div>
     <div class="cd"><div class="k">${t("التاريخ", "Date")}</div><div class="v">${num(issue)}</div><div class="s">${validDays > 0 ? (isQuote ? t(`صلاحية العرض ${validDays} يومًا`, `Valid for ${validDays} days`) : `${esc(endLabel)} ${num(end)}`) : (end ? `${esc(endLabel)} ${num(end)}` : "&nbsp;")}</div></div>
   </div>`;
@@ -1493,12 +1499,12 @@ export function renderDocument(input: RenderInput): RenderOutput {
       <div class="s">${t("تاريخ الإصدار", "Issue date")} ${num(issue)}</div>
       ${end ? `<div class="s">${esc(endLabel)} ${num(end)}</div>` : ""}</div>
     <div><div class="k">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : (orgTaxRegistered ? t("إجمالي الفاتورة شامل الضريبة", "Invoice total incl. tax") : t("إجمالي الفاتورة", "Invoice total"))}</div>
-      <div class="big">${cur} ${money(doc.total)}</div>
+      <div class="big">${amount(doc.total)}</div>
       ${orgTaxRegistered ? `<div class="s">${num(money(taxable))} + ${taxLabel} ${num(money(doc.taxTotal))}</div>` : ""}
       ${doc.title && title !== doc.title ? `<div class="s">${esc(doc.title)}</div>` : ""}</div>
     <div class="col-client"><div class="k">${t("العميل", "Client")}</div>
       ${contact?.code ? `<div class="v lat" dir="ltr">${esc(contact.code)}</div>` : ""}
-      <div class="v">${bdi(clientName)}</div>
+      <div class="v">${bdi(clientName)}</div>${contact?.vatNumber ? `<div class="s customer-vat">${regLabel(contact)} ${num(contact.vatNumber)}</div>` : ""}
       <div class="s">${[contact?.crNumber ? `${regIdLabel(contact)} ${contact.crNumber}` : "", contact?.city || ""].filter(Boolean).map(esc).join(" · ") || "&nbsp;"}</div></div>
   </div>
 </div>`;
@@ -1591,10 +1597,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const itemsBlock = (): Block => {
     const span = (hasPics ? 6 : 5) + (lineBreakdown ? 2 : 0);
     const cols = lineBreakdown
-      ? `<colgroup>${hasPics ? `<col style="width:12mm">` : ""}<col style="width:12mm"><col><col style="width:12mm"><col style="width:23mm"><col style="width:25mm"><col style="width:23mm"><col style="width:25mm"></colgroup>`
+      ? `<colgroup>${hasPics ? `<col style="width:12mm">` : ""}<col style="width:12mm"><col><col style="width:23mm"><col style="width:21mm"><col style="width:23mm"><col style="width:21mm"><col style="width:23mm"></colgroup>`
       : themed
-      ? `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:22mm"><col><col style="width:16mm"><col style="width:28mm"><col style="width:30mm"></colgroup>`
-      : `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:30mm"><col><col style="width:16mm"><col style="width:26mm"><col style="width:28mm"></colgroup>`;
+      ? `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:22mm"><col><col style="width:23mm"><col style="width:28mm"><col style="width:30mm"></colgroup>`
+      : `<colgroup>${hasPics ? `<col style="width:14mm">` : ""}<col style="width:30mm"><col><col style="width:23mm"><col style="width:26mm"><col style="width:28mm"></colgroup>`;
     const head = lineBreakdown
       ? `<thead><tr>${hasPics ? `<th></th>` : ""}<th>${t("البند", "Item")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")}${basisNote}</th>${amountHeads}</tr></thead>`
       : themed
@@ -1621,7 +1627,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
           doc.taxBasis === "mixed" ? 9 : 4.8,
         ));
       const picCell = hasPics ? `<td class="pic">${pic ? `<img class="li-img" src="${esc(pic)}" alt="">` : ""}</td>` : "";
-      return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
+      return { h, html: `<tr>${picCell}<td><span class="code">${esc(code || String(i + 1).padStart(2, "0"))}</span></td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}</td><td class="n">${l.unit ? `<div class="u">${bdi(unitLabel(l.unit, lang))}</div>` : ""}${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
@@ -1649,33 +1655,33 @@ export function renderDocument(input: RenderInput): RenderOutput {
        * same work (CEO 2026-09-21 · «مو مضبوط»). Every row on this page is on
        * one basis, and the tax row says it is contained rather than added.
        */
-      rows.push(`<div class="r"><span class="lbl">${t("الإجمالي", "Total")}</span><span class="amt">${cur} ${money(listPrice)}</span></div>`);
-      if (discount > 0.005) rows.push(`<div class="r disc"><span class="lbl">${t("قيمة الخصم", "Discount")}</span><span class="amt">${cur} ${money(discount)}-</span></div>`);
+      rows.push(`<div class="r"><span class="lbl">${t("الإجمالي", "Total")}</span><span class="amt">${amount(listPrice)}</span></div>`);
+      if (discount > 0.005) rows.push(`<div class="r disc"><span class="lbl">${t("قيمة الخصم", "Discount")}</span><span class="amt">${amount(discount)}-</span></div>`);
       if (showTaxAmount && tpl.showTaxBreakdown !== false) {
-        rows.push(`<div class="r"><span class="lbl">${taxLabel} ${t("(ضمن الإجمالي)", "(included)")}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+        rows.push(`<div class="r"><span class="lbl">${taxLabel} ${t("(ضمن الإجمالي)", "(included)")}</span><span class="amt">${amount(doc.taxTotal)}</span></div>`);
       }
     } else if (themed && needsBreakdown) {
       // subtotal → [discount] → [net] → VAT → grand (the EDG order)
-      rows.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${cur} ${money(discount > 0.005 ? listPrice : taxable)}</span></div>`);
+      rows.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${amount(discount > 0.005 ? listPrice : taxable)}</span></div>`);
       if (discount > 0.005) {
-        rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${cur} ${money(discount)}</span></div>`);
-        rows.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
+        rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${amount(discount)}</span></div>`);
+        rows.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${amount(taxable)}</span></div>`);
       }
-      if (showTaxAmount && tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+      if (showTaxAmount && tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${amount(doc.taxTotal)}</span></div>`);
     } else {
     if (discount > 0.005) {
-      rows.push(`<div class="r"><span class="lbl">${isQuote ? t("سعر القائمة", "List price") : t("الإجمالي قبل الخصم", "Total before discount")}</span><span class="amt">${cur} ${money(listPrice)}</span></div>`);
-      rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${cur} ${money(discount)}</span></div>`);
+      rows.push(`<div class="r"><span class="lbl">${isQuote ? t("سعر القائمة", "List price") : t("الإجمالي قبل الخصم", "Total before discount")}</span><span class="amt">${amount(listPrice)}</span></div>`);
+      rows.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">- ${amount(discount)}</span></div>`);
     }
     if (showTaxAmount) {
-      rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${cur} ${money(taxable)}</span></div>`);
-      if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${cur} ${money(doc.taxTotal)}</span></div>`);
+      rows.push(`<div class="r"><span class="lbl">${t("الخاضع للضريبة", "Taxable amount")}</span><span class="amt">${amount(taxable)}</span></div>`);
+      if (tpl.showTaxBreakdown !== false) rows.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${amount(doc.taxTotal)}</span></div>`);
     }
     }
-    rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("إجمالي الفاتورة", "Invoice total")}</span><span class="amt">${cur} ${money(doc.total)}</span></div>`);
+    rows.push(`<div class="r grand"><span class="lbl">${isQuote ? (orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. tax") : t("الإجمالي", "Total")) : t("إجمالي الفاتورة", "Invoice total")}</span><span class="amt">${amount(doc.total)}</span></div>`);
     if (!isQuote && paid > 0) {
-      rows.push(`<div class="r"><span class="lbl">${t("المسدَّد", "Paid")}</span><span class="amt">${cur} ${money(paid)}</span></div>`);
-      rows.push(`<div class="r due"><span class="lbl">${t("المتبقي", "Balance due")}</span><span class="amt">${cur} ${money(due)}</span></div>`);
+      rows.push(`<div class="r"><span class="lbl">${t("المسدَّد", "Paid")}</span><span class="amt">${amount(paid)}</span></div>`);
+      rows.push(`<div class="r due"><span class="lbl">${t("المتبقي", "Balance due")}</span><span class="amt">${amount(due)}</span></div>`);
       if (due <= 0) rows.push(`<div class="r"><span class="lbl">${t("حالة السداد", "Payment status")}</span><span>${t("مدفوعة بالكامل", "Paid in full")}</span></div>`);
       for (const receipt of doc.receipts || []) rows.push(`<div class="r"><span class="lbl">${bdi(receipt.number)} · ${esc(receipt.date)}</span><span class="amt">${esc(receipt.currency)} ${money(receipt.amount)}</span></div>`);
     }
@@ -1692,7 +1698,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const qrCaption = zatcaQr
       ? (isQuote ? t("رمز التحقق — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Verification QR — seller · VAT no. · date · total · tax.") : t("رمز الفاتورة الضريبية — اسم البائع · الرقم الضريبي · التاريخ · الإجمالي · الضريبة.", "Tax invoice QR — seller · VAT no. · date · total · tax."))
       : t("رمز التحقق من رقم المستند.", "Document verification code.");
-    const qrData = zatcaQr && identity ? `<dl class="qr-data"><dt>${t("البائع", "Seller")}</dt><dd>${bdi(org.legalName || org.name)}</dd><dt>${t("الرقم الضريبي", "VAT no.")}</dt><dd>${num(org.vatNumber || "")}</dd><dt>${t("الإجمالي شامل الضريبة", "Total incl. VAT")}</dt><dd>${num(`${cur} ${money(doc.total)}`)}</dd><dt>${t("مبلغ الضريبة", "VAT amount")}</dt><dd>${num(`${cur} ${money(doc.taxTotal)}`)}</dd></dl>` : "";
+    const qrData = zatcaQr && identity ? `<dl class="qr-data"><dt>${t("البائع", "Seller")}</dt><dd>${bdi(org.legalName || org.name)}</dd><dt>${t("الرقم الضريبي", "VAT no.")}</dt><dd>${num(org.vatNumber || "")}</dd><dt>${t("الإجمالي شامل الضريبة", "Total incl. VAT")}</dt><dd>${amount(doc.total)}</dd><dt>${t("مبلغ الضريبة", "VAT amount")}</dt><dd>${amount(doc.taxTotal)}</dd></dl>` : "";
     const notesHtml = doc.notes ? `<div class="notes">${bdi(doc.notes)}</div>` : "";
     const side = (qr ? `<div class="qr-side"><div class="qr">${qr}</div>${qrData || `<div>${qrCaption}</div>`}</div>` : "") + notesHtml;
     // tafqit strip · «فقط … سعوديًا لا غير» under the totals (identity templates · amountInWords ≠ false)
@@ -1727,7 +1733,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const paymentBlock = (): Block | null => {
     if (!link) return null;
     const settled = !isQuote && due <= 0;
-    const payAmount = `${cur} ${money(isQuote ? doc.total : Math.max(due, 0))}`;
+    const payAmount = `${amount(isQuote ? doc.total : Math.max(due, 0))}`;
     const payNote = settled
       ? t("هذه الفاتورة مسددة بالكامل. افتح الرابط لمراجعة المستند الأصلي وإثبات السداد.", "This invoice is fully paid. Open the link to review the original invoice and payment confirmation.")
       : t(`امسح الرمز أو افتح الرابط للدفع. المتبقي: ${payAmount}.`, `Scan the code or open the link to pay. Amount due: ${payAmount}.`);
@@ -1751,7 +1757,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const pct = p.percent ? `${qty(p.percent)}%` : "";
       const v = p.conditionValue || "";
       const cond = p.condition === "SIGNATURE" ? t("عند التوقيع", "On signature")
-        : p.condition === "PROGRESS" ? (v ? t(`عند إنجاز ${v}%`, `At ${v}% progress`) : t("حسب نسبة الإنجاز", "By progress"))
+        : p.condition === "PROGRESS" ? progressCondition(v, lang)
         : p.condition === "DELIVERY" ? t("عند التسليم", "On delivery")
         : p.condition === "DATE" ? (v ? t(`يستحق في ${v}`, `Due ${v}`) : "")
         : p.condition === "MILESTONE" ? (v ? t(`عند: ${v}`, `Milestone: ${v}`) : "")
@@ -1765,8 +1771,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
       // then a numbered explainer box (fill) and the optional flag line
       const chevron = `<div class="chev"><svg viewBox="0 0 12 24" aria-hidden="true"><path d="M2 2l8 10-8 10"/></svg></div>`;
       const pct = (p: PaymentPlanRow) => p.percent ? qty(p.percent) : (doc.total > 0 ? qty(Math.round((p.total / doc.total) * 1000) / 10) : "");
-      const cols = plan.map((p, i) => `<div class="stn"><div class="no">${String(i + 1).padStart(2, "0")}</div><div class="r"></div>${pct(p) ? `<div class="pc">${num(`${pct(p)}%`)}</div>` : ""}<div class="lb">${bdi(p.label)}</div><div class="am">${num(`${cur} ${money(p.total)}`)}</div></div>`).join(chevron);
-      const expl = `<div class="expl"><ol>${plan.map((p) => `<li><strong>${bdi(p.label)}</strong>${planNote(p) ? ` — ${bdi(planNote(p))}` : ""} · ${num(`${cur} ${money(p.total)}`)}</li>`).join("")}</ol></div>`;
+      const cols = plan.map((p, i) => `<div class="stn"><div class="no">${String(i + 1).padStart(2, "0")}</div><div class="r"></div>${pct(p) ? `<div class="pc">${num(`${pct(p)}%`)}</div>` : ""}<div class="lb">${bdi(p.label)}</div><div class="am">${amount(p.total)}</div></div>`).join(chevron);
+      const expl = `<div class="expl"><ol>${plan.map((p) => `<li><strong>${bdi(p.label)}</strong>${planNote(p) ? ` — ${bdi(planNote(p))}` : ""} · ${amount(p.total)}</li>`).join("")}</ol></div>`;
       const html = `<div class="h3">${t("خطة الدفع", "Payment plan")}</div><div class="stations">${cols}</div>${expl}${noteHtml}`;
       return { kind: "html", h: 16 + 42 + 8 + plan.length * 6 + (noteHtml ? 12 : 0), html };
     }
@@ -1801,6 +1807,15 @@ export function renderDocument(input: RenderInput): RenderOutput {
     return { kind: "html", h: 14 + dl.length * 5.5, html: `<div class="cards" style="grid-template-columns:1fr"><div class="card bank"><div class="t">${t("التحويل البنكي", "Bank transfer")}</div><dl>${dl.join("")}</dl></div></div>` };
   };
 
+  const deliveryOverrideBlock = (): Block | null => {
+    if (!isQuote || !doc.presentation) return null;
+    const facts = doc.presentation.deliveryFacts || [];
+    const note = doc.presentation.deliveryNote || "";
+    if (!facts.length && !note) return null;
+    const text = facts.map(f => `${f.label}: ${f.value}`).concat(note).join("\n");
+    return { kind: "html", h: 14 + textHeight(text, 168, 5, 2), html: `<div class="h3">${t("مدة التنفيذ", "Delivery")}</div><div class="note">${facts.map(f => `<div><strong>${bdi(f.label)}</strong>: ${bdi(f.value)}</div>`).join("")}${note ? `<p>${bdi(note)}</p>` : ""}</div>` };
+  };
+
   const companyBlock = (): Block => {
     const parts: string[] = [];
     parts.push(`<strong>${t("عن الجهة المُصدِرة:", "About the issuer:")}</strong> <strong>${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</strong>`);
@@ -1821,7 +1836,9 @@ export function renderDocument(input: RenderInput): RenderOutput {
     // hardcoded person. Arabic names have no glyphs in this Latin script face, so they
     // keep the bold sans instead of falling back to tofu.
     const sigImg = safeUrl(tpl.signatureUrl) || safeUrl(org.signatureUrl);
-    if (!tpl.signatoryName && !stamp && !sigImg) return null;
+    const clientRole = isQuote ? (ar ? tpl.clientRole : tpl.clientRoleEn) : undefined;
+    const clientSignature = clientRole ? `<div class="sig"><div class="k">${bdi(clientRole)}</div><div class="n">${bdi(clientName)}</div><div class="srule"></div><div class="o">${t("الاسم والصفة · التوقيع والختم · التاريخ", "Name & title · signature & stamp · date")}</div></div>` : "";
+    if (!tpl.signatoryName && !stamp && !sigImg && !clientSignature) return null;
     const nameIsLatin = tpl.signatoryName ? !hasArabic(tpl.signatoryName) : false;
     // The uploaded signature image always wins once it exists — even when no
     // signatory name was ever typed in — never fall through to a bare dash
@@ -1837,13 +1854,13 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const area = `<div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="${esc(tpl.signatoryName || orgName)}">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div>`;
       const sigI = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${area}<div class="srule"></div><div class="n bold">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="o role">${bdi(tpl.signatoryTitle)}</div>` : ""}${ar && identity && tpl.signatoryTitleAr ? `<div class="o small">${bdi(tpl.signatoryTitleAr)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o small">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
       const stI = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;
-      return { kind: "html", h: 52, html: `<div class="sig-cards">${ar ? stI + sigI : sigI + stI}</div>` };
+      return { kind: "html", h: 52 + (clientSignature ? 28 : 0), html: `<div class="sig-cards">${ar ? stI + sigI : sigI + stI}</div>${clientSignature}` };
     }
     // frameless by instruction · no .card wrapper on either block
-    const sig = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${nameHtml}${tpl.signatoryTitle ? `<div class="o">${bdi(tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
+    const sig = `<div class="sig"><div class="k">${t("ممثل الشركة", "Company representative")}</div>${nameHtml}${tpl.signatoryTitle ? `<div class="o">${bdi(ar ? tpl.signatoryTitleAr ?? tpl.signatoryTitle : tpl.signatoryTitle)}</div>` : ""}${(tpl.signatoryEmail || tpl.signatoryPhone) ? `<div class="c">${[tpl.signatoryEmail, tpl.signatoryPhone].filter(Boolean).map(esc).join(" · ")}</div>` : ""}<div class="o">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div></div>`;
     const st = `<div class="stamp"><div class="k">${t("ختم الشركة", "Company stamp")}</div><div class="stamp-box">${stamp ? `<img src="${esc(stamp)}" alt="">` : ""}</div></div>`;
     // stamp keeps the outer edge in both scripts (right in RTL · right in LTR)
-    return { kind: "html", h: 50, html: `<div class="sig-cards">${ar ? st + sig : sig + st}</div>` };
+    return { kind: "html", h: 50 + (clientSignature ? 28 : 0), html: `<div class="sig-cards">${ar ? st + sig : sig + st}</div>${clientSignature}` };
   };
 
   // Terms & conditions ALWAYS get their own standalone sheet (CEO 2026-09-08 · «سوي صفحة
@@ -1873,7 +1890,6 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // watermark / footer; "near the footer" notes are `bottom` blocks (budgeted, never overlapping).
   const identityQuote = identity && isQuote;
   const COLW = 182; // usable mm across the sheet
-  const sar = (v: number) => `${money(v)} ${cur === "SAR" ? t("ر.س", "SAR") : cur}`;
   const pageTitle = (a: string, e: string): Block => ({ kind: "html", h: 16.8, forceBreak: true, keepWithNext: true, html: `<div class="st"><div class="a">${esc(a)}</div><div class="e">${esc(e)}</div></div>` });
   const sectionHead = (a: string, e: string, sub = ""): Block => ({ kind: "html", h: sub ? 12.8 : 11.8, keepWithNext: true, html: `<div class="sh"><div class="a">${esc(a)}</div><div class="e">${esc(e)}${sub ? ` <span class="sub">· ${bdi(sub)}</span>` : ""}</div></div>` });
   const noteBox = (html: string, text: string, bottom = false, cls = "nb"): Block => ({ kind: "html", h: 10 + textHeight(text, COLW - 14, 5.0, 2.05), bottom, html: `<div class="${cls}">${html}</div>` });
@@ -1895,7 +1911,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const scopeText = String(doc.scope || "").trim() || ((ar ? tpl.coverIntro : (tpl.coverIntroEn || tpl.coverIntro)) || "").trim();
     if (scopeText || doc.title) {
       blocks.push(sectionHead(t("نطاق الأعمال", "Scope of work"), "SCOPE OF WORK"));
-      const fillTxt = (x: string) => esc(x).replace(/\{company\}/g, bdi(orgName)).replace(/\{client\}/g, bdi(clientName)).replace(/\{number\}/g, num(doc.number)).replace(/\{date\}/g, num(issue)).replace(/\{total\}/g, num(`${cur} ${money(doc.total)}`)).replace(/\{reference\}/g, num(doc.reference || "—")).replace(/\{title\}/g, bdi(doc.title || ""));
+      const fillTxt = (x: string) => esc(x).replace(/\{company\}/g, bdi(orgName)).replace(/\{client\}/g, bdi(clientName)).replace(/\{number\}/g, num(doc.number)).replace(/\{date\}/g, num(issue)).replace(/\{total\}/g, amount(doc.total)).replace(/\{reference\}/g, num(doc.reference || "—")).replace(/\{title\}/g, bdi(doc.title || ""));
       const titleLine = doc.title ? doc.title.split(/\r?\n/).filter(Boolean).join(" · ") : "";
       blocks.push({ kind: "html", h: (titleLine ? 6.8 : 0) + (scopeText ? 2 + textHeight(scopeText, COLW, 5.6, 2.0) : 0) + 2, html: `${titleLine ? `<div class="scope-t">${bdi(titleLine)}</div>` : ""}${scopeText ? `<p class="scope">${fillTxt(scopeText)}</p>` : ""}` });
     }
@@ -1908,11 +1924,11 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const parts = String(l.description || "").split(/\r?\n/);
       const headTxt = parts[0] || "";
       const rest = parts.slice(1).join("\n").trim();
-      const descWidth = lineBreakdown ? 57 : 83;
-      // Match the printed 1.4mm cell padding and 9pt text. The previous 15mm
-      // minimum charged short rows almost twice their actual height, stranding totals.
-      const h = 3.5 + Math.max(8, textHeight(headTxt, descWidth, 4.5, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 4.6, 1.55) : 0));
-      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(l.unit || t("عدد", "qty"))}</div>${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
+      const descWidth = lineBreakdown ? 54 : 83;
+      // Budget the measured 9pt line height and cell padding, including the
+      // narrower description column when per-line tax columns are visible.
+      const h = 3.5 + Math.max(8, textHeight(headTxt, descWidth, 5.0, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 5.0, 1.55) : 0));
+      return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(unitLabel(l.unit, lang))}</div>${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {
       const sec = l.sectionLabel || "";
@@ -1925,27 +1941,27 @@ export function renderDocument(input: RenderInput): RenderOutput {
       optional.forEach((l, i) => rows.push(boqRow(l, included.length + i)));
     }
     blocks.push({ kind: "table", open: lineBreakdown
-      ? `<table class="items boq tax-columns"><colgroup><col style="width:8mm"><col><col style="width:12mm"><col style="width:23mm"><col style="width:25mm"><col style="width:23mm"><col style="width:25mm"></colgroup>`
+      ? `<table class="items boq tax-columns"><colgroup><col style="width:8mm"><col><col style="width:23mm"><col style="width:21mm"><col style="width:23mm"><col style="width:21mm"><col style="width:23mm"></colgroup>`
       : `<table class="items boq"><colgroup><col style="width:12mm"><col><col style="width:20mm"><col style="width:30mm"><col style="width:32mm"></colgroup>`,
       head: `<thead><tr><th class="n">${t("البند", "#")}</th><th>${t("الوصف", "Description")}</th><th class="n">${t("الكمية", "Qty")}</th><th class="n">${t("سعر الوحدة", "Unit price")}${basisNote}</th>${amountHeads}</tr></thead>`,
-      headH: lineBreakdown ? 18 : 11, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع في الصفحة التالية", "continued on the next page")} …</div>` });
+      headH: lineBreakdown ? 19 : 11, rows, close: `</table>`, cont: `<div class="cont">${t("يتبع في الصفحة التالية", "continued on the next page")} …</div>` });
     // totals + tafqit (one unit) · then the QR card · then the tax note — the unit never splits
     const tr: string[] = [];
     if (inclusiveDoc && needsBreakdown) {
       // INCLUSIVE · see totalsBlock() — the identity sheet states it the same way:
       // الإجمالي → قيمة الخصم → الضريبة (ضمن الإجمالي) → الإجمالي شامل الضريبة.
-      tr.push(`<div class="r"><span class="lbl">${t("الإجمالي", "Total")}</span><span class="amt">${num(`${cur} ${money(listPrice)}`)}</span></div>`);
-      if (discount > 0.005) tr.push(`<div class="r disc"><span class="lbl">${t("قيمة الخصم", "Discount")}</span><span class="amt">${num(`${cur} ${money(discount)}-`)}</span></div>`);
-      if (showTaxAmount && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel} ${t("(ضمن الإجمالي)", "(included)")}</span><span class="amt">${num(`${cur} ${money(doc.taxTotal)}`)}</span></div>`);
+      tr.push(`<div class="r"><span class="lbl">${t("الإجمالي", "Total")}</span><span class="amt">${amount(listPrice)}</span></div>`);
+      if (discount > 0.005) tr.push(`<div class="r disc"><span class="lbl">${t("قيمة الخصم", "Discount")}</span><span class="amt">${amount(-discount)}</span></div>`);
+      if (showTaxAmount && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel} ${t("(ضمن الإجمالي)", "(included)")}</span><span class="amt">${amount(doc.taxTotal)}</span></div>`);
     } else if (needsBreakdown) {
-    tr.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${num(`${cur} ${money(discount > 0.005 ? listPrice : taxable)}`)}</span></div>`);
+    tr.push(`<div class="r"><span class="lbl">${t("المجموع الفرعي", "Subtotal")}</span><span class="amt">${amount(discount > 0.005 ? listPrice : taxable)}</span></div>`);
     if (discount > 0.005) {
-      tr.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">${num(`- ${cur} ${money(discount)}`)}</span></div>`);
-      tr.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${num(`${cur} ${money(taxable)}`)}</span></div>`);
+      tr.push(`<div class="r disc"><span class="lbl">${t("الخصم", "Discount")}</span><span class="amt">${amount(-discount)}</span></div>`);
+      tr.push(`<div class="r"><span class="lbl">${t("الصافي", "Net")}</span><span class="amt">${amount(taxable)}</span></div>`);
     }
-    if (showTaxAmount && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${num(`${cur} ${money(doc.taxTotal)}`)}</span></div>`);
+    if (showTaxAmount && tpl.showTaxBreakdown !== false) tr.push(`<div class="r"><span class="lbl">${taxLabel}</span><span class="amt">${amount(doc.taxTotal)}</span></div>`);
     }
-    tr.push(`<div class="r grand"><span class="lbl">${orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total")}</span><span class="amt">${num(`${cur} ${money(doc.total)}`)}</span></div>`);
+    tr.push(`<div class="r grand"><span class="lbl">${orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total")}</span><span class="amt">${amount(doc.total)}</span></div>`);
     const words = showWords && wordsCur ? `<div class="tafqit">${esc(amountInWordsFor(doc.total, lang, cur))}</div>` : "";
     blocks.push({ kind: "html", h: (tr.length - 1) * 7.6 + 11 + (words ? 9.8 : 0) + 4.5, html: `<div class="tot2"><div class="totals">${tr.join("")}</div>${words}</div>` });
     const zatca = orgTaxRegistered && !!doc.qrPayload;
@@ -1953,15 +1969,15 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const qr = qrText ? qrSvg(qrText) : "";
     if (qr) {
       const qrRows = zatca
-        ? [[t("اسم البائع", "Seller"), bdi(org.legalName || org.name)], [t("الرقم الضريبي", "VAT no."), num(org.vatNumber || "")], [t("الإجمالي شامل الضريبة", "Total incl. VAT"), num(`${money(doc.total)} ${cur}`)], [t("مقدار الضريبة", "VAT amount"), num(`${money(doc.taxTotal)} ${cur}`)]]
-        : [[t("رقم المستند", "Document no."), num(doc.number)], [t("التاريخ", "Date"), num(issue)], [t("الإجمالي", "Total"), num(`${money(doc.total)} ${cur}`)]];
+        ? [[t("اسم البائع", "Seller"), bdi(org.legalName || org.name)], [t("الرقم الضريبي", "VAT no."), num(org.vatNumber || "")], [t("الإجمالي شامل الضريبة", "Total incl. VAT"), amount(doc.total)], [t("مقدار الضريبة", "VAT amount"), amount(doc.taxTotal)]]
+        : [[t("رقم المستند", "Document no."), num(doc.number)], [t("التاريخ", "Date"), num(issue)], [t("الإجمالي", "Total"), amount(doc.total)]];
       const qrLead = zatca
         ? t("يحمل بيانات المنشأة والمبلغ بصيغة TLV المعتمدة من هيئة الزكاة والضريبة والجمارك، ويُقرأ بتطبيق التحقق من الفواتير.", "Carries core issuer and amount data in TLV format; this QR alone does not prove ZATCA clearance.")
         : t("رمز التحقق من رقم المستند.", "Document verification code.");
       blocks.push({ kind: "html", h: 43.5, html: `<div class="qrc"><div class="qrc-body"><div class="t">${t("رمز الاستجابة السريعة (QR)", "QR code")}</div><p>${qrLead}</p><dl class="qr-data">${qrRows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></div><div class="qr">${qr}</div></div>` });
     }
     const taxNote = String(doc.notes || tpl.notes || "").trim() || (orgTaxRegistered
-      ? t("الأسعار بالريال السعودي وغير شاملة ضريبة القيمة المضافة 15% المبيَّنة أعلاه. وتُصدَر الفاتورة الضريبية النظامية عند اعتماد العرض وتنفيذ الأعمال.", "Prices are in Saudi Riyals and exclude the 15% VAT shown above. The statutory tax invoice is issued on approval of this offer and execution of the works.")
+      ? t("العملة وطريقة احتساب الضريبة موضحتان في جدول الأسعار والإجماليات أعلاه. وتُصدَر الفاتورة الضريبية عند اعتماد العرض وتنفيذ الأعمال.", "Currency and tax treatment are stated in the pricing table and totals above. The tax invoice is issued on approval and execution of the works.")
       : t("الأسعار بالعملة المبيَّنة أعلاه، وتُصدَر الفاتورة عند اعتماد العرض وتنفيذ الأعمال.", "Prices are in the currency shown above; the invoice is issued on approval of this offer and execution of the works."));
     blocks.push(noteBox(bdi(taxNote), taxNote));
   };
@@ -1975,7 +1991,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const noteOf = (p: PaymentPlanRow) => planNoteOf(p) || "";
     if (stations && plan.length <= 4) {
       const chevron = `<div class="chev"><svg viewBox="0 0 12 24" aria-hidden="true"><path d="M2 2l8 10-8 10"/></svg></div>`;
-      const cols = plan.map((p, i) => `<div class="stn"><div class="no">${i + 1}</div><div class="r"></div>${pct(p) ? `<div class="pc">${num(`${pct(p)}%`)}</div>` : ""}<div class="lb">${bdi(p.label)}</div><div class="am">${noteOf(p) ? `${bdi(noteOf(p))} — ` : ""}${bdi(t("بقيمة", "amount"))} ${num(sar(p.total))}</div></div>`).join(chevron);
+      const cols = plan.map((p, i) => `<div class="stn"><div class="no">${i + 1}</div><div class="r"></div>${pct(p) ? `<div class="pc">${num(`${pct(p)}%`)}</div>` : ""}<div class="lb">${bdi(p.label)}</div><div class="am">${noteOf(p) ? `${bdi(noteOf(p))} — ` : ""}${bdi(t("بقيمة", "amount"))} ${amount(p.total)}</div></div>`).join(chevron);
       blocks.push({ kind: "html", h: 57, html: `<div class="stations">${cols}</div>` });
     } else {
       const rows = plan.map((p, i) => ({ h: 9, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td>${bdi(p.label)}${noteOf(p) ? `<div class="rest">${bdi(noteOf(p))}</div>` : ""}</td><td class="n">${pct(p) ? num(`${pct(p)}%`) : ""}</td><td class="n"><strong>${num(money(p.total))}</strong></td></tr>` }));
@@ -1983,19 +1999,19 @@ export function renderDocument(input: RenderInput): RenderOutput {
     }
     // explainer · auto-generated from the rows
     const items = plan.map((p, i) => ar
-      ? `الدفعة ${ordinalAr[i] || String(i + 1)} (${qty(Number(pct(p)) || 0)}% – ${money(p.total)} ر.س) تُستحق ${noteOf(p) || p.label}.`
+      ? `الدفعة ${ordinalAr[i] || String(i + 1)} (${qty(Number(pct(p)) || 0)}% – ${money(p.total)} ${currencyLabel}) تُستحق ${noteOf(p) || p.label}.`
       : `The ${ordinalEn[i] || String(i + 1)} instalment (${pct(p)}% – ${money(p.total)} ${cur}) falls due ${noteOf(p) || p.label}.`);
     items.push(t("التحويل باسم المنشأة على الحساب المذكور في هذا العرض — لا تُقبل التحويلات إلى حسابات أفراد.", "Transfers in the company's name to the account stated in this offer — transfers to personal accounts are not accepted."));
     if (orgTaxRegistered) items.push(t("تُصدَر فاتورة ضريبية نظامية عن كل دفعة عند استحقاقها.", "A statutory tax invoice is issued for every instalment when it falls due."));
     blocks.push({ kind: "html", h: 15 + items.reduce((a, it) => a + textHeight(it, COLW - 16, 5.2, 2.05), 0), html: `<div class="expl"><div class="t">${t("كيف تُحتسب الدفعات", "How the instalments are computed")}</div><ol>${items.map((it) => `<li>${bdi(it)}</li>`).join("")}</ol></div>` });
-    const pn = String(tpl.paymentPlanNote || "").trim() || t(`القيم أعلاه محسوبة من الإجمالي شامل الضريبة (${money(doc.total)} ر.س). خطة الدفع مقترحة وقابلة للتعديل بالاتفاق الكتابي.`, `The amounts above are computed from the total incl. VAT (${money(doc.total)} ${cur}). The plan is a proposal and can be adjusted in writing.`);
+    const pn = String(tpl.paymentPlanNote || "").trim() || t(`القيم أعلاه محسوبة من الإجمالي شامل الضريبة (${money(doc.total)} ${currencyLabel}). خطة الدفع مقترحة وقابلة للتعديل بالاتفاق الكتابي.`, `The amounts above are computed from the total incl. VAT (${money(doc.total)} ${cur}). The plan is a proposal and can be adjusted in writing.`);
     blocks.push(noteBox(bdi(pn), pn, true));
   };
   const planNoteOf = (p: PaymentPlanRow): string | null => {
     if (p.note) return p.note;
     const v = p.conditionValue || "";
     const cond = p.condition === "SIGNATURE" ? t("عند التوقيع", "on signature")
-      : p.condition === "PROGRESS" ? (v ? t(`عند إنجاز ${v}%`, `at ${v}% progress`) : t("حسب نسبة الإنجاز", "by progress"))
+      : p.condition === "PROGRESS" ? progressCondition(v, lang)
       : p.condition === "DELIVERY" ? t("عند التسليم", "on delivery")
       : p.condition === "DATE" ? (v ? t(`في ${v}`, `on ${v}`) : "")
       : p.condition === "MILESTONE" ? (v ? t(`عند: ${v}`, `at: ${v}`) : "")
@@ -2077,14 +2093,14 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const sum: Array<[string, string]> = [[t("رقم العرض", "Quotation no."), `<b>${num([doc.number, same(doc.reference2, doc.reference) ? "" : doc.reference2].filter(Boolean).join(" · "))}</b>`]];
     if (doc.reference) sum.push([t("رقم الفرصة / المرجع", "Opportunity / reference"), `<b>${num(doc.reference)}</b>`]);
     if (doc.title) sum.push([t("المشروع", "Project"), `<b>${bdi(doc.title.split(/\r?\n/).filter(Boolean).join(" · "))}</b>`]);
-    sum.push([orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), `<b>${num(`${money(doc.total)} ${cur}`)}</b>`]);
+    sum.push([orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), `<b>${amount(doc.total)}</b>`]);
     if (end) sum.push([t("صلاحية العرض", "Validity"), `<b>${t("حتى", "Until")} ${num(end)}</b>`]);
     blocks.push(kvTable(sum, "kv sum"));
     const sigImg = safeUrl(tpl.signatureUrl) || safeUrl(org.signatureUrl);
     const nameIsLatin = tpl.signatoryName ? !hasArabic(tpl.signatoryName) : false;
     const issuerCol = `<div class="sc"><div class="sarea">${sigImg ? `<img src="${esc(sigImg)}" alt="">` : (tpl.signatoryName && nameIsLatin ? `<div class="n pen">${bdi(tpl.signatoryName)}</div>` : "")}</div><div class="srule"></div><div class="nm">${bdi(tpl.signatoryName || orgName)}</div>${tpl.signatoryTitle ? `<div class="role">${bdi(tpl.signatoryTitle)}</div>` : ""}${ar && tpl.signatoryTitleAr ? `<div class="co">${bdi(tpl.signatoryTitleAr)}</div>` : ""}<div class="co">${bdi(ar ? org.name : (org.legalName || org.nameEn || org.name))}</div>${stamp ? `<div class="stamp-under"><img src="${esc(stamp)}" alt=""></div>` : ""}</div>`;
-    const clientCol = `<div class="sc"><div class="sarea"></div><div class="srule"></div><div class="nm">${t("عن الجهة المالكة", "For the owner")}</div><div class="role">Owner</div><div class="co">${bdi(clientName)}</div><div class="co">${t("الاسم والصفة · التوقيع والختم · التاريخ", "Name & title · signature & stamp · date")}</div></div>`;
-    blocks.push({ kind: "html", h: 50 + (stamp ? 42 : 0), html: `<div class="sigcols">${clientCol}${issuerCol}</div>` });
+    const clientCol = `<div class="sc"><div class="sarea"></div><div class="srule"></div><div class="nm">${bdi(ar ? tpl.clientRole ?? "عن العميل" : tpl.clientRoleEn ?? "For the client")}</div>${ar && tpl.clientRoleEn ? `<div class="role">${bdi(tpl.clientRoleEn)}</div>` : ""}<div class="co">${bdi(clientName)}</div><div class="co">${t("الاسم والصفة · التوقيع والختم · التاريخ", "Name & title · signature & stamp · date")}</div></div>`;
+    blocks.push({ kind: "html", h: 50 + (stamp ? 42 : 0), keepWithNext: true, html: `<div class="sigcols">${clientCol}${issuerCol}</div>` });
     const an = String(tpl.approvalNote || "").trim() || t(`اعتماد العرض: يكفي الرد كتابيًا بالاعتماد على هذا العرض برقمه ${doc.number}، أو إعادته موقَّعًا ومختومًا${tpl.signatoryEmail || org.email ? ` إلى ${tpl.signatoryEmail || org.email}` : ""}${tpl.signatoryPhone || org.phone ? ` أو عبر واتساب ${tpl.signatoryPhone || org.phone}` : ""}.`, `Approval: a written reply approving this offer by its number ${doc.number} is sufficient, or return it signed and stamped${tpl.signatoryEmail || org.email ? ` to ${tpl.signatoryEmail || org.email}` : ""}${tpl.signatoryPhone || org.phone ? ` or via WhatsApp ${tpl.signatoryPhone || org.phone}` : ""}.`);
     blocks.push(noteBox(`<b>${t("اعتماد العرض:", "Approval:")}</b> ${bdi(an.replace(/^(اعتماد العرض:|Approval:)\s*/, ""))}`, an, true));
   };
@@ -2110,6 +2126,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
   }
   if (!on("header") && doc.notes && !on("totals")) blocks.push({ kind: "html", h: 20, html: `<div class="notes">${bdi(doc.notes)}</div>` });
   }
+
+  if (!identityQuote) { const delivery = deliveryOverrideBlock(); if (delivery) blocks.push(delivery); }
 
   // ── free-form pages (CEO 2026-09-13) ──
   // Each page STARTS a fresh sheet (forceBreak) and flows through the same paginator, so a
@@ -2200,9 +2218,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // ── closing page (identity · themed templates) · image or solid navy · white mark · THANK YOU · facts strip ──
   if (themed) {
     // 3 outlined cards (reference closing): number · total incl. VAT · contact — then any template closingFacts
+    const closingTotalFact = { label: orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), value: `${money(doc.total)} ${currencyLabel}` };
     const auto: Array<{ label: string; value: string }> = [
       { label: isQuote ? t("رقم العرض", "Quotation no.") : t("رقم الفاتورة", "Invoice no."), value: doc.number },
-      { label: orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), value: `${money(doc.total)} ${cur}` },
+      closingTotalFact,
       { label: t("التواصل", "Contact"), value: [tpl.signatoryEmail || org.email, tpl.signatoryPhone || org.phone].filter(Boolean).join("\n") },
     ].filter((f) => f.value);
     const facts = [...auto, ...(Array.isArray(tpl.closingFacts) ? tpl.closingFacts : []).filter((f) => f && (f.label || f.value))].slice(0, 6);
@@ -2211,7 +2230,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const closingText = String(tpl.closingText || "").trim() || (isQuote
       ? t("يسعدنا الإجابة عن أي استفسار حول هذا العرض، ونتطلع إلى العمل معكم.", "We are glad to answer any question about this offer and look forward to working with you.")
       : t("نشكركم على تعاملكم معنا، ونبقى في خدمتكم لأي استفسار حول هذه الفاتورة.", "Thank you for your business — we remain at your service for any question about this invoice."));
-    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div>${subLine ? `<div class="sub">${bdi(subLine)}</div>` : ""}<p class="lead">${bdi(closingText)}</p>${facts.length ? `<div class="facts cards3">${facts.map((f) => `<div class="cd"><div class="k">${bdi(f.label)}</div><div class="v">${String(f.value).split("\n").map((v) => `<div>${num(v)}</div>`).join("")}</div></div>`).join("")}</div>` : ""}</div>`;
+    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div>${subLine ? `<div class="sub">${bdi(subLine)}</div>` : ""}<p class="lead">${bdi(closingText)}</p>${facts.length ? `<div class="facts cards3">${facts.map((f) => `<div class="cd"><div class="k">${bdi(f.label)}</div><div class="v">${f === closingTotalFact ? amount(doc.total) : String(f.value).split("\n").map((v) => `<div>${num(v)}</div>`).join("")}</div></div>`).join("")}</div>` : ""}</div>`;
     sheets.push({ cls: closingImage ? "dark closing cover-img" : "dark closing", body, closing: true, style: closingImage ? `background-image:url('${esc(closingImage)}')` : undefined });
   }
 
@@ -2231,7 +2250,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
 .edoc.idn .totals .r.grand,.edoc.idn .tot2 .totals .r.grand{border:0;border-radius:0;margin-top:0;padding:3mm;background:var(--fill)}
 .edoc.idn .st .e,.edoc.idn .sh .e:empty{display:none}
 ` : '';
-  const rawCss = `.edoc .draft-mark{position:absolute;top:43%;left:5%;right:5%;text-align:center;transform:rotate(-28deg);font-size:36pt;font-weight:800;opacity:.18;pointer-events:none;z-index:20;color:#a22}.edoc .sheet.dark .draft-mark{color:white}` + (socialHtml ? `.edoc .sheet[data-social-band="true"]{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
+  const rawCss = `.edoc .money-value{display:inline-flex;align-items:baseline;gap:1mm;direction:ltr;white-space:nowrap}.edoc .currency-label{font-family:var(--font-arabic);direction:rtl;font-size:.8em}.edoc table.items.boq.tax-columns td.n{padding-inline:1mm}.edoc .items .u{font-size:7.5pt;line-height:1.3;white-space:normal;overflow-wrap:anywhere}` + `.edoc .draft-mark{position:absolute;top:43%;left:5%;right:5%;text-align:center;transform:rotate(-28deg);font-size:36pt;font-weight:800;opacity:.18;pointer-events:none;z-index:20;color:#a22}.edoc .sheet.dark .draft-mark{color:white}` + (socialHtml ? `.edoc .sheet[data-social-band="true"]{padding-bottom:${(hs ? 27 : 20) + socialBand}mm!important}.edoc .social-band{position:absolute;left:14mm;right:14mm;bottom:${hs ? 28 : 22}mm;color:var(--muted)}` : "") + buildCss(brand, dark, input.fontBase || "/fonts", lang, !!input.embed, identity ? { theme: themed ? theme : null, extras: theme, hs, fam: hideBrand ? "Doc" : "Entix Doc" } : null) + ensidexDocumentCss;
   // hideProviderBranding · the stylesheet's own comments name the provider's reference sheets — strip them
   const css = hideBrand ? rawCss.replace(/\/\*[\s\S]*?\*\//g, "") : rawCss;
   const rootCls = `edoc${identity ? " idn" : ""}${hs ? " hs" : ""}${isQuote ? "" : " invoice"}`;
@@ -2338,8 +2357,10 @@ function planRows(plan: any, taxTotal: number, total: number): PaymentPlanRow[] 
   if (!items.length) return null;
   const taxShare = total > 0 ? taxTotal / total : 0;
   const r2 = roundDocumentMoney;
-  return items.map((it) => {
-    const amount = r2(n(it.amount) || (total * n(it.percent)) / 100);
+  const percents = items.map(it => n(it.percent));
+  const allocations = balancedPercentages(percents) ? allocatePayments(total, percents) : null;
+  return items.map((it, index) => {
+    const amount = allocations ? allocations[index] : r2(it.amount == null ? (total * n(it.percent)) / 100 : n(it.amount));
     const tax = r2(amount * taxShare);
     return {
       label: String(it.label || ""),
@@ -2371,6 +2392,7 @@ function deriveTaxBasis(lines: any[]): "inclusive" | "exclusive" | "mixed" | nul
 export function docFromQuote(q: any, qrPayload?: string | null): DocSpec {
   return {
     kind: "QUOTE",
+    presentation: q.presentation || null,
     number: q.quoteNumber || "",
     issueDate: isoDate(q.issueDate),
     endDate: isoDate(q.validUntil),
