@@ -1138,6 +1138,7 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc table.items.tax-columns th,.edoc table.items.tax-columns td{padding-inline:1.4mm;font-size:9pt}
 .edoc table.items.tax-columns th{font-size:8pt;line-height:1.4}
 .edoc table.items.tax-columns td.n{white-space:nowrap}
+.edoc table.items.tax-columns td.n:nth-last-child(-n+4){font-size:8pt}
 .edoc table.items.tax-columns .basis{display:block;font-size:7pt;white-space:normal;font-weight:400}
 .edoc table.items.tax-columns [data-line-rounding] td{font-size:8pt;color:var(--muted)}
 /* Invoice density matches itemsBlock() pagination; quote layouts retain their own geometry. */
@@ -1925,7 +1926,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
       const descWidth = lineBreakdown ? 54 : 83;
       // Budget the measured 9pt line height and cell padding, including the
       // narrower description column when per-line tax columns are visible.
-      const h = 3.5 + Math.max(8, textHeight(headTxt, descWidth, 5.2, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 5.2, 1.55) : 0));
+      const h = 3.5 + Math.max(8, textHeight(headTxt, descWidth, 5.0, 1.6) + (rest ? .5 + textHeight(rest, descWidth, 5.0, 1.55) : 0));
       return { h, html: `<tr><td class="n idx">${num(String(i + 1))}</td><td><div class="head">${bdi(headTxt)}</div>${rest ? `<div class="rest">${bdi(rest)}</div>` : ""}${l.code && !identity ? `<div class="code">${esc(l.code)}</div>` : ""}</td><td class="n"><div class="u">${bdi(unitLabel(l.unit, lang))}</div>${num(qty(l.quantity))}</td><td class="n">${num(unitMoney(l.unitPrice))}${priceBasis(l)}</td>${amountCells(l)}</tr>` };
     };
     included.forEach((l, i) => {

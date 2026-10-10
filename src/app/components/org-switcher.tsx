@@ -70,7 +70,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   const [seedMessage, setSeedMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const [demoConflict, setDemoConflict] = useState(false);
   // Starred default company (User.defaultOrgId) — sign-in always lands on it.
-  const [defaultOrgId, setDefaultOrgId] = useState<string | null>(null);
+  const [defaultOrgId, setDefaultOrgId] = useState<string | null>(() => authStore.getState().user?.defaultOrgId || null);
   const [starBusy, setStarBusy] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   // The portaled dropdown content renders at document.body — OUTSIDE
@@ -113,15 +113,10 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
   };
 
   useEffect(() => { refresh(); }, []);
-  // A preference lookup must not hide an already verified company indefinitely.
+  // The authenticated shell already verified /me. Both responsive switchers
+  // share that result instead of issuing two redundant preference requests.
   useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
-    void fetch(`${API_BASE_URL}/me`, { credentials: 'include', signal: controller.signal })
-      .then(async res => { if (res.ok) setDefaultOrgId((await res.json())?.defaultOrgId || null); })
-      .catch(() => {})
-      .finally(() => clearTimeout(timer));
-    return () => { clearTimeout(timer); controller.abort(); };
+    return authStore.subscribe(state => setDefaultOrgId(state.user?.defaultOrgId || null));
   }, []);
 
   // Close on outside click — checks BOTH the trigger container and the
@@ -187,7 +182,7 @@ export function OrgSwitcher({ className, variant = "sidebar" }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ defaultOrgId: next }),
       });
-      if (res.ok) setDefaultOrgId(next);
+      if (res.ok) authStore.setVerifiedDefaultOrgId(next);
     } catch {}
     finally { setStarBusy(null); }
   };

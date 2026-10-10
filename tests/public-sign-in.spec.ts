@@ -74,11 +74,12 @@ test('connector guide exposes sign-in on a narrow phone', async ({ page }) => {
 })
 
 
-test('root entry offers direct sign-in before choosing a market', async ({ page }) => {
+test('root entry offers direct sign-in in the remembered market', async ({ page }) => {
   await guest(page, 'en')
   await page.setViewportSize({ width: 320, height: 640 })
   await page.goto('/')
-  const login = page.getByRole('link', { name: /تسجيل الدخول.*Sign in/ })
+  const login = page.getByTestId('nav-sign-in-mobile')
+  await expect(login).toHaveText('Sign in')
   await expect(login).toBeInViewport()
   await login.click()
   await expect(page).toHaveURL(/\/login$/)
