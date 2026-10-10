@@ -61,11 +61,19 @@ export const normalizePagePath = (value: string) => {
 export const localizedPath = (market: PublicMarket, locale: PublicLocale, pagePath = "") =>
   `/${market}/${locale}${normalizePagePath(pagePath)}`;
 
+// The root document is the x-default entry of the hreflang cluster: it serves the
+// en-US landing itself (no client-side redirect for the default audience — PSI
+// "client-side redirect" + GSC "duplicate canonical" fix, 2026-10-10). Non-default
+// visitors are moved to their market by RootLanding after first paint.
+export const ROOT_MARKET: PublicMarket = "us";
+export const ROOT_LOCALE: PublicLocale = "en";
+
 export function parsePublicPath(pathname: string): {
   market: PublicMarket;
   locale: PublicLocale;
   pagePath: PublicPageDefinition["path"];
 } | null {
+  if (pathname === "/" || pathname === "") return { market: ROOT_MARKET, locale: ROOT_LOCALE, pagePath: "" };
   const match = pathname.match(/^\/([^/]+)\/([^/]+)(\/.*)?$/);
   if (!match || !isPublicMarket(match[1]) || !isPublicLocale(match[2])) return null;
   const pagePath = normalizePagePath(match[3] || "");

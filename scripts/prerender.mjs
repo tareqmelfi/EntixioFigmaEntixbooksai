@@ -110,6 +110,7 @@ try {
     }
   }
   writeSitemap()
+  writeEarlyHints()
   console.log(`prerender: ${renderedLegacy + 1}/${Object.keys(META).length} baseline routes and ${renderedLocalized} localized routes rendered`)
 } finally {
   if (browser) await browser.close().catch(() => {})
@@ -158,6 +159,7 @@ async function renderLegacyRoute(route, [title, description]) {
     html = replaceRequiredMeta(html, 'name', 'twitter:description', description, route)
     html = upsertCanonical(html, canonical, route)
     html = upsertRequiredMeta(html, 'property', 'og:url', canonical, route)
+    html = rewriteFontPreloads(html, /[\u0600-\u06ff]/.test(title) ? 'ar' : 'en')
     await validateLegacyContent(page, route)
     writeArtifact(route, html)
     console.log(`  ✓ ${route} (${Math.round(html.length / 1024)}KB legacy)`)
@@ -184,7 +186,9 @@ async function validateLegacyContent(page, route) {
 }
 
 async function renderNeutralRoot() {
-  await withRendererPage({ locale: 'en', region: 'SA' }, async (page) => {
+  // Root = x-default en-US landing (2026-10-10). Rendered with the US region so
+  // the document itself is the default-audience page — no client-side redirect.
+  await withRendererPage({ locale: 'en', region: 'US' }, async (page) => {
     await loadRoute(page, '/')
     let html = cleanPublicSeo(await page.content())
     html = setHtmlLanguage(html, 'en', 'ltr')
@@ -194,15 +198,18 @@ async function renderNeutralRoot() {
     html = replaceMeta(html, 'property', 'og:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
     html = replaceMeta(html, 'name', 'twitter:title', 'Entix Books · Arabic-first cloud accounting')
     html = replaceMeta(html, 'name', 'twitter:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
+    html = rewriteFontPreloads(html, 'en')
     html = insertHead(html, [
       `<link rel="canonical" href="${SITE_ORIGIN}/">`,
-      `<link rel="alternate" hreflang="x-default" href="${SITE_ORIGIN}/">`,
+      ...alternateLinks(''),
       `<meta property="og:url" content="${SITE_ORIGIN}/">`,
-      `<script type="application/ld+json" data-public-seo>${jsonLd({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'ENTIX.IO', url: `${SITE_ORIGIN}/` })}</script>`,
+      `<meta property="og:locale" content="en_US">`,
+      `<script type="application/ld+json" data-public-seo>${jsonLd({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'ENTIX.IO', url: `${SITE_ORIGIN}/`, inLanguage: ['en', 'ar'] })}</script>`,
     ])
-    assertAbsent(html, /priceCurrency|ZATCA|Saudi VAT|SAR/, '/', 'market-specific root metadata')
+    assertAbsent(html, /priceCurrency|ZATCA|Saudi VAT|\bSAR\b/, '/', 'market-specific root metadata')
+    assertAbsent(html, /data-page="market-locale-chooser"/, '/', 'legacy chooser markup')
     fs.writeFileSync(path.join(DIST, 'index.html'), html)
-    console.log('  ✓ / (neutral chooser)')
+    console.log("  ✓ / (root en-US landing · x-default)")
   })
 }
 
@@ -215,6 +222,7 @@ async function renderLocalizedRoute(market, locale, definition) {
     const canonical = canonicalUrl(market, locale, definition.path)
     let html = cleanPublicSeo(await page.content())
     html = setHtmlLanguage(html, locale, localeDirection(locale))
+    html = rewriteFontPreloads(html, locale)
     html = replaceTitle(html, title)
     html = replaceMeta(html, 'name', 'description', description)
     html = replaceMeta(html, 'property', 'og:title', title)
@@ -288,7 +296,9 @@ function hreflangCluster(pagePath) {
   const links = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.map((locale) =>
     `    <xhtml:link rel="alternate" hreflang="${locale}-${market.toUpperCase()}" href="${canonicalUrl(market, locale, pagePath)}" />`,
   ))
-  links.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${canonicalUrl('us', 'en', pagePath)}" />`)
+  // x-default is the root document for the landing cluster (matches the HTML
+  // alternate set exactly — a sitemap/HTML x-default mismatch is a GSC error).
+  links.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${pagePath ? canonicalUrl('us', 'en', pagePath) : `${SITE_ORIGIN}/`}" />`)
   return links
 }
 function writeSitemap() {
@@ -345,6 +355,35 @@ function writeSitemap() {
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     root, ...localized, ...legacy, ...staticDocs, '</urlset>', '',
   ].join('\n'))
+}
+// ── Font preloads per locale (LCP · 2026-10-10) ───────────────────────────
+// index.html preloads both scripts for the app shell. Public documents know
+// their language at build time, so only the faces painted above the fold on
+// that document are preloaded — an en-US visitor no longer downloads ~100KB of
+// Arabic glyphs before first paint, and vice versa.
+function fontPreloadsFor(locale) {
+  // Inside the function on purpose: top-level consts are in TDZ when the hoisted
+  // pipeline above runs (same reason writeSitemap computes its tables at call time).
+  return locale === 'ar'
+    ? ['IBMPlexSansArabic-400-arabic', 'IBMPlexSansArabic-600-arabic', 'IBMPlexSansArabic-700-arabic', 'IBMPlexSansArabic-400-latin']
+    : ['IBMPlexSans-400-latin', 'IBMPlexSans-600-latin', 'InstrumentSerif-400i-latin', 'InstrumentSerif-400-latin']
+}
+function rewriteFontPreloads(html, locale) {
+  const stripped = html.replace(/<link\b(?=[^>]*\brel=["']preload["'])(?=[^>]*\bas=["']font["'])[^>]*>\s*/gi, '')
+  const tags = fontPreloadsFor(locale).map((name) =>
+    `<link rel="preload" as="font" type="font/woff2" href="/fonts/${name}.woff2" crossorigin>`)
+  // Keep them early in <head> (right after the viewport meta) so discovery is immediate.
+  return stripped.replace(/(<meta\s+name=["']viewport["'][^>]*>)/i, `$1\n      ${tags.join('\n      ')}`)
+}
+// nginx `Link: rel=preload` header for the hashed stylesheet → Cloudflare Early
+// Hints (103) lets the browser fetch the render-blocking CSS before the HTML
+// body arrives (TTFB from the origin is ~1.4s for US visitors).
+function writeEarlyHints() {
+  const css = fs.readdirSync(path.join(DIST, 'assets')).filter((file) => /^index-[\w-]+\.css$/.test(file))
+  if (css.length !== 1) throw new Error(`expected exactly one index-*.css in dist/assets, found ${css.length}`)
+  const header = `add_header Link "</assets/${css[0]}>; rel=preload; as=style" always;\n`
+  fs.writeFileSync(path.resolve('nginx-early-hints.conf'), header)
+  console.log(`  ✓ early hints → /assets/${css[0]}`)
 }
 function jsonLd(value) { return JSON.stringify(value).replace(/</g, '\\u003c') }
 function escapeHtml(value) { return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;') }

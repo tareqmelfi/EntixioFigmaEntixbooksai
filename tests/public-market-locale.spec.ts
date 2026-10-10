@@ -39,17 +39,21 @@ test('manifest produces the complete deterministic market and locale matrix', ()
   }
 })
 
-test('neutral root is a chooser and does not silently select stored preferences', async ({ page }) => {
+test('root is the en-US landing and does not silently select stored preferences', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('entix-language', 'ar')
     localStorage.setItem('entix-marketing-region', 'SA')
   })
   await page.goto('/')
 
-  await expect(page.locator('main[data-page="market-locale-chooser"]')).toBeVisible()
+  // Playwright sets navigator.webdriver → the geo resolver never redirects here.
+  await expect(page).toHaveURL(/\/$/)
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr')
-  await expect(page.getByRole('link', { name: /United States.*English/i })).toHaveAttribute('href', '/us/en')
+  await expect(page.getByText('Cloud accounting for US businesses')).toBeVisible()
+  const navbar = page.getByRole('navigation')
+  await expect(navbar.getByRole('button', { name: /select country/i })).toContainText('United States')
+  expect(parsePublicPath('/')).toEqual({ market: 'us', locale: 'en', pagePath: '' })
 })
 
 test('explicit URL wins synchronously over localStorage', async ({ page }) => {

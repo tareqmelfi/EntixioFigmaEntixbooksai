@@ -72,12 +72,30 @@ test('auth raw artifacts contain no prerendered Turnstile runtime state', async 
   }
 })
 
-test('neutral root raw document has neutral metadata and x-default', async () => {
+test('root raw document is the en-US landing with the full hreflang cluster and x-default', async () => {
   const html = await readFile(path.join(dist, 'index.html'), 'utf8')
   expect(html).toContain('<html lang="en" dir="ltr">')
   expect(html).toContain('<link rel="canonical" href="https://entix.io/">')
   expect(html).toContain('hreflang="x-default" href="https://entix.io/"')
-  expect(html).not.toMatch(/priceCurrency|ZATCA|Saudi VAT|SAR/)
+  expect(html.match(/rel="alternate" hreflang=/g)).toHaveLength(5)
+  expect(html).not.toMatch(/priceCurrency|ZATCA|Saudi VAT|\bSAR\b/)
+  expect(html).not.toContain('data-page="market-locale-chooser"')
+  expect(html).toContain('Cloud accounting for US businesses')
+  // Only Latin faces are preloaded on an English document (LCP · 2026-10-10).
+  expect(html).not.toMatch(/rel="preload" as="font"[^>]*-arabic\.woff2/)
+  expect(html).toMatch(/rel="preload" as="font"[^>]*InstrumentSerif-400i-latin\.woff2/)
+})
+
+test('Arabic raw artifacts preload Arabic faces only', async () => {
+  const html = await readFile(artifact('/sa/ar'), 'utf8')
+  expect(html).toMatch(/rel="preload" as="font"[^>]*IBMPlexSansArabic-400-arabic\.woff2/)
+  expect(html).not.toMatch(/rel="preload" as="font"[^>]*InstrumentSerif/)
+})
+
+test('sitemap x-default matches the HTML alternate set (root document)', async () => {
+  const sitemap = await readFile(path.join(dist, 'sitemap.xml'), 'utf8')
+  expect(sitemap).not.toContain('hreflang="x-default" href="https://entix.io/us/en"')
+  expect(sitemap).toContain('hreflang="x-default" href="https://entix.io/"')
 })
 
 test('US English raw artifacts contain no Arabic codepoints or Saudi-only concepts', async () => {

@@ -24,6 +24,8 @@ mkdirSync(join(html, 'fonts'));
 writeFileSync(join(html, 'fonts', 'synthetic.woff2'), 'synthetic font');
 mkdirSync(join(html, 'assets'));
 writeFileSync(join(html, 'assets/index-abc123.js'), '// synthetic hashed bundle');
+// Early Hints snippet is generated per build by scripts/prerender.mjs; synthesize it here.
+writeFileSync(join(root, 'early-hints.conf'), 'add_header Link "</assets/index-abc123.css>; rel=preload; as=style" always;\n');
 
 async function withServer(conf, check) {
   writeFileSync(join(root, 'default.conf'), conf);
@@ -31,6 +33,7 @@ async function withServer(conf, check) {
   try {
     id = docker('run', '--rm', '-d', '-p', '127.0.0.1::80',
       '-v', `${join(root, 'default.conf')}:/etc/nginx/conf.d/default.conf:ro`,
+      '-v', `${join(root, 'early-hints.conf')}:/etc/nginx/snippets/early-hints.conf:ro`,
       '-v', `${html}:/usr/share/nginx/html:ro`, 'nginx:1.27-alpine');
     docker('exec', id, 'nginx', '-t');
     const base = `http://${docker('port', id, '80/tcp')}`;
@@ -58,6 +61,7 @@ try {
       assert.match(response.headers.get('cache-control') || '', /no-store/, route);
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff', route);
       assert.equal(response.headers.get('x-frame-options'), 'SAMEORIGIN', route);
+      if (route !== '/sw.js') assert.match(response.headers.get('link') || '', /rel=preload; as=style/, `${route} early-hints Link`);
     }
     const font = await fetch(`${base}/fonts/synthetic.woff2`);
     assert.equal(font.status, 200);

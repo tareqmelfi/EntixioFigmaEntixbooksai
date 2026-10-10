@@ -1,0 +1,39 @@
+name: Lighthouse · entix.io
+
+# Always-on performance/SEO monitoring of the live site (PERF-01 · 2026-10-10).
+# Runs weekly and on demand; fails the job when a page drops below the budgets
+# below so regressions surface in GitHub instead of in Search Console weeks later.
+on:
+  schedule:
+    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Lighthouse budgets (mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Audit live documents
+        id: lhci
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            https://entix.io/
+            https://entix.io/us/en
+            https://entix.io/sa/ar
+            https://entix.io/pricing
+            https://entix.io/solutions/restaurants
+          runs: 3
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          configPath: ./.lighthouserc.json
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Lighthouse links" >> "$GITHUB_STEP_SUMMARY"
+          echo '${{ steps.lhci.outputs.links }}' | tr ',' '\n' >> "$GITHUB_STEP_SUMMARY"

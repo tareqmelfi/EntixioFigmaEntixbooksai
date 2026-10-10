@@ -1,29 +1,33 @@
 import { useEffect } from "react";
-import { Link } from "react-router";
-import { EntixWordmark } from "../components/entix-brand";
-import { PublicLanguageToggle } from "../components/public-preference-selector";
 import { API_BASE_URL } from "../lib/api";
-import { localizedPath, type PublicLocale, type PublicMarket } from "../public-site-manifest";
+import { ROOT_LOCALE, ROOT_MARKET, localizedPath, type PublicLocale, type PublicMarket } from "../public-site-manifest";
+import { Landing } from "./landing";
 
 /**
- * The marketing root no longer asks visitors to pick a market — it resolves
- * automatically and replaces the history entry so Back never returns here.
- * The API resolves Cloudflare geo + browser language fresh on every visit
- * (Saudi + Arabic browser → /sa/ar · everyone else → English). A previously
- * STORED choice must NOT win here: it was usually written as a side effect of
- * an earlier canonical-page visit, and honoring it trapped visitors on the
- * wrong language with no obvious way out (user report 2026-08-21).
- * Network failure falls back to the browser language alone.
- * Bots/prerender (navigator.webdriver) are NOT redirected — they get the
- * static links below so every canonical page stays crawlable.
+ * Root document (`/`) — the x-default entry of the hreflang cluster.
+ *
+ * It renders the en-US landing itself instead of a "Taking you to your market…"
+ * chooser (2026-10-10). Reasons:
+ *   · PageSpeed/CrUX flagged the old root as a client-side redirect to /us/en.
+ *   · GSC reported "Duplicate, Google chose different canonical" for the root
+ *     because the chooser was thin content that canonicalled to itself.
+ *   · Every default-audience visit (US + English browser, Googlebot, PSI) now
+ *     paints real content on the first response with no redirect at all.
+ *
+ * Non-default audiences are still routed automatically: the API resolves
+ * Cloudflare geo + browser language (Saudi + Arabic browser → /sa/ar, Saudi +
+ * English → /sa/en, Arabic elsewhere → /us/ar). A previously STORED choice must
+ * NOT win here (user report 2026-08-21). Network failure falls back to the
+ * browser language alone. Bots/prerender (navigator.webdriver) never redirect.
  */
-export function MarketLocaleChooser() {
+export function RootLanding() {
   useEffect(() => {
     if (navigator.webdriver) return;
     let cancelled = false;
 
     const go = (market: PublicMarket, locale: PublicLocale) => {
       if (cancelled) return;
+      if (market === ROOT_MARKET && locale === ROOT_LOCALE) return; // already on the right document
       window.location.replace(localizedPath(market, locale));
     };
 
@@ -45,32 +49,8 @@ export function MarketLocaleChooser() {
     return () => { cancelled = true; };
   }, []);
 
-  return (
-    <main data-page="market-locale-chooser" className="min-h-screen bg-background px-5 py-14" dir="ltr">
-      <div className="mx-auto max-w-4xl">
-        <div className="flex justify-center"><EntixWordmark size={30} /></div>
-        <div className="mt-6 flex justify-center">
-          <Link to="/login" className="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-foreground px-6 py-2 text-background font-semibold transition-colors hover:bg-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-            <span lang="ar" dir="rtl">تسجيل الدخول</span>
-            <span aria-hidden="true">·</span>
-            <span lang="en">Sign in</span>
-          </Link>
-        </div>
-        <p className="mt-10 text-center text-sm font-medium text-content-secondary">
-          Taking you to your market… · جاري تحويلك لسوقك…
-        </p>
-        <div className="mt-6 flex justify-center">
-          <PublicLanguageToggle />
-        </div>
-        <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm font-semibold">
-          <Link to={localizedPath("sa", "ar")} className="rounded-full border border-border bg-card px-5 py-3 text-foreground transition hover:border-foreground hover:bg-surface-hover">
-            السعودية — العربية
-          </Link>
-          <Link to={localizedPath("us", "en")} className="rounded-full border border-border bg-card px-5 py-3 text-foreground transition hover:border-foreground hover:bg-surface-hover">
-            United States — English
-          </Link>
-        </div>
-      </div>
-    </main>
-  );
+  return <Landing />;
 }
+
+/** @deprecated kept for one release so stale imports fail loudly at type level rather than at runtime. */
+export const MarketLocaleChooser = RootLanding;

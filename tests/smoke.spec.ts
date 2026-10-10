@@ -5,11 +5,13 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Public Pages', () => {
-  test('neutral chooser and explicit market landing load', async ({ page }) => {
+  test('root en-US landing and explicit market landing load', async ({ page }) => {
     await page.goto('/')
     await expect(page).toHaveTitle(/entix/i)
-    await expect(page.locator('main[data-page="market-locale-chooser"]')).toBeVisible()
-    await expect(page.locator('a[href="/us/en"]')).toBeVisible()
+    // Root is the x-default en-US landing itself (no chooser, no client-side redirect).
+    await expect(page.locator('main')).toBeVisible()
+    await expect(page.getByText('Cloud accounting for US businesses')).toBeVisible()
+    await expect(page).toHaveURL(/\/$/)
 
     await page.goto('/us/en')
     await expect(page.locator('main')).toBeVisible()

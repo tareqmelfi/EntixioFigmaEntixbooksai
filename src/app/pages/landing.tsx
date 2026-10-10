@@ -487,8 +487,15 @@ export function Landing() {
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}
             className="lg:col-span-6 relative lg:mb-9"
           >
+            {/* LCP element · webp srcset + fetchpriority=high + intrinsic size (PSI 2026-10-10) */}
             <img
-              src="/marketing/hero-ledger.jpg"
+              src="/marketing/hero-ledger-1100.webp"
+              srcSet="/marketing/hero-ledger-640.webp 640w, /marketing/hero-ledger-960.webp 960w, /marketing/hero-ledger-1100.webp 1100w"
+              sizes="(min-width: 1280px) 600px, (min-width: 1024px) 50vw, 100vw"
+              width={1100}
+              height={733}
+              fetchPriority="high"
+              decoding="async"
               alt=""
               aria-hidden="true"
               className="w-full h-[240px] sm:h-[380px] lg:h-[560px] object-cover rounded-lg block"

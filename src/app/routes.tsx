@@ -9,7 +9,7 @@ import { Login } from "./pages/login";
 import { Register } from "./pages/register";
 import { ForgotPassword } from "./pages/forgot-password";
 import { ResetPassword } from "./pages/reset-password";
-import { MarketLocaleChooser } from "./pages/market-locale-chooser";
+import { RootLanding } from "./pages/market-locale-chooser";
 import { PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, localizedPath, type PublicPageKind } from "./public-site-manifest";
 
 // Route-level code splitting · every app/marketing page loads its own chunk on
@@ -127,8 +127,9 @@ function ProtectedRoot() {
 
 
 export const router = createBrowserRouter([
-  // Neutral entry point. Localized public URLs are generated from one manifest.
-  { path: "/", element: <MarketLocaleChooser />, errorElement: <ErrorBoundary /> },
+  // Root = x-default en-US landing (real content, no client-side redirect for the
+  // default audience). Localized public URLs are generated from one manifest.
+  { path: "/", element: <RootLanding />, errorElement: <ErrorBoundary /> },
   ...localizedPublicRoutes,
   // Legacy public subpages remain available without localized canonical claims.
   { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },

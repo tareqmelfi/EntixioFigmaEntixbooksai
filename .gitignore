@@ -16,3 +16,4 @@ qa-reports/
 # Test artifacts
 playwright-report/
 test-results/
+nginx-early-hints.conf

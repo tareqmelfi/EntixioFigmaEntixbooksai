@@ -361,7 +361,7 @@ export function Login() {
 
       {/* Ink panel · photograph, scrim, and the customer line */}
       <div className="hidden lg:block relative bg-foreground overflow-hidden">
-        <img src="/marketing/hero-ledger.jpg" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.55 }} />
+        <img src="/marketing/hero-ledger-960.webp" srcSet="/marketing/hero-ledger-640.webp 640w, /marketing/hero-ledger-960.webp 960w, /marketing/hero-ledger-1100.webp 1100w" sizes="(min-width: 1024px) 50vw, 100vw" width={1100} height={733} decoding="async" alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover" style={{ opacity: 0.55 }} />
         <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, color-mix(in srgb, var(--foreground) 10%, transparent), color-mix(in srgb, var(--foreground) 90%, transparent))" }} />
         <div className="absolute inset-x-16 bottom-14 flex flex-col gap-3.5 text-background">
           <p className={language === "en"
