@@ -82,7 +82,7 @@ jobs:
       - run: npm ci
         env:
           PUPPETEER_SKIP_DOWNLOAD: 'true'
-      - run: npx playwright test tests/visual-regression.spec.ts --project=chromium --reporter=list
+      - run: npx playwright test tests/visual-regression.spec.ts tests/invoice-print-density.spec.ts tests/quote-money-layout.spec.ts --project=chromium --reporter=list
         env:
           CI: 'true'
           VISUAL_REGRESSION: '1'
@@ -106,7 +106,7 @@ jobs:
         with: { node-version: '22', cache: 'npm' }
       - run: npm ci
       - run: npx playwright install chromium
-      - run: npx playwright test tests/visual-regression.spec.ts --project=chromium --reporter=list
+      - run: npx playwright test tests/visual-regression.spec.ts tests/invoice-print-density.spec.ts tests/quote-money-layout.spec.ts --project=chromium --reporter=list
         env:
           CI: 'true'
           VISUAL_REGRESSION: '1'

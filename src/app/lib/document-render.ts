@@ -1145,6 +1145,7 @@ function buildCss(brand: string, dark: string, fontBase: string, lang: DocLang, 
 .edoc.invoice .doc-head{padding-bottom:3mm;margin-bottom:3mm}
 .edoc.invoice .meta-strip{margin-bottom:3mm}
 .edoc.invoice .pgflow > :last-child{margin-bottom:0}
+.edoc.invoice .totals-row .notes:last-child{margin-bottom:0}
 .edoc.invoice table.items td{padding-top:1.4mm;padding-bottom:1.4mm;line-height:1.45}
 .edoc.invoice table.items .rest{line-height:1.5}
 /* per-line product image / mark · bare on the paper (LOGO FRAME LAW: no box, no plate) */
