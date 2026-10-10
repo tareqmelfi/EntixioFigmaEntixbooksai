@@ -2217,9 +2217,10 @@ export function renderDocument(input: RenderInput): RenderOutput {
   // ── closing page (identity · themed templates) · image or solid navy · white mark · THANK YOU · facts strip ──
   if (themed) {
     // 3 outlined cards (reference closing): number · total incl. VAT · contact — then any template closingFacts
+    const closingTotalFact = { label: orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), value: `${money(doc.total)} ${currencyLabel}` };
     const auto: Array<{ label: string; value: string }> = [
       { label: isQuote ? t("رقم العرض", "Quotation no.") : t("رقم الفاتورة", "Invoice no."), value: doc.number },
-      { label: orgTaxRegistered ? t("الإجمالي شامل الضريبة", "Total incl. VAT") : t("الإجمالي", "Total"), value: `${money(doc.total)} ${cur}` },
+      closingTotalFact,
       { label: t("التواصل", "Contact"), value: [tpl.signatoryEmail || org.email, tpl.signatoryPhone || org.phone].filter(Boolean).join("\n") },
     ].filter((f) => f.value);
     const facts = [...auto, ...(Array.isArray(tpl.closingFacts) ? tpl.closingFacts : []).filter((f) => f && (f.label || f.value))].slice(0, 6);
@@ -2228,7 +2229,7 @@ export function renderDocument(input: RenderInput): RenderOutput {
     const closingText = String(tpl.closingText || "").trim() || (isQuote
       ? t("يسعدنا الإجابة عن أي استفسار حول هذا العرض، ونتطلع إلى العمل معكم.", "We are glad to answer any question about this offer and look forward to working with you.")
       : t("نشكركم على تعاملكم معنا، ونبقى في خدمتكم لأي استفسار حول هذه الفاتورة.", "Thank you for your business — we remain at your service for any question about this invoice."));
-    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div>${subLine ? `<div class="sub">${bdi(subLine)}</div>` : ""}<p class="lead">${bdi(closingText)}</p>${facts.length ? `<div class="facts cards3">${facts.map((f) => `<div class="cd"><div class="k">${bdi(f.label)}</div><div class="v">${String(f.value).split("\n").map((v) => `<div>${num(v)}</div>`).join("")}</div></div>`).join("")}</div>` : ""}</div>`;
+    const body = `<div class="cl"><div class="mark">${mark}</div><div class="eyebrow">THANK YOU</div><div class="h1">${t("شكرًا لثقتكم", "Thank you for your trust")}</div>${subLine ? `<div class="sub">${bdi(subLine)}</div>` : ""}<p class="lead">${bdi(closingText)}</p>${facts.length ? `<div class="facts cards3">${facts.map((f) => `<div class="cd"><div class="k">${bdi(f.label)}</div><div class="v">${f === closingTotalFact ? amount(doc.total) : String(f.value).split("\n").map((v) => `<div>${num(v)}</div>`).join("")}</div></div>`).join("")}</div>` : ""}</div>`;
     sheets.push({ cls: closingImage ? "dark closing cover-img" : "dark closing", body, closing: true, style: closingImage ? `background-image:url('${esc(closingImage)}')` : undefined });
   }
 

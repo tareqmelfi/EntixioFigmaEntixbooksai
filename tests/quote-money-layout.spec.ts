@@ -6,6 +6,7 @@ for (const lang of ['ar', 'en'] as const) test(`million-value quotation cells fi
   input.fontBase = 'http://localhost:' + (process.env.ENTIX_DEV_PORT || '5173') + '/fonts';
   input.org.vatNumber = '300000000000003';
   input.doc.lines = [{ ...input.doc.lines[0], description: 'B01-16 concrete works', quantity: 5125, unitPrice: 299, netAmount: 1532375, taxAmount: 229856.25, subtotal: 1762231.25, taxRate: .15, unit: 'm3' }];
+  input.doc.currency = 'SAR';
   input.doc.subtotal = 1532375;
   input.doc.taxTotal = 229856.25;
   input.doc.total = 1762231.25;
@@ -15,4 +16,6 @@ for (const lang of ['ar', 'en'] as const) test(`million-value quotation cells fi
   await expect(page.locator('table.items.tax-columns')).toContainText('1,762,231.25');
   const overflow = await page.locator('table.items td.n').evaluateAll(cells => cells.filter(cell => cell.scrollWidth > cell.clientWidth + 2).map(cell => cell.textContent));
   expect(overflow).toEqual([]);
+  await expect(page.locator('.closing .money-value')).toContainText(lang === 'ar' ? '1,762,231.25 ريال سعودي' : '1,762,231.25 SAR');
+  await expect(page.locator('.closing .currency-label')).toHaveAttribute('dir', 'auto');
 });
