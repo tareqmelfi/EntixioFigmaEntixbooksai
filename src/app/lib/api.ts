@@ -913,7 +913,7 @@ export const api = {
     overview: (after?: string) => request<{ items: import('./quote-overview').QuoteOverview[]; nextCursor: string | null }>('/api/quotes/overview', { query: { after } }),
     list: (params?: { status?: string }) =>
       request<{ items: Quote[]; total: number }>('/api/quotes', { query: params }),
-    get: (id: string) => request<Quote>(`/api/quotes/${id}`),
+    get: (id: string, companyId?: string) => request<Quote>(`/api/quotes/${id}`, companyId ? { skipOrg: true, headers: reportScopeHeaders(companyId) } : {}),
     create: (data: QuoteInput) =>
       request<Quote>('/api/quotes', { method: 'POST', body: data }),
     update: (id: string, data: Partial<QuoteInput>) =>
@@ -1224,8 +1224,13 @@ export const api = {
      *  `identityTier` (2026-09-14) gates the premium identity controls in the designer */
     defaults: () => request<{ QUOTE: DocumentTemplate | null; INVOICE: DocumentTemplate | null; identityTier?: IdentityTier }>('/api/document-templates/defaults'),
     /** Server-rendered print HTML (same engine as the web print views) */
-    render: (kind: 'QUOTE' | 'INVOICE', docId: string, params?: { templateId?: string | null; lang?: 'ar' | 'en'; actions?: 0 | 1 }) =>
-      request<string>(`/api/document-templates/render/${kind}/${docId}`, { query: params as any }),
+    render: (kind: 'QUOTE' | 'INVOICE', docId: string, params?: { templateId?: string | null; lang?: 'ar' | 'en'; actions?: 0 | 1; orgId?: string }) => {
+      const { orgId: companyId, ...query } = params || {};
+      return request<string>(`/api/document-templates/render/${kind}/${docId}`, {
+        query,
+        ...(companyId ? { skipOrg: true, headers: reportScopeHeaders(companyId) } : {}),
+      });
+    },
     get: (id: string) => request<DocumentTemplate>(`/api/document-templates/${id}`),
     create: (data: DocumentTemplatePayload) => request<DocumentTemplate>('/api/document-templates', { method: 'POST', body: data }),
     /** 422 `plan_required` → the org's plan does not include the premium identity fields sent */

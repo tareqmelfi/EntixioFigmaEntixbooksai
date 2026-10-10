@@ -9,7 +9,7 @@ export function parseQuotePresentation(html: string): QuotePresentation {
   if (!root) throw new Error("تعذّر تحميل المستند الكامل");
   return { html, hash: doc.querySelector('meta[name="entix-document-hash"]')?.getAttribute("content") || "", pages: root.querySelectorAll(".sheet").length, title: doc.title, lang: doc.documentElement.lang || "ar" };
 }
-export async function loadQuotePresentation(id: string, params?: { templateId?: string | null; lang?: "ar" | "en" }) {
+export async function loadQuotePresentation(id: string, params?: { templateId?: string | null; lang?: "ar" | "en"; orgId?: string }) {
   return parseQuotePresentation(await api.documentTemplates.render("QUOTE", id, { ...params, actions: 0 }));
 }
 

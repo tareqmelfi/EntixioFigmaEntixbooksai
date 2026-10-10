@@ -11,7 +11,7 @@ import { loadQuotePresentation, QuoteDocument, type QuotePresentation } from "..
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router";
 import { Loader2, Printer, X } from "lucide-react";
-import { api, Quote, bootstrapOrgIdFromStorage, setOrgId } from "../lib/api";
+import { api, Quote, bootstrapOrgIdFromStorage } from "../lib/api";
 
 
 import { waitForPrintReady } from "../lib/print-image";
@@ -27,35 +27,38 @@ export function QuoteProposalPrint() {
   const noPrint = searchParams.get("noprint") === "1";
   const embed = searchParams.get("embed") === "1";
   const templateParam = searchParams.get("templateId");
+  const requestedOrg = searchParams.get("orgId");
 
   useEffect(() => {
     if (!id) return;
     (async () => {
       try {
-        const requestedOrg = searchParams.get("orgId");
-        if (requestedOrg) setOrgId(requestedOrg, false); else bootstrapOrgIdFromStorage();
+        // Pin both reads to the document company: auth refresh may select a
+        // different tab company while the first request is in flight.
+        let documentOrg = requestedOrg || bootstrapOrgIdFromStorage() || undefined;
         let q: Quote | null = null;
         try {
-          q = await api.quotes.get(id);
+          q = await api.quotes.get(id, documentOrg);
         } catch (error) {
           if (requestedOrg) throw error;
           const meRes = await fetch(`${import.meta.env.VITE_API_URL || "https://api.entix.io"}/me`, { credentials: "include" });
           const me = meRes.ok ? await meRes.json() : null;
           for (const m of me?.memberships || []) {
             if (!m?.org?.id) continue;
-            // Preview frames share storage with the parent tab; lookup is temporary.
-            setOrgId(m.org.id, false);
-            try { q = await api.quotes.get(id); if (q) break; } catch { /* try next */ }
+            try {
+              q = await api.quotes.get(id, m.org.id);
+              if (q) { documentOrg = m.org.id; break; }
+            } catch { /* try next */ }
           }
         }
         if (!q) throw new Error("not_found");
         setQuote(q);
-        setPresentation(await loadQuotePresentation(q.id, { templateId: templateParam, lang: langOverride === "ar" || langOverride === "en" ? langOverride : undefined }));
+        setPresentation(await loadQuotePresentation(q.id, { orgId: q.orgId || documentOrg, templateId: templateParam, lang: langOverride === "ar" || langOverride === "en" ? langOverride : undefined }));
       } catch {
         setError("العرض غير متاح — تأكد من تسجيل الدخول");
       }
     })();
-  }, [id, langOverride, templateParam]);
+  }, [id, langOverride, templateParam, requestedOrg]);
 
   const lang = presentation?.lang || "ar";
   useEffect(() => { if (presentation) document.title = presentation.title; }, [presentation]);
