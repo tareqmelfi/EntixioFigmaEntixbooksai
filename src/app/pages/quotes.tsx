@@ -1,3 +1,5 @@
+import { QuoteDocumentOptions, QuoteLineUnits, type QuoteEditorLine } from '../components/quote-document-options';
+import { allocatePayments, type QuotePresentation } from '../lib/quote-document-fields';
 import { QuoteSignaturePlacement, type SignatureSelection } from "../components/quote-signature-placement";
 import { ContactProfileLink } from "../components/contact-profile-link";
 import { SignatureHistory } from "../components/signature-history";
@@ -107,6 +109,8 @@ const planFromApi = (plan: PaymentPlan | null | undefined): PlanRow[] =>
   }));
 
 const EMPTY_FORM = {
+  presentation: {} as QuotePresentation,
+  language: "" as "" | "ar" | "en",
   originProjectId: "",
   contactId: "",
   /**
@@ -152,6 +156,7 @@ function PaymentPlanFields({
   const { t } = useLanguage();
   const sum = planPercentSum(rows);
   const balanced = rows.length === 0 || Math.abs(sum - 100) <= 0.01;
+  const amounts = balanced ? allocatePayments(total, rows.map(r => Number(normalizeDigits(r.percent)) || 0)) : rows.map(r => total * (Number(normalizeDigits(r.percent)) || 0) / 100);
   const setRow = (i: number, patch: Partial<PlanRow>) => setRows(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
   return (
     <section className="space-y-2" data-testid="quote-payment-plan">
@@ -193,19 +198,18 @@ function PaymentPlanFields({
               <div className="cell h">{t("طريقة المطالبة", "Billing")}</div>
               <div className="cell h" aria-hidden="true" />
               {rows.map((r, i) => {
-                const pct = Number(normalizeDigits(r.percent)) || 0;
                 return (
                   <div key={r.key} className="contents">
                     <div className="cell"><Input value={r.label} disabled={disabled} onChange={(e) => setRow(i, { label: e.target.value })} className="text-[13px]" placeholder={t("دفعة أولى عند التوقيع", "Advance on signature")} data-testid={`quote-plan-label-${i}`} /></div>
                     <div className="cell n"><Input value={r.percent} disabled={disabled} dir="ltr" inputMode="decimal" onChange={(e) => setRow(i, { percent: normalizeDigits(e.target.value) })} className="text-[13px] font-english text-end" data-testid={`quote-plan-percent-${i}`} /></div>
-                    <div className="cell n font-english text-foreground" data-testid={`quote-plan-amount-${i}`}>{money2((total * pct) / 100)}</div>
+                    <div className="cell n font-english text-foreground" data-testid={`quote-plan-amount-${i}`}>{money2(amounts[i])}</div>
                     <div className="cell">
                       <Select value={r.condition} onValueChange={(v) => setRow(i, { condition: v as PaymentCondition })} disabled={disabled}>
                         <SelectTrigger className="h-8 border-0 bg-transparent px-0 text-[13px] shadow-none"><SelectValue /></SelectTrigger>
                         <SelectContent>{CONDITIONS.map((c) => <SelectItem key={c.value} value={c.value}>{t(c.ar, c.en)}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
-                    <div className="cell"><Input value={r.conditionValue} disabled={disabled} onChange={(e) => setRow(i, { conditionValue: e.target.value })} className="text-[13px]" placeholder={r.condition === "PROGRESS" ? "50" : ""} /></div>
+                    <div className="cell"><Input value={r.conditionValue} disabled={disabled} onChange={(e) => setRow(i, { conditionValue: e.target.value })} className="text-[13px]" placeholder={r.condition === "PROGRESS" ? t("نسبة أو وصف الاستحقاق", "Percent or payment condition") : ""} /></div>
                     <div className="cell">
                       <Select value={r.billingMethod} onValueChange={(v) => setRow(i, { billingMethod: v as PaymentBillingMethod })} disabled={disabled}>
                         <SelectTrigger className="h-8 border-0 bg-transparent px-0 text-[13px] shadow-none"><SelectValue /></SelectTrigger>
@@ -280,7 +284,7 @@ export function Quotes() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [createError, setCreateError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [lines, setLines] = useState<InvoiceLine[]>([newLine()]);
+  const [lines, setLines] = useState<QuoteEditorLine[]>([newLine()]);
   const [taxMode, setTaxMode] = useState<TaxMode>("all-exclusive");
   // Locale-pure defaults (CEO 2026-08-25): a US company never opens on SAR / 15% VAT.
   const { isUS, currency: orgCurrency } = useOrgRegion();
@@ -305,7 +309,7 @@ export function Quotes() {
     open: createOpen,
     snapshot: { form, lines, taxMode, planRows, planTemplateId },
     restore: (s) => {
-      setForm(s.form); setLines(s.lines); setTaxMode(s.taxMode);
+      setForm({ ...EMPTY_FORM, ...s.form }); setLines(s.lines); setTaxMode(s.taxMode);
       if (Array.isArray(s.planRows)) setPlanRows(s.planRows);
       if (s.planTemplateId !== undefined) setPlanTemplateId(s.planTemplateId);
     },
@@ -477,6 +481,8 @@ export function Quotes() {
       const full = (q.lines as any[])?.length ? q : await api.quotes.get(q.id);
       setForm({
         ...EMPTY_FORM,
+        presentation: (full as any).presentation || {},
+        language: (full as any).language || "",
         contactId: full.contact?.id || (full as any).contactId || "",
         title: (full as any).title || "",
         quoteNumber: full.quoteNumber || "",
@@ -495,6 +501,10 @@ export function Quotes() {
       const ls = ((full.lines as any[]) || []).map((l: any) => ({
         id: l.id || Math.random().toString(36).slice(2),
         productId: l.productId || undefined,
+        unit: l.unit || null,
+        sectionLabel: l.sectionLabel || null,
+        included: l.included !== false,
+        isOptional: l.isOptional === true,
         description: l.description || "",
         quantity: String(l.quantity ?? 1),
         // unitPrice is stored as typed; the line flag says whether it includes tax.
@@ -544,7 +554,8 @@ export function Quotes() {
   const handleFullPreview = async () => {
     const q = await handleSubmit("draft", { stayOpen: true });
     if (!q) return;
-    const params = new URLSearchParams({ noprint: "1", embed: "1", lang: language });
+    const params = new URLSearchParams({ noprint: "1", embed: "1" });
+    if (form.language) params.set("lang", form.language);
     if (form.templateId) params.set("templateId", form.templateId);
     setFullPreviewUrl(`/print/proposal/${encodeURIComponent(q.id)}?${params}`);
   };
@@ -583,7 +594,14 @@ export function Quotes() {
         // 400 on a 400 subtotal instead of 460 (CEO screenshot 2026-09-08).
         // The API stores the net itself, so the typed price is sent as typed and
         // `taxInclusive` says how to read it.
-        lines: validLines.map((l) => ({
+        presentation: form.presentation,
+        language: form.language || null,
+        lines: validLines.map((l, index) => ({
+          unit: l.unit || "each",
+          sortOrder: index,
+          sectionLabel: l.sectionLabel || null,
+          included: l.included !== false,
+          isOptional: l.isOptional === true,
           productId: l.productId || null,
           description: l.description,
           quantity: Number(normalizeDigits(l.quantity)) || 1,
@@ -820,7 +838,7 @@ export function Quotes() {
         onClose={() => setFullPreviewUrl(null)}
         footer={<div className="flex items-center gap-2">
           <Button type="button" variant="outline" onClick={() => setFullPreviewUrl(null)} data-testid="quote-preview-back">{t("العودة للتحرير", "Back to editing")}</Button>
-          <a href={`${fullPreviewUrl.split("?")[0]}?lang=${language}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-primary">
+          <a href={(() => { const url = new URL(fullPreviewUrl, window.location.origin); url.searchParams.delete("noprint"); url.searchParams.delete("embed"); return url.pathname + url.search; })()} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm text-primary">
             <Printer className="h-4 w-4" /> {t("طباعة / PDF", "Print / PDF")}
           </a>
         </div>}
@@ -941,6 +959,11 @@ export function Quotes() {
                 <Label className="text-foreground/80 text-xs">{t("الفرع", "Branch")}</Label>
                 <BranchField compact value={form.branchId} onChange={(id) => setForm((f) => ({ ...f, branchId: id }))} />
               </div>
+              <label className="space-y-1.5 text-xs">{t("لغة المستند", "Document language")}
+                <select className="w-full h-9 border border-border rounded-md bg-card px-2" data-testid="quote-language" value={form.language} onChange={e => setForm({...form,language:e.target.value as typeof form.language})}>
+                  <option value="">{t("لغة القالب أو الشركة", "Template or company default")}</option><option value="ar">العربية</option><option value="en">English</option>
+                </select>
+              </label>
               <div className="space-y-1.5" data-testid="quote-template-field">
                 <Label className="text-foreground/80 text-xs">{t("قالب المستند", "Document template")}</Label>
                 {/* Brand templates (designer · /app/templates) · empty = org default for quotes */}
@@ -981,6 +1004,9 @@ export function Quotes() {
               }}
             />
 
+            <QuoteLineUnits lines={lines} onChange={setLines} />
+            <QuoteDocumentOptions value={form.presentation} onChange={presentation => setForm(f => ({...f,presentation}))} template={docTemplates.find(x => x.id === form.templateId) || docTemplates.find(x => x.isDefault)} />
+
             <DocumentDropZone
               compact
               target="quote-lines"
@@ -993,8 +1019,9 @@ export function Quotes() {
                   push("info", t("لم يتم استخراج بنود من المستند", "No line items were extracted from the document"));
                   return;
                 }
-                const newLines: InvoiceLine[] = data.lines.map((l: any) => ({
+                const newLines: QuoteEditorLine[] = data.lines.map((l: any) => ({
                   id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                  unit: l.unit || null,
                   description: l.description || "",
                   quantity: String(l.quantity || 1),
                   unitPrice: String(l.unitPrice || 0),
