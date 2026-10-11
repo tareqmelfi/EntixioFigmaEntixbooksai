@@ -26,6 +26,7 @@ import { displayLocale, displayDigits } from "../lib/number-display";
  */
 import { useRef, useState, useMemo, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from "react";
 import { Plus, Trash2, Settings2, Square, SquareCheck, Building2 } from "lucide-react";
+import { LineUnitPicker } from './line-unit-picker';
 import { Input } from "./ui/input";
 import { SearchableCombobox } from "./searchable-combobox";
 import { BarcodeScannerButton } from "./barcode-scanner";
@@ -39,6 +40,7 @@ export interface InvoiceLine {
   productId?: string;       // optional · null = free-form line
   description: string;
   quantity: string;
+  unit?: string | null;
   unitPrice: string;
   /** GL account id · maps to revenue/expense in chart of accounts */
   accountId?: string;
@@ -102,6 +104,8 @@ export interface AccountOption {
 }
 
 interface Props {
+  /** Enable only for documents whose API persists per-line units. */
+  showUnit?: boolean;
   defaultAccountLabel?: string;
   lines: InvoiceLine[];
   setLines: React.Dispatch<React.SetStateAction<InvoiceLine[]>>;
@@ -367,6 +371,7 @@ export function ItemsTable({
   suggestAccount,
   autoSuggest = true,
   defaultAccountLabel,
+  showUnit = false,
 }: Props) {
   const { t, language } = useLanguage();
   const { country, isSA, isUS } = useOrgRegion();
@@ -838,6 +843,7 @@ export function ItemsTable({
     "150px",
     "minmax(0, 1fr)",
     "70px",
+    showUnit ? "112px" : null,
     "100px",
     showDiscount ? "96px" : null,
     showAccount ? "200px" : null,
@@ -850,7 +856,7 @@ export function ItemsTable({
     "32px",
   ].filter(Boolean).join(" ");
   const gridMinWidth =
-    36 + 150 + 200 + 70 + 100 + (showDiscount ? 96 : 0) + (showAccount ? 200 : 0) + (showTax ? 96 : 0) + 110 +
+    36 + 150 + 200 + 70 + (showUnit ? 112 : 0) + 100 + (showDiscount ? 96 : 0) + (showAccount ? 200 : 0) + (showTax ? 96 : 0) + 110 +
     (showTaxAmount ? 110 : 0) + 130 + (showRecognition ? 150 : 0) + (showAssetCol ? 44 : 0) + 32;
 
   return (
@@ -883,6 +889,7 @@ export function ItemsTable({
               <span className="cell h">{t("البند", "Item")}</span>
               <span className="cell h">{t("الوصف", "Description")}</span>
               <span className="cell h n">{t("الكمية", "Qty")}</span>
+              {showUnit && <span className="cell h">{t("الوحدة", "Unit")}</span>}
               <span className="cell h n">{t("السعر", "Price")}</span>
               {showDiscount && <span className="cell h n" title={t("خصم على هذا البند وحده · يُطرح قبل الضريبة", "A discount on this line alone · taken off before tax")}>{t("الخصم", "Discount")}</span>}
               {showAccount && <span className="cell h">{t("الحساب", "Account")}</span>}
@@ -997,6 +1004,7 @@ export function ItemsTable({
                       className="font-english text-[13px] text-end"
                     />
                   </span>
+                  {showUnit && <span className="cell !px-1"><LineUnitPicker value={line.unit} onChange={unit => updateLine(i, { unit })} testId={`line-unit-${i}`} /></span>}
                   <span className="cell n">
                     <Input
                       type="text"

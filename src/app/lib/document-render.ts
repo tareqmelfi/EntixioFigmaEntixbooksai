@@ -1,4 +1,4 @@
-import { allocatePayments, balancedPercentages, progressCondition, unitLabel, type QuotePresentation } from './quote-document-fields.js';
+import { allocatePayments, balancedPercentages, progressCondition, unitLabel, resolveQuotePresentation, type QuotePresentation } from './quote-document-fields.js';
 import { roundDocumentMoney } from "./document-money.js";
 import { socialFooterHtml, socialFooterSettings, socialFooterOnPage, type SocialFooterSettings } from './document-social.js';
 /**
@@ -1263,7 +1263,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
   const lang = input.lang === "en" ? "en" : "ar";
   const ar = lang === "ar";
   const t = (a: string, e: string) => (ar ? a : e);
-  const tpl = { ...(input.template || {}), ...(input.doc.kind === "QUOTE" ? input.doc.presentation || {} : {}) };
+  const presentation = input.doc.kind === "QUOTE" ? resolveQuotePresentation(input.doc.presentation, input.doc.notes) : {};
+  const tpl = { ...(input.template || {}), ...presentation };
   const doc = input.doc;
   const org = input.org;
   const contact = input.contact || null;
@@ -1809,8 +1810,8 @@ export function renderDocument(input: RenderInput): RenderOutput {
 
   const deliveryOverrideBlock = (): Block | null => {
     if (!isQuote || !doc.presentation) return null;
-    const facts = doc.presentation.deliveryFacts || [];
-    const note = doc.presentation.deliveryNote || "";
+    const facts = presentation.deliveryFacts || [];
+    const note = presentation.deliveryNote || "";
     if (!facts.length && !note) return null;
     const text = facts.map(f => `${f.label}: ${f.value}`).concat(note).join("\n");
     return { kind: "html", h: 14 + textHeight(text, 168, 5, 2), html: `<div class="h3">${t("مدة التنفيذ", "Delivery")}</div><div class="note">${facts.map(f => `<div><strong>${bdi(f.label)}</strong>: ${bdi(f.value)}</div>`).join("")}${note ? `<p>${bdi(note)}</p>` : ""}</div>` };

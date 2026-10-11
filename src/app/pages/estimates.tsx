@@ -1,3 +1,4 @@
+import { LineUnitPicker } from '../components/line-unit-picker';
 import { roundDocumentMoney } from "../lib/document-money";
 /**
  * SPEC-05 · Layer 1 — الدراسة والتسعير (Estimating & Pricing) · /api/estimates
@@ -810,13 +811,13 @@ export function Estimates() {
                     </Button>
                   </div>
                   <div className="overflow-x-auto" ref={gridRef} onKeyDown={onGridKeyDown}>
-                    <div className="ledger-grid-dense" style={{ minWidth: canSeeCost ? 1690 : 1370 }}>
+                    <div className="ledger-grid-dense" style={{ minWidth: canSeeCost ? 1742 : 1422 }}>
                       <div
                         className="grid"
                         style={{ gridTemplateColumns: canSeeCost
                           // Keep net, tax and gross adjacent; narrow screens scroll within the grid.
-                          ? "32px 82px 110px minmax(150px,1.2fr) minmax(120px,0.8fr) 60px 68px 88px 88px 84px 96px 68px 108px 116px 100px 116px 54px 96px 34px"
-                          : "32px 82px 110px minmax(200px,1.4fr) minmax(160px,1fr) 60px 68px 108px 116px 100px 116px 54px 96px 34px" }}
+                          ? "32px 82px 110px minmax(150px,1.2fr) minmax(120px,0.8fr) 112px 68px 88px 88px 84px 96px 68px 108px 116px 100px 116px 54px 96px 34px"
+                          : "32px 82px 110px minmax(200px,1.4fr) minmax(160px,1fr) 112px 68px 108px 116px 100px 116px 54px 96px 34px" }}
                         data-testid="estimate-line-grid"
                       >
                         <div className={`${cell} h idx`}>#</div>
@@ -850,7 +851,7 @@ export function Estimates() {
                               <div className={cell}><Input data-row={i} data-field="section" disabled={frozen} className={inputCls} value={r.section} onChange={(e) => setRow(i, { section: e.target.value })} /></div>
                               <div className={cell}><Input data-row={i} data-field="description" disabled={frozen} className={inputCls} value={r.description} onChange={(e) => setRow(i, { description: e.target.value })} placeholder={t("وصف البند", "Line description")} /></div>
                               <div className={cell}><Input data-row={i} data-field="spec" disabled={frozen} className={inputCls} value={r.spec} onChange={(e) => setRow(i, { spec: e.target.value })} /></div>
-                              <div className={cell}><Input data-row={i} data-field="unit" disabled={frozen} className={inputCls} value={r.unit} onChange={(e) => setRow(i, { unit: e.target.value })} /></div>
+                              <div className={cell}><LineUnitPicker disabled={frozen} value={r.unit} onChange={unit => setRow(i, { unit })} testId={`estimate-unit-${i}`} /></div>
                               <div className={`${cell} n`}><Input data-row={i} data-field="quantity" disabled={frozen} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} value={r.quantity} onChange={(e) => setRow(i, { quantity: normalizeDigits(e.target.value) })} /></div>
                               {canSeeCost && <>
                                 <div className={`${cell} n`}><Input data-row={i} data-field="materialCost" disabled={frozen} inputMode="decimal" dir="ltr" className={`${inputCls} font-english text-end`} value={r.materialCost} onChange={(e) => setRow(i, { materialCost: normalizeDigits(e.target.value) })} /></div>
