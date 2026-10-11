@@ -19,30 +19,32 @@ const PLACEHOLDER_SIGNATURES = [/قريباً/i, /قريبًا/i, /coming soon/i
 
 // Baseline public artifacts remain available at their established unprefixed URLs.
 // The localized manifest is additive and deliberately constrained to separated copy.
+// Titles/descriptions match the rendered language of each document (legacy routes
+// render English): unique, descriptive, brand-suffixed (Google SEO starter guide ·
+// SEO-02 2026-10-11). Placeholder ("coming soon") routes are prerendered for a clean
+// 200 but carry noindex and are excluded from the sitemap until real content ships.
 const META = {
-  '/': ['Entix Books · محاسبة سحابية عربية — فواتير ومدفوعات', 'محاسبة سحابية عربية/إنجليزية للفواتير والمشتريات والمصروفات والتقارير. تكامل ZATCA Phase 2 قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.'],
-  '/features': ['المميزات · Entix Books', 'قدرات Entix Books للفواتير وOCR والبنوك والرواتب والمخزون والتقارير. تكامل ZATCA Phase 2 قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.'],
-  '/pricing': ['الأسعار · Entix Books', 'باقات Entix Books بالريال السعودي — جرّب مجاناً، وادفع عندما تنمو.'],
-  '/referrals': ['برنامج الإحالة · Entix Books', 'أحِل أصحاب الأعمال إلى Entix Books: خصم للمشترك الجديد وعمولة 50% لك كمسوّق معتمد.'],
-  '/about': ['من نحن · ENTIX.IO', 'ENSIDEX LLC · نبني أدوات مالية عربية أولاً للشركات الحديثة.'],
-  '/contact': ['تواصل معنا · Entix Books', 'فريق Entix Books جاهز لمساعدتك — مبيعات ودعم.'],
-  '/blog': ['المدونة · Entix Books', 'مقالات محاسبية وتقنية بالعربية والإنجليزية من فريق Entix.'],
-  '/docs': ['التوثيق · Entix Books', 'أدلة استخدام Entix Books خطوة بخطوة بالعربية والإنجليزية.'],
-  '/help': ['مركز المساعدة · Entix Books', 'إجابات عن الفوترة والمدفوعات والتقارير، مع توضيح أن تكامل ZATCA Phase 2 قيد التحقق وغير مفعّل للاعتماد الإنتاجي.'],
-  '/videos': ['فيديوهات تعليمية · Entix Books', 'شروحات مرئية لاستخدام Entix Books.'],
-  '/glossary': ['قاموس المصطلحات المحاسبية · Entix', 'مصطلحات محاسبية عربي/إنجليزي مشروحة ببساطة.'],
-  '/case-studies': ['قصص نجاح العملاء · Entix Books', 'كيف تستخدم الشركات Entix Books يومياً.'],
-  '/changelog': ['سجل التحديثات · Entix Books', 'آخر ميزات وإصلاحات Entix Books.'],
-  '/roadmap': ['خارطة الطريق · Entix Books', 'ما الذي نبنيه الآن وما القادم في Entix Books.'],
-  '/partners': ['الشركاء · ENTIX.IO', 'برنامج شركاء Entix للمحاسبين والمستشارين.'],
-  '/careers': ['الوظائف · ENTIX.IO', 'انضم إلى فريق ENSIDEX.'],
-  '/team': ['الفريق · ENTIX.IO', 'الأشخاص خلف Entix Books.'],
-  '/integration': ['التكاملات · Entix Books', 'تكاملات البنوك والمدفوعات وأدوات الأعمال. تكامل ZATCA Phase 2 قيد التحقق الفني والتنظيمي وغير مفعّل للاعتماد الإنتاجي.'],
+  '/': ['Entix Books · Arabic-first cloud accounting | ENTIX.IO', 'Arabic-first cloud accounting for businesses in Saudi Arabia and the United States — quotes, invoices, receipts, automatic journal entries, POS, inventory and projects. Start free, no card.'],
+  '/features': ['Features — invoicing, expenses, banking, reports · Entix Books', 'Everything Entix Books does: quotes to invoices to journal entries, OCR expenses, bank reconciliation, payroll, inventory, projects and financial reports — in Arabic and English.'],
+  '/pricing': ['Pricing — start free, pay as you grow · Entix Books', 'Entix Books plans for Saudi and US businesses: a free starter plan, one free month on paid plans, no card required. Monthly or annual billing.'],
+  '/referrals': ['Referral and partner program · Entix Books', 'Refer business owners to Entix Books: a discount for the new subscriber and a recurring commission for accredited partners and accountants.'],
+  '/about': ['About Entix Books — bilingual cloud accounting by ENSIDEX LLC', 'Entix Books is a bilingual (Arabic/English) cloud accounting platform for small and mid-sized businesses in Saudi Arabia and the United States, built by ENSIDEX LLC, Wyoming.'],
+  '/contact': ['Contact the Entix Books team · ENTIX.IO', 'Sales and product support for Entix Books: support@entix.io, the in-app support portal, privacy and legal contacts.'],
+  '/blog': ['Blog · Entix Books', 'Accounting and product articles from the Entix Books team, in Arabic and English.'],
+  '/docs': ['Documentation · Entix Books', 'Step-by-step guides for Entix Books in Arabic and English.'],
+  '/help': ['Help center — invoicing, payments, reports · Entix Books', 'Answers about invoicing, payments and reports in Entix Books. ZATCA Phase 2 integration is under validation and not enabled for production reliance.'],
+  '/videos': ['Video tutorials · Entix Books', 'Short video walkthroughs of Entix Books.'],
+  '/glossary': ['Accounting glossary (Arabic / English) · Entix Books', 'Accounting terms explained simply in Arabic and English.'],
+  '/case-studies': ['Customer stories · Entix Books', 'How businesses use Entix Books every day.'],
+  '/changelog': ['Changelog · Entix Books', 'Latest features and fixes in Entix Books.'],
+  '/careers': ['Careers · ENSIDEX', 'Join the team building Entix Books.'],
+  '/team': ['Team · ENSIDEX', 'The people behind Entix Books.'],
+  '/integration': ['Integrations and security — banks, payments, API · Entix Books', 'Bank feeds, Stripe payments, e-signature, API keys and security controls in Entix Books. ZATCA Phase 2 integration is under validation and not enabled for production reliance.'],
   '/privacy': ['Privacy Policy · ENTIX.IO', 'How ENTIX.IO handles account, organization, iOS app, upload, AI/OCR, retention, and deletion data.'],
   '/support/ios': ['iOS Support · ENTIX.IO', 'Official ENTIX.IO support for iPhone and iPad on iOS 17 or later, including sign-in, permissions, AI/OCR, privacy, and account deletion help.'],
-  '/terms': ['الشروط والأحكام · Entix Books', 'شروط استخدام منصة Entix Books.'],
-  '/refund': ['سياسة الاسترداد · Entix Books', 'سياسة استرداد اشتراكات Entix Books.'],
-  '/sla': ['اتفاقية مستوى الخدمة · Entix Books', 'التزامات التوافر والدعم في Entix Books.'],
+  '/terms': ['Terms of Service · ENTIX.IO', 'Terms governing the use of the Entix Books platform by ENSIDEX LLC.'],
+  '/refund': ['Refund policy · Entix Books', 'Refund terms for Entix Books subscriptions.'],
+  '/sla': ['Service level agreement · Entix Books', 'Availability and support commitments for Entix Books.'],
   '/solutions/small-business': ['Accounting for Small Businesses · Entix Books', 'Run invoices, expenses, banking, and reports in one bilingual workspace, with Saudi and US market guidance.'],
   '/solutions/accountants': ['Accounting Workspace for Accountants · Entix Books', 'Review client documents, entries, controls, and Saudi VAT or US sales-tax reports. ZATCA Phase 2 integration remains under validation and unavailable for production reliance.'],
   '/solutions/enterprises': ['Enterprise Accounting Controls · Entix Books', 'Organize branches, cost centers, user access, and exportable financial reports in a bilingual workspace.'],
@@ -51,11 +53,15 @@ const META = {
   '/solutions/freelancers': ["Freelancers and consultants · Entix Books", "Organize service quotes, clients, projects and expenses, with Arabic or English documents and transaction currencies."],
   '/solutions/agencies': ["Agencies and services · Entix Books", "Connect campaign, design and development quotes with project delivery, tool and freelancer costs, and reports."],
   '/solutions/ecommerce': ['Accounting for Ecommerce · Entix Books', 'Organize store sales, payment fees, inventory, bank reconciliation, and profitability reporting.'],
-  '/login': ['تسجيل الدخول · Entix Books', 'ادخل إلى حسابك في Entix Books.'],
-  '/register': ['إنشاء حساب · Entix Books', 'ابدأ تجربتك المجانية في Entix Books.'],
-  '/forgot-password': ['استعادة كلمة المرور · Entix Books', 'استعد الوصول إلى حسابك.'],
-  '/reset-password': ['تعيين كلمة مرور جديدة · Entix Books', 'اختر كلمة مرور جديدة لحسابك.'],
+  '/login': ['Sign in · Entix Books', 'Sign in to your Entix Books account.'],
+  '/register': ['Create your account · Entix Books', 'Start your free month of Entix Books — no card required.'],
+  '/forgot-password': ['Reset your password · Entix Books', 'Recover access to your Entix Books account.'],
+  '/reset-password': ['Choose a new password · Entix Books', 'Set a new password for your Entix Books account.'],
 }
+// "Coming soon" documents: real 200 pages for visitors, but kept out of the index and
+// the sitemap until they carry real content (thin-content rule). /roadmap and
+// /partners are 308 redirects in nginx (they rendered /features and /referrals).
+const PLACEHOLDER_ROUTES = new Set(['/blog', '/docs', '/videos', '/glossary', '/case-studies', '/changelog', '/careers', '/team', '/refund', '/sla'])
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json', '.txt': 'text/plain', '.xml': 'application/xml', '.ico': 'image/x-icon' }
 const server = http.createServer((req, res) => {
@@ -160,6 +166,7 @@ async function renderLegacyRoute(route, [title, description]) {
     html = upsertCanonical(html, canonical, route)
     html = upsertRequiredMeta(html, 'property', 'og:url', canonical, route)
     html = rewriteFontPreloads(html, /[\u0600-\u06ff]/.test(title) ? 'ar' : 'en')
+    if (PLACEHOLDER_ROUTES.has(route)) html = insertHead(html, ['<meta name="robots" content="noindex, follow">'])
     await validateLegacyContent(page, route)
     writeArtifact(route, html)
     console.log(`  ✓ ${route} (${Math.round(html.length / 1024)}KB legacy)`)
@@ -199,14 +206,18 @@ async function renderNeutralRoot() {
     html = replaceMeta(html, 'name', 'twitter:title', 'Entix Books · Arabic-first cloud accounting')
     html = replaceMeta(html, 'name', 'twitter:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
     html = rewriteFontPreloads(html, 'en')
+    const faq = await readFaq(page)
     html = insertHead(html, [
       `<link rel="canonical" href="${SITE_ORIGIN}/">`,
       ...alternateLinks(''),
       `<meta property="og:url" content="${SITE_ORIGIN}/">`,
       `<meta property="og:locale" content="en_US">`,
-      `<script type="application/ld+json" data-public-seo>${jsonLd({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'ENTIX.IO', url: `${SITE_ORIGIN}/`, inLanguage: ['en', 'ar'] })}</script>`,
+      `<script type="application/ld+json" data-public-seo>${jsonLd({ '@context': 'https://schema.org', '@type': 'WebSite', name: 'ENTIX.IO', alternateName: 'Entix Books', url: `${SITE_ORIGIN}/`, inLanguage: ['en', 'ar'], publisher: { '@id': `${SITE_ORIGIN}/#organization` } })}</script>`,
+      `<script type="application/ld+json" data-public-seo>${jsonLd(organizationLd())}</script>`,
+      `<script type="application/ld+json" data-public-seo>${jsonLd(softwareLd('en', 'us', `${SITE_ORIGIN}/`))}</script>`,
+      ...(faq.length ? [`<script type="application/ld+json" data-public-seo>${jsonLd(faqLd(faq))}</script>`] : []),
     ])
-    assertAbsent(html, /priceCurrency|ZATCA|Saudi VAT|\bSAR\b/, '/', 'market-specific root metadata')
+    assertAbsent(html, /ZATCA|Saudi VAT|\bSAR\b/, '/', 'Saudi-only concepts on the en-US root')
     assertAbsent(html, /data-page="market-locale-chooser"/, '/', 'legacy chooser markup')
     fs.writeFileSync(path.join(DIST, 'index.html'), html)
     console.log("  ✓ / (root en-US landing · x-default)")
@@ -229,16 +240,15 @@ async function renderLocalizedRoute(market, locale, definition) {
     html = replaceMeta(html, 'property', 'og:description', description)
     html = replaceMeta(html, 'name', 'twitter:title', title)
     html = replaceMeta(html, 'name', 'twitter:description', description)
+    const faq = await readFaq(page)
     html = insertHead(html, [
       `<link rel="canonical" href="${canonical}">`,
       ...alternateLinks(definition.path),
       `<meta property="og:url" content="${canonical}">`,
       `<meta property="og:locale" content="${ogLocale(market, locale)}">`,
-      `<script type="application/ld+json" data-public-seo>${jsonLd({
-        '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: title, description,
-        applicationCategory: 'FinanceApplication', operatingSystem: 'Web', url: canonical,
-        inLanguage: locale, areaServed: { '@type': 'Country', name: market === 'sa' ? 'Saudi Arabia' : 'United States' },
-      })}</script>`,
+      `<script type="application/ld+json" data-public-seo>${jsonLd(organizationLd())}</script>`,
+      `<script type="application/ld+json" data-public-seo>${jsonLd({ ...softwareLd(locale, market, canonical), name: title, description })}</script>`,
+      ...(faq.length ? [`<script type="application/ld+json" data-public-seo>${jsonLd(faqLd(faq))}</script>`] : []),
     ])
     if (market === 'us' && locale === 'en') {
       assertAbsent(html, /[\u0600-\u06ff]/, route, 'Arabic codepoints')
@@ -305,19 +315,16 @@ function writeSitemap() {
   // Computed at call time: top-level consts are not initialized yet when the
   // hoisted pipeline invokes this during early module evaluation (TDZ crash).
   const SITEMAP_LASTMOD = new Date().toISOString().slice(0, 10)
-  const SITEMAP_LEGACY_EXCLUDE = new Set(['/forgot-password', '/reset-password'])
+  const SITEMAP_LEGACY_EXCLUDE = new Set(['/forgot-password', '/reset-password', ...PLACEHOLDER_ROUTES])
   const LEGACY_PRIORITY = {
     '/features': ['weekly', '0.9'], '/pricing': ['weekly', '0.9'],
     '/solutions/small-business': ['monthly', '0.8'], '/solutions/accountants': ['monthly', '0.8'],
     '/solutions/enterprises': ['monthly', '0.8'], '/solutions/restaurants': ['monthly', '0.7'],
-    '/solutions/ecommerce': ['monthly', '0.7'], '/contact': ['monthly', '0.7'],
-    '/integration': ['monthly', '0.6'], '/about': ['monthly', '0.6'], '/blog': ['weekly', '0.6'],
-    '/case-studies': ['monthly', '0.6'], '/docs': ['weekly', '0.7'], '/help': ['weekly', '0.6'],
-    '/support/ios': ['monthly', '0.7'], '/videos': ['monthly', '0.5'], '/glossary': ['monthly', '0.5'],
-    '/partners': ['monthly', '0.5'], '/careers': ['monthly', '0.5'], '/changelog': ['weekly', '0.5'],
-    '/roadmap': ['monthly', '0.5'], '/team': ['yearly', '0.4'], '/register': ['yearly', '0.4'],
-    '/privacy': ['yearly', '0.3'], '/terms': ['yearly', '0.3'], '/refund': ['yearly', '0.3'],
-    '/sla': ['yearly', '0.3'], '/login': ['yearly', '0.2'],
+    '/solutions/ecommerce': ['monthly', '0.7'], '/solutions/contracting': ['monthly', '0.7'],
+    '/solutions/freelancers': ['monthly', '0.7'], '/solutions/agencies': ['monthly', '0.7'],
+    '/contact': ['monthly', '0.7'], '/integration': ['monthly', '0.6'], '/about': ['monthly', '0.6'],
+    '/help': ['weekly', '0.6'], '/support/ios': ['monthly', '0.7'], '/register': ['yearly', '0.4'],
+    '/privacy': ['yearly', '0.3'], '/terms': ['yearly', '0.3'], '/login': ['yearly', '0.2'],
   }
   const indexable = PUBLIC_PAGES.filter((page) => page.indexable)
   const localized = indexable.flatMap((page) =>
@@ -384,6 +391,47 @@ function writeEarlyHints() {
   const header = `add_header Link "</assets/${css[0]}>; rel=preload; as=style" always;\n`
   fs.writeFileSync(path.resolve('nginx-early-hints.conf'), header)
   console.log(`  ✓ early hints → /assets/${css[0]}`)
+}
+// ── Structured data (SEO-02 · 2026-10-11) ─────────────────────────────────
+// One Organization entity (@id) referenced by every public document, a
+// SoftwareApplication per market/locale with real offers, and FAQPage built
+// from the landing's rendered FAQ so Google / AI answer engines can quote it.
+// No sameAs yet: social profiles are added here once they exist (growth input 3).
+function organizationLd() {
+  return {
+    '@context': 'https://schema.org', '@type': 'Organization', '@id': `${SITE_ORIGIN}/#organization`,
+    name: 'ENSIDEX LLC', alternateName: ['ENTIX.IO', 'Entix Books'], url: SITE_ORIGIN,
+    logo: { '@type': 'ImageObject', url: `${SITE_ORIGIN}/brand/EN-BRAND-LOGO-Wordmark-Light-BG.png` },
+    brand: { '@type': 'Brand', name: 'Entix Books' },
+    address: { '@type': 'PostalAddress', addressRegion: 'WY', addressCountry: 'US' },
+    knowsLanguage: ['ar', 'en'],
+    contactPoint: [{ '@type': 'ContactPoint', contactType: 'customer support', email: 'support@entix.io', availableLanguage: ['ar', 'en'] }],
+  }
+}
+function softwareLd(locale, market, url) {
+  const sa = market === 'sa'
+  return {
+    '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Entix Books', alternateName: 'ENTIX.IO',
+    url, applicationCategory: 'FinanceApplication', applicationSubCategory: 'Accounting software', operatingSystem: 'Web, iOS',
+    inLanguage: locale, isAccessibleForFree: true, publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+    areaServed: { '@type': 'Country', name: sa ? 'Saudi Arabia' : 'United States' },
+    featureList: sa
+      ? 'Quotes, invoices, receipts, automatic journal entries, expenses with OCR, bank reconciliation, inventory, POS, projects, payroll, VAT reports, Arabic and English documents'
+      : 'Quotes, invoices, receipts, automatic journal entries, expenses with OCR, Stripe payments, Plaid bank feeds (beta), inventory, projects, sales-tax reports, Arabic and English documents',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: sa ? 'SAR' : 'USD', category: 'free', description: 'Starter plan — free, no card required' },
+  }
+}
+function faqLd(items) {
+  return {
+    '@context': 'https://schema.org', '@type': 'FAQPage',
+    mainEntity: items.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+  }
+}
+async function readFaq(page) {
+  return page.$$eval('[data-faq-item]', (nodes) => nodes.map((node) => ({
+    q: node.querySelector('[data-faq-q]')?.textContent?.trim() || '',
+    a: node.querySelector('[data-faq-a]')?.textContent?.trim() || '',
+  })).filter((item) => item.q && item.a)).catch(() => [])
 }
 function jsonLd(value) { return JSON.stringify(value).replace(/</g, '\\u003c') }
 function escapeHtml(value) { return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;').replaceAll('>', '&gt;') }

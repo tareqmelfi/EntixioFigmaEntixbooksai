@@ -29,22 +29,21 @@
       <meta name="twitter:image" content="https://entix.io/entix-og-2026.jpg" />
       <meta name="twitter:image:alt" content="Entix Books · Arabic-first cloud accounting · A product of ENSIDEX" />
       <meta name="build-time" content="2026-05-18T13:50:50Z" />
-      <!-- REND-06 · Organization structured data -->
+      <!-- REND-06 · Organization structured data · one entity (@id) shared by every
+           public document; prerender re-emits the same entity on localized pages (SEO-02 2026-10-11) -->
       <script type="application/ld+json">
         {
           "@context": "https://schema.org",
           "@type": "Organization",
-          "name": "ENTIX.IO",
-          "legalName": "ENSIDEX LLC",
+          "@id": "https://entix.io/#organization",
+          "name": "ENSIDEX LLC",
+          "alternateName": ["ENTIX.IO", "Entix Books"],
           "url": "https://entix.io",
-          "logo": "https://entix.io/entix-og-2026.jpg",
-          "sameAs": ["https://entix.io/about"],
-          "contactPoint": {
-            "@type": "ContactPoint",
-            "email": "hello@entix.io",
-            "contactType": "sales",
-            "availableLanguage": ["ar", "en"]
-          }
+          "logo": { "@type": "ImageObject", "url": "https://entix.io/brand/EN-BRAND-LOGO-Wordmark-Light-BG.png" },
+          "brand": { "@type": "Brand", "name": "Entix Books" },
+          "address": { "@type": "PostalAddress", "addressRegion": "WY", "addressCountry": "US" },
+          "knowsLanguage": ["ar", "en"],
+          "contactPoint": [{ "@type": "ContactPoint", "contactType": "customer support", "email": "support@entix.io", "availableLanguage": ["ar", "en"] }]
         }
       </script>
       <script type="application/ld+json">
@@ -52,11 +51,19 @@
           "@context": "https://schema.org",
           "@type": "SoftwareApplication",
           "name": "Entix Books",
+          "alternateName": "ENTIX.IO",
           "applicationCategory": "FinanceApplication",
-          "operatingSystem": "Web",
+          "applicationSubCategory": "Accounting software",
+          "operatingSystem": "Web, iOS",
           "url": "https://entix.io",
           "inLanguage": ["ar", "en"],
-          "offers": { "@type": "Offer", "priceCurrency": "SAR", "price": "0" }
+          "isAccessibleForFree": true,
+          "publisher": { "@id": "https://entix.io/#organization" },
+          "featureList": "Quotes, invoices, receipts, automatic journal entries, expenses with OCR, bank reconciliation, inventory, POS, projects, payroll, tax reports, Arabic and English documents",
+          "offers": [
+            { "@type": "Offer", "price": "0", "priceCurrency": "SAR", "category": "free", "description": "Starter plan — free, no card required" },
+            { "@type": "Offer", "price": "0", "priceCurrency": "USD", "category": "free", "description": "Starter plan — free, no card required" }
+          ]
         }
       </script>
       <meta name="version" content="UX-220-i18n" />

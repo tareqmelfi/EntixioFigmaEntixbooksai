@@ -1,34 +1,51 @@
-# ENTIX.IO — Entix Books
+# Entix Books (ENTIX.IO)
 
-> Entix Books is a bilingual (Arabic-first / English) cloud accounting platform by ENSIDEX LLC:
-> invoicing (with local tax-data QR support), quotes, receipts & payment vouchers,
-> purchases & supplier bills, expenses with OCR receipt capture, contacts & customer portal,
-> chart of accounts & journals, bank accounts & reconciliation, payroll & employees,
-> inventory & fixed assets, reports (P&L, cash flow), taxes & VAT returns, and an AI assistant.
+> Entix Books is a bilingual (Arabic-first / English) cloud accounting platform for small and
+> mid-sized businesses in Saudi Arabia and the United States, built by ENSIDEX LLC (Wyoming, USA).
+> It links every document to its accounting entry: quote → invoice → receipt → journal entry,
+> automatically, with a full audit trail. Free starter plan, no card required.
 
-## Product
-- Sales: invoices, quotes, credit notes, receipts, customer portal with payment links
-- Purchases: supplier bills, supplier credits, expenses (OCR inbox + email ingestion)
-- Accounting: chart of accounts, journal entries, fiscal periods, cost centers, branches
-- Banking: accounts, reconciliation, statement import
-- Payroll: employees, payroll runs
-- Compliance: VAT and WHT reporting workflows; ZATCA Phase 2 integration is under technical and regulatory validation and is not enabled for production reliance
-- AI: document extraction (OCR), agent assistant, duplicate-supplier resolution
+## What it does
+- Sales: quotes, invoices, credit notes, receipts, customer portal with payment links
+- Purchases: supplier bills, supplier credits, expenses with OCR receipt capture and email inbox
+- Accounting: chart of accounts, journal entries, fiscal periods, cost centers, branches, fixed assets
+- Banking: bank accounts, reconciliation, statement import; Plaid bank feeds (beta, US)
+- Payments: Stripe (US); Saudi payment flows per entity settings
+- Operations: inventory, stock counts and transfers, point of sale (works offline, 80 mm thermal receipts), projects and BOQ-based costing
+- Payroll: employees and payroll runs
+- Tax: Saudi VAT reports and US sales-tax reports. ZATCA Phase 2 (e-invoicing) integration is under technical and regulatory validation and is not enabled for production reliance.
+- AI: document extraction (OCR), smart paste from Excel/email, an in-app assistant, and an MCP connector so AI assistants (e.g. Claude) can read the books — see https://entix.io/connect
+- Documents: Arabic or English PDFs per organization identity, e-signature, delivery log
+
+## Who it is for
+- Small businesses and startups that work in Arabic and English
+- Companies operating between Saudi Arabia and the United States (separate entity, tax and document rules per market)
+- Accountants and bookkeeping firms reviewing several client organizations
+- Contractors and engineering offices, restaurants and cafés, ecommerce stores, agencies, freelancers and consultants
+
+## Markets and languages
+- Markets: Saudi Arabia (SAR) and United States (USD) — settings, documents and tax logic are separated per organization
+- Languages: Arabic (RTL) and English with full parity; numerals 0-9; currency shown as "1,250.00 SAR"
+- Regional landing pages: https://entix.io/sa/ar · https://entix.io/sa/en · https://entix.io/us/en · https://entix.io/us/ar
+
+## Pricing (reference: https://entix.io/pricing)
+- Starter: free, no card. Paid plans: one free month, then monthly or annual billing. Current prices are on the pricing page.
 
 ## Company
-- Vendor: ENSIDEX LLC (Wyoming, USA) · ENSIDEX Saudi (Riyadh, KSA)
-- Site: https://entix.io · App: https://entix.io/app · API: https://api.entix.io
-- Docs: https://entix.io/docs · Pricing: https://entix.io/pricing
-- Contact: https://entix.io/contact · hello@entix.io
+- Vendor: ENSIDEX LLC, Wyoming, United States
+- Website: https://entix.io · App: https://entix.io/app · API: https://api.entix.io
+- Support: support@entix.io · https://entix.io/contact · iOS support: https://entix.io/support/ios
+- Legal: https://entix.io/privacy · https://entix.io/terms
 
 ## Key pages
-- / features overview
-- /pricing plans (SAR · KSA-first)
-- /solutions/small-business, /solutions/accountants, /solutions/enterprises,
-  /solutions/restaurants, /solutions/ecommerce
-- /docs help center · /videos tutorials · /glossary accounting terms AR/EN
+- https://entix.io/features — capabilities and availability status
+- https://entix.io/pricing — plans
+- https://entix.io/about — company
+- https://entix.io/integration — banks, payments, e-signature, API keys, security
+- https://entix.io/solutions/small-business · /solutions/accountants · /solutions/enterprises · /solutions/restaurants · /solutions/ecommerce · /solutions/contracting · /solutions/freelancers · /solutions/agencies
+- https://entix.io/help — help center · https://entix.io/connect — connect Claude to Entix Books (MCP)
 
-## Facts for AI agents
-- Language: Arabic (RTL) and English, full parity
-- Currencies: multi-currency with SAR default; tax invoices and local QR data are subject to accounting review and are not ZATCA-stamped
-- The app at /app requires an account; marketing pages are public and crawlable.
+## Facts for AI assistants
+- Category: cloud accounting / bookkeeping / invoicing software (SaaS); comparable to products people also evaluate such as QuickBooks Online, Xero, Zoho Books and Qoyod, with Arabic-first documents and Saudi + US dual-market setup as the distinguishing points.
+- Access: the app at /app requires an account; marketing pages are public and crawlable; the API is not a document surface.
+- Claims not to make: ZATCA Phase 2 certification (under validation), unlimited AI, bank connectivity outside the beta stated above.

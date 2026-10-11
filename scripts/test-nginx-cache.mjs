@@ -73,6 +73,11 @@ try {
     assert.match(asset.headers.get('cache-control'), /immutable/);
     assert.doesNotMatch(asset.headers.get('cache-control'), /no-store/);
     assert.equal((await fetch(`${base}/missing-page`)).status, 404);
+    for (const [from, to] of [['/roadmap', '/features'], ['/partners', '/referrals']]) {
+      const r = await fetch(base + from, { redirect: 'manual' });
+      assert.equal(r.status, 308, from);
+      assert.equal(r.headers.get('location'), to, from);
+    }
     const stale = await fetch(`${base}/assets/index-gone999.js`);
     assert.equal(stale.status, 200);
     assert.equal(stale.headers.get('x-entix-stale-bundle'), '1');

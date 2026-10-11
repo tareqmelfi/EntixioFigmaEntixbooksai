@@ -7,7 +7,7 @@ const dist = path.resolve('dist')
 const artifact = (urlPath: string) => path.join(dist, urlPath.replace(/^\//, ''), 'index.html')
 const LEGACY_PRERENDER_ROUTES = [
   '/', '/features', '/pricing', '/referrals', '/about', '/contact', '/blog', '/docs', '/help',
-  '/videos', '/glossary', '/case-studies', '/changelog', '/roadmap', '/partners', '/careers', '/team',
+  '/videos', '/glossary', '/case-studies', '/changelog', '/careers', '/team',
   '/integration', '/privacy', '/support/ios', '/terms', '/refund', '/sla',
   '/solutions/small-business', '/solutions/accountants', '/solutions/enterprises',
   '/solutions/restaurants', '/solutions/ecommerce', '/solutions/contracting', '/solutions/freelancers', '/solutions/agencies',
@@ -44,7 +44,7 @@ for (const market of PUBLIC_MARKETS) {
 
 test('all supported legacy routes keep real prerendered artifacts instead of neutral-root shell substitution', async () => {
   const neutralRoot = await readFile(path.join(dist, 'index.html'), 'utf8')
-  expect(LEGACY_PRERENDER_ROUTES).toHaveLength(35)
+  expect(LEGACY_PRERENDER_ROUTES).toHaveLength(33)
 
   for (const route of LEGACY_PRERENDER_ROUTES.filter((item) => item !== '/')) {
     const html = await readFile(artifact(route), 'utf8')
@@ -78,7 +78,9 @@ test('root raw document is the en-US landing with the full hreflang cluster and 
   expect(html).toContain('<link rel="canonical" href="https://entix.io/">')
   expect(html).toContain('hreflang="x-default" href="https://entix.io/"')
   expect(html.match(/rel="alternate" hreflang=/g)).toHaveLength(5)
-  expect(html).not.toMatch(/priceCurrency|ZATCA|Saudi VAT|\bSAR\b/)
+  expect(html).not.toMatch(/ZATCA|Saudi VAT|\bSAR\b/)
+  expect(html).toContain('"@type":"FAQPage"')
+  expect(html).toContain('"@id":"https://entix.io/#organization"')
   expect(html).not.toContain('data-page="market-locale-chooser"')
   expect(html).toContain('Cloud accounting for US businesses')
   // Only Latin faces are preloaded on an English document (LCP · 2026-10-10).
@@ -115,7 +117,21 @@ test('generated sitemap includes supported localized and industry pages without 
   ))
   expect(new Set(locations).size).toBe(locations.length)
   for (const url of expected) expect(locations).toContain(url)
-  for (const route of LEGACY_PRERENDER_ROUTES.filter(route => !['/forgot-password', '/reset-password'].includes(route))) expect(locations).toContain(`https://entix.io${route}`)
+  const PLACEHOLDERS = ['/blog', '/docs', '/videos', '/glossary', '/case-studies', '/changelog', '/careers', '/team', '/refund', '/sla']
+  for (const route of LEGACY_PRERENDER_ROUTES.filter(route => !['/forgot-password', '/reset-password', ...PLACEHOLDERS].includes(route))) expect(locations).toContain(`https://entix.io${route}`)
+  // Thin "coming soon" documents stay out of the sitemap and carry noindex (SEO-02 · 2026-10-11).
+  for (const route of PLACEHOLDERS) {
+    expect(locations, route).not.toContain(`https://entix.io${route}`)
+    expect(await readFile(artifact(route), 'utf8'), route).toContain('<meta name="robots" content="noindex, follow">')
+  }
+  for (const route of ['/features', '/pricing', '/about', '/contact', '/help', '/integration', '/solutions/restaurants']) {
+    const html = await readFile(artifact(route), 'utf8')
+    expect(html, route).not.toContain('name="robots" content="noindex')
+    expect(html, route).toMatch(/<title>[^<]*(Entix Books|ENTIX\.IO|ENSIDEX)[^<]*<\/title>/)
+    expect(html, route).not.toMatch(/<title>[^<]*[\u0600-\u06ff]/)
+  }
+  expect(await readFile(artifact('/about'), 'utf8')).toContain('data-page="about"')
+  for (const route of ['/roadmap', '/partners']) expect(locations, route).not.toContain(`https://entix.io${route}`)
   for (const route of STATIC_PUBLIC_ROUTES) expect(locations).toContain(`https://entix.io${route}`)
   for (const url of locations) expect([...expected, ...[...LEGACY_PRERENDER_ROUTES, ...STATIC_PUBLIC_ROUTES].map(route => `https://entix.io${route}`)]).toContain(url)
   expect(sitemap).not.toContain('/marketplace/accountants')

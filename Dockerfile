@@ -37,7 +37,9 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY --from=build /app/nginx-early-hints.conf /etc/nginx/snippets/early-hints.conf
 # Edge-cache purge on every container start (needs CF_ZONE_ID + CF_PURGE_TOKEN at runtime).
 COPY docker/99-purge-cloudflare.sh /docker-entrypoint.d/99-purge-cloudflare.sh
-RUN chmod +x /docker-entrypoint.d/99-purge-cloudflare.sh
+# IndexNow ping (Bing / Copilot / ChatGPT search / DuckDuckGo) after each deploy.
+COPY docker/98-indexnow.sh /docker-entrypoint.d/98-indexnow.sh
+RUN chmod +x /docker-entrypoint.d/99-purge-cloudflare.sh /docker-entrypoint.d/98-indexnow.sh
 
 # Custom nginx config · SPA fallback + immutable asset cache
 RUN cat > /etc/nginx/conf.d/default.conf <<'NGINX'
@@ -87,6 +89,13 @@ server {
   # Existing dashboard bookmarks resolve to the authenticated application entry.
   location = /dashboard { return 308 /app$is_args$args; }
   location = /dashboard/ { return 308 /app$is_args$args; }
+
+  # Duplicate documents collapsed (SEO-02 · 2026-10-11): /roadmap rendered the
+  # Features page and /partners the Referrals page — one canonical URL each.
+  location = /roadmap { return 308 /features$is_args$args; }
+  location = /roadmap/ { return 308 /features$is_args$args; }
+  location = /partners { return 308 /referrals$is_args$args; }
+  location = /partners/ { return 308 /referrals$is_args$args; }
 
   # Canonical localized URLs have no trailing slash. Relative redirects retain
   # the browser's external HTTPS origin even though Nginx receives proxy HTTP.

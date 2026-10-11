@@ -813,13 +813,13 @@ export function Landing() {
           </div>
           <div className="lg:col-span-8 border-t border-foreground">
             {faqs.map((faq, i) => (
-              <div key={i} className="border-b border-border">
+              <div key={i} className="border-b border-border" data-faq-item>
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full flex items-center justify-between gap-4 py-5 text-start hover:text-primary transition-colors cursor-pointer"
                   aria-expanded={openFaq === i}
                 >
-                  <span className="text-foreground" style={{ fontSize: "16px", fontWeight: 600 }}>{faq.q}</span>
+                  <span className="text-foreground" style={{ fontSize: "16px", fontWeight: 600 }} data-faq-q>{faq.q}</span>
                   <ChevronDown
                     strokeWidth={1.75}
                     className={
@@ -833,7 +833,7 @@ export function Landing() {
                   className="overflow-hidden transition-all duration-300"
                   style={{ maxHeight: openFaq === i ? "260px" : "0px", opacity: openFaq === i ? 1 : 0 }}
                 >
-                  <p className="text-content-secondary pb-5 m-0 max-w-[640px]" style={{ fontSize: "14px", lineHeight: 1.6 }}>{faq.a}</p>
+                  <p className="text-content-secondary pb-5 m-0 max-w-[640px]" style={{ fontSize: "14px", lineHeight: 1.6 }} data-faq-a>{faq.a}</p>
                 </div>
               </div>
             ))}
