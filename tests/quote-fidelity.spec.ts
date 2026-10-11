@@ -12,8 +12,10 @@ for (const language of ['ar','en'] as const) test(`quote units, order and docume
  await page.route('**/api/document-templates**',r=>r.fulfill({json:{items:[],QUOTE:null,INVOICE:null}}));
  for(const path of ['branches','payment-plans','tax-rates']) await page.route(`**/api/${path}**`,r=>r.fulfill({json:{items:[]}}));
  await page.goto('/app/quotes/quote-proof');await page.getByTestId('quote-detail-edit').click();
+ await page.getByTestId('quote-line-units').locator('summary').click();
  await expect(page.getByTestId('quote-line-units')).toContainText(language==='ar'?'م²':'m²');
  await page.getByRole('button',{name:language==='ar'?'رفع البند 2':'Move line 2 up',exact:true}).click();
+ await page.getByTestId('quote-document-options').locator('summary').click();
  await page.getByTestId('quote-signatoryTitle').fill('CEO');await page.getByTestId('quote-signatoryTitleAr').fill('المدير التنفيذي');
  await page.getByTestId('quote-clientRole').fill('عن المقاول الرئيسي');await page.getByTestId('quote-clientRoleEn').fill('MAIN CONTRACTOR');
  await page.getByRole('button',{name:language==='ar'?'+ إضافة بيان تنفيذ':'+ Add delivery detail',exact:true}).click();
@@ -25,7 +27,58 @@ for (const language of ['ar','en'] as const) test(`quote units, order and docume
  await expect(page.getByTestId('quote-detail-edit')).toBeVisible();expect(writes).toHaveLength(1);
  expect(writes[0].lines.map((l:any)=>l.description)).toEqual(['B06-02 Second item','B01-01 First item']);expect(writes[0].lines.map((l:any)=>l.unit)).toEqual(['lm','m2']);expect(writes[0].lines.map((l:any)=>l.sortOrder)).toEqual([0,1]);
  await page.reload();await page.getByTestId('quote-detail-edit').click();
+ await page.getByTestId('quote-document-options').locator('summary').click();
  await expect(page.getByTestId('quote-signatoryTitle')).toHaveValue('CEO');await expect(page.getByTestId('quote-language')).toHaveValue(language);
  await expect(page.getByRole('textbox',{name:language==='ar'?'قيمة البيان 1':'Detail value 1',exact:true})).toHaveValue('90 days');
- await expect(page.getByTestId('quote-line-units')).toContainText(language==='ar'?'متر طولي':'Linear m');
+ await expect(page.getByTestId('line-unit-0')).toContainText(language==='ar'?'متر طولي':'Linear m');
+});
+for (const language of ['ar','en'] as const) test(`new quote inline units and delivery source persist (${language})`, async({page},testInfo)=>{
+ await prepareVisualApp(page,language);
+ const contact={id:'unit-client',displayName:'Unit test customer',type:'CUSTOMER'};
+ const template={id:'unit-template',name:'Company quote',kind:'QUOTE',isDefault:true,signatoryTitle:'CEO',signatoryTitleAr:'المدير التنفيذي',deliveryFacts:[{label:'Delivery',value:'STALE TWO DAYS'}],deliveryNote:'STALE 30 DAYS'};
+ let saved:any=null;
+ await page.route('**/api/quotes**',r=>{
+  if(['POST','PATCH'].includes(r.request().method())) { saved={...(saved||{}),...r.request().postDataJSON(),id:'unit-proof',quoteNumber:'UNIT-PROOF',contact}; return r.fulfill({json:saved}); }
+  return r.fulfill({json:new URL(r.request().url()).pathname.endsWith('/unit-proof')?saved:{items:saved?[saved]:[],total:saved?1:0}});
+ });
+ await page.route('**/api/contacts**',r=>r.fulfill({json:{items:[contact],total:1}}));
+ await page.route('**/api/document-templates**',r=>r.fulfill({json:{items:[template],QUOTE:template,INVOICE:null}}));
+ for(const path of ['branches','payment-plans','tax-rates']) await page.route(`**/api/${path}**`,r=>r.fulfill({json:{items:[]}}));
+ await page.goto('/app/quotes');
+ await page.getByRole('button',{name:language==='ar'?'عرض سعر جديد':'New quote',exact:true}).click();
+ await page.getByRole('button',{name:language==='ar'?'ابحث عن عميل...':'Search for a customer...',exact:true}).click();
+ await page.getByRole('button',{name:'Unit test customer',exact:true}).click();
+ const units=[['kg','كيلوغرام','Kilogram'],['hour','ساعة','Hour'],['day','يوم','Day'],['m2','م²','m²']];
+ for(let i=0;i<units.length;i++) {
+  await page.getByPlaceholder(language==='ar'?'الوصف':'Description',{exact:true}).nth(i).fill(`Line ${i+1}`);
+  await page.getByRole('textbox',{name:language==='ar'?'سعر السطر':'Line price',exact:true}).nth(i).fill('25');
+  await page.getByTestId(`line-unit-${i}`).getByRole('button').click();
+  await page.getByRole('button',{name:language==='ar'?`${units[i][1]} ${units[i][2]}`:`${units[i][2]} ${units[i][1]}`,exact:true}).click();
+ }
+ await page.getByTestId('line-unit-4').getByRole('button').click();
+ await page.getByPlaceholder(language==='ar'?'الوحدة':'Unit',{exact:true}).fill('Custom pack');
+ await page.getByRole('button',{name:language==='ar'?'+ وحدة مخصصة «Custom pack»':'+ Custom unit “Custom pack”',exact:true}).click();
+ await page.getByPlaceholder(language==='ar'?'الوصف':'Description',{exact:true}).nth(4).fill('Custom line');
+ await page.getByRole('textbox',{name:language==='ar'?'سعر السطر':'Line price',exact:true}).nth(4).fill('30');
+ await page.getByTestId('quote-document-options').locator('summary').click();
+ await expect(page.getByTestId('quote-delivery-source')).toHaveValue('quote_notes');
+ await expect(page.getByTestId('quote-signatoryTitle')).toHaveValue('CEO');
+ await page.getByTestId('quote-delivery-notes-source').fill('90 days after site handover');
+ await page.getByTestId('quote-language').selectOption('en');
+ await page.getByTestId('line-unit-0').scrollIntoViewIfNeeded();
+ await page.screenshot({path:testInfo.outputPath(`inline-units-${language}.png`)});
+ await page.getByRole('button',{name:language==='ar'?'حفظ كمسودة':'Save as draft',exact:true}).click();
+ await expect.poll(()=>saved?.id).toBe('unit-proof');
+ expect(saved.lines.map((l:any)=>l.unit)).toEqual(['kg','hour','day','m2','Custom pack']);
+ expect(saved.presentation.deliverySource).toBe('quote_notes');
+ expect(saved.notes).toBe('90 days after site handover');
+ await page.goto('/app/quotes/unit-proof'); await page.getByTestId('quote-detail-edit').click();
+ await expect(page.getByTestId('line-unit-0')).toContainText(language==='ar'?'كيلوغرام':'Kilogram');
+ await expect(page.getByTestId('line-unit-4')).toContainText('Custom pack');
+ await page.getByTestId('quote-document-options').locator('summary').click();
+ await expect(page.getByTestId('quote-delivery-notes-source')).toHaveValue('90 days after site handover');
+ await expect(page.getByTestId('quote-language')).toHaveValue('en');
+ await page.getByTestId('quote-delivery-notes-source').fill('120 days after site handover');
+ await page.getByRole('button',{name:language==='ar'?'حفظ التعديلات':'Save changes',exact:true}).click();
+ expect(saved.notes).toBe('120 days after site handover');
 });

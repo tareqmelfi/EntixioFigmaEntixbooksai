@@ -109,7 +109,7 @@ const planFromApi = (plan: PaymentPlan | null | undefined): PlanRow[] =>
   }));
 
 const EMPTY_FORM = {
-  presentation: {} as QuotePresentation,
+  presentation: { deliverySource: "quote_notes" } as QuotePresentation,
   language: "" as "" | "ar" | "en",
   originProjectId: "",
   contactId: "",
@@ -981,7 +981,9 @@ export function Quotes() {
               </div>
             </div>
 
-            <ItemsTable
+            <QuoteDocumentOptions notes={form.notes} onNotesChange={notes => setForm(f => ({...f,notes}))} value={form.presentation} onChange={presentation => setForm(f => ({...f,presentation}))} template={docTemplates.find(x => x.id === form.templateId) || docTemplates.find(x => x.isDefault)} />
+
+            <ItemsTable showUnit
               lines={lines}
               setLines={setLines}
               mode={taxMode}
@@ -1005,7 +1007,6 @@ export function Quotes() {
             />
 
             <QuoteLineUnits lines={lines} onChange={setLines} />
-            <QuoteDocumentOptions value={form.presentation} onChange={presentation => setForm(f => ({...f,presentation}))} template={docTemplates.find(x => x.id === form.templateId) || docTemplates.find(x => x.isDefault)} />
 
             <DocumentDropZone
               compact
