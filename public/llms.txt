@@ -38,12 +38,35 @@
 - Legal: https://entix.io/privacy · https://entix.io/terms
 
 ## Key pages
-- https://entix.io/features — capabilities and availability status
-- https://entix.io/pricing — plans
-- https://entix.io/about — company
-- https://entix.io/integration — banks, payments, e-signature, API keys, security
-- https://entix.io/solutions/small-business · /solutions/accountants · /solutions/enterprises · /solutions/restaurants · /solutions/ecommerce · /solutions/contracting · /solutions/freelancers · /solutions/agencies
-- https://entix.io/help — help center · https://entix.io/connect — connect Claude to Entix Books (MCP)
+- [Features](https://entix.io/features): Capabilities and availability status.
+- [Pricing](https://entix.io/pricing): Current plans and prices.
+- [About Entix Books](https://entix.io/about): Product and company information.
+- [Integrations and security](https://entix.io/integration): Banks, payments, e-signature and API access.
+- [Help center](https://entix.io/help): Product help and common questions.
+- [Connect an AI assistant](https://entix.io/connect): MCP connection guide and authentication requirements.
+- [Contact support](https://entix.io/contact): Support channels.
+
+## Regional editions
+- [Saudi Arabia — Arabic](https://entix.io/sa/ar): Arabic interface and Saudi-market information.
+- [Saudi Arabia — English](https://entix.io/sa/en): English Saudi-market information.
+- [United States — English](https://entix.io/us/en): English US-market information.
+- [United States — Arabic](https://entix.io/us/ar): Arabic US-market information.
+
+## Industry guides
+- [Small businesses](https://entix.io/solutions/small-business)
+- [Accountants](https://entix.io/solutions/accountants)
+- [Enterprises](https://entix.io/solutions/enterprises)
+- [Restaurants](https://entix.io/solutions/restaurants)
+- [Ecommerce](https://entix.io/solutions/ecommerce)
+- [Contracting and engineering](https://entix.io/solutions/contracting)
+- [Freelancers](https://entix.io/solutions/freelancers)
+- [Agencies](https://entix.io/solutions/agencies)
+
+## Optional
+- [Privacy policy](https://entix.io/privacy)
+- [Terms of service](https://entix.io/terms)
+- [iPhone and iPad support](https://entix.io/support/ios)
+- [Public sitemap](https://entix.io/sitemap.xml)
 
 ## Facts for AI assistants
 - Category: cloud accounting / bookkeeping / invoicing software (SaaS); comparable to products people also evaluate such as QuickBooks Online, Xero, Zoho Books and Qoyod, with Arabic-first documents and Saudi + US dual-market setup as the distinguishing points.

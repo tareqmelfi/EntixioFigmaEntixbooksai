@@ -4,7 +4,6 @@ import {
   Shield, BarChart3, Globe, Zap, Cloud, Smartphone, FileText, ArrowLeft, ChevronDown, Check, Database, Receipt, Calculator, TrendingUp, Clock, CreditCard, Landmark, Rocket, Gift, Users, AlertCircle
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { motion } from "motion/react";
 import { authStore } from "../components/auth-store";
 import { SharedNavbar } from "../components/shared-navbar";
 import { SharedFooter } from "../components/shared-footer";
@@ -208,7 +207,7 @@ function ShowcaseTabs({ t }: { t: (ar: string, en?: string) => string }) {
   return (
     <div className="bg-foreground text-background rounded-lg grid lg:grid-cols-12 gap-8 px-6 pt-8 sm:px-10 sm:pt-12 lg:px-16 lg:pt-14 overflow-hidden">
       <div className="lg:col-span-4 flex flex-col gap-4 pb-8 lg:pb-14">
-        <span className="ledger-eyebrow text-chart-3">{t("شاهد ENTIX.IO أثناء العمل", "See ENTIX.IO at work")}</span>
+        <span className="ledger-eyebrow" style={{ color: "var(--chart-3)" }}>{t("شاهد ENTIX.IO أثناء العمل", "See ENTIX.IO at work")}</span>
         <h2 className={isEn
           ? "font-display font-normal m-0 text-[30px] sm:text-[34px] lg:text-[40px] leading-[1.05] text-background"
           : "font-bold m-0 text-[24px] sm:text-[28px] lg:text-[32px] leading-[1.4] text-background"}>
@@ -231,22 +230,22 @@ function ShowcaseTabs({ t }: { t: (ar: string, en?: string) => string }) {
         <p className="text-background/60 mt-1" style={{ fontSize: "13px", lineHeight: 1.7 }}>{shots[active].desc}</p>
       </div>
       <div className="lg:col-span-8 bg-background rounded-t-lg p-4 sm:p-6 text-foreground">
-        <motion.div
+        <div
           key={active}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
           className="rounded-lg border border-border overflow-hidden bg-card"
         >
           <img
             src={shots[active].src}
+            srcSet={`${shots[active].src.replace('.webp', '-480.webp')} 480w, ${shots[active].src.replace('.webp', '-800.webp')} 800w, ${shots[active].src} 1440w`}
+            sizes="(min-width: 1536px) 784px, (min-width: 1024px) calc((100vw - 416px) * 2 / 3), (min-width: 640px) calc(100vw - 192px), calc(100vw - 120px)"
+            decoding="async"
             alt={shots[active].label}
             loading="lazy"
             className="w-full block"
             width={1440}
             height={900}
           />
-        </motion.div>
+        </div>
       </div>
     </div>
   );
@@ -406,7 +405,7 @@ export function Landing() {
     ? "font-display font-normal m-0 text-[36px] sm:text-[46px] lg:text-[56px] leading-none text-foreground"
     : "font-bold m-0 text-[28px] sm:text-[36px] lg:text-[44px] leading-[1.3] text-foreground";
   const leadClass = isEn ? "text-[16px] sm:text-[20px] leading-[1.55]" : "text-[16px] sm:text-[20px] leading-[1.8]";
-  const btnPrimary = "inline-flex items-center justify-center gap-2 rounded-full bg-[var(--brand-blue-600)] px-7 py-4 text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer min-h-[52px]";
+  const btnPrimary = "inline-flex items-center justify-center gap-2 rounded-full bg-primary px-7 py-4 text-primary-foreground transition-opacity hover:opacity-90 cursor-pointer min-h-[52px]";
   const btnGhost = "inline-flex items-center justify-center rounded-full border border-foreground px-6 py-4 text-foreground transition-colors hover:bg-surface-hover cursor-pointer min-h-[52px]";
 
   return (
@@ -417,8 +416,7 @@ export function Landing() {
       {/* ─── Hero ─── */}
       <section className={`${SHELL} pt-[104px] lg:pt-[184px] pb-12`}>
         <div className="grid lg:grid-cols-12 gap-10 lg:gap-8 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          <div
             className="lg:col-span-6 flex flex-col gap-5 sm:gap-7"
           >
             <div className="flex flex-wrap items-center gap-2.5">
@@ -450,21 +448,21 @@ export function Landing() {
                   )}
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center gap-3.5 mt-1">
-              <button
-                onClick={() => navigate(href("/register"))}
+              <Link
+                to={href("/register")}
                 className={btnPrimary}
                 style={{ fontSize: "16px", fontWeight: 600 }}
               >
                 {t("ابدأ شهرك المجاني", "Start your free month")}
                 <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              </button>
-              <button
-                onClick={() => navigate(href("/login"))}
+              </Link>
+              <Link
+                to={href("/login")}
                 className={btnGhost}
                 style={{ fontSize: "16px", fontWeight: 600 }}
               >
                 {t("تسجيل الدخول", "Sign in")}
-              </button>
+              </Link>
             </div>
             <div className="flex flex-wrap items-center gap-x-[22px] gap-y-2.5">
               {[
@@ -480,18 +478,17 @@ export function Landing() {
                 </div>
               ))}
             </div>
-          </motion.div>
+          </div>
 
           {/* Hero visual · photograph + the overlapping ledger figures card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}
+          <div
             className="lg:col-span-6 relative lg:mb-9"
           >
             {/* LCP element · webp srcset + fetchpriority=high + intrinsic size (PSI 2026-10-10) */}
             <img
               src="/marketing/hero-ledger-1100.webp"
-              srcSet="/marketing/hero-ledger-640.webp 640w, /marketing/hero-ledger-960.webp 960w, /marketing/hero-ledger-1100.webp 1100w"
-              sizes="(min-width: 1280px) 600px, (min-width: 1024px) 50vw, 100vw"
+              srcSet="/marketing/hero-ledger-480.webp 480w, /marketing/hero-ledger-640.webp 640w, /marketing/hero-ledger-960.webp 960w, /marketing/hero-ledger-1100.webp 1100w"
+              sizes="(min-width: 1536px) 680px, (min-width: 1024px) calc((100vw - 176px) / 2), (min-width: 640px) calc(100vw - 64px), calc(100vw - 40px)"
               width={1100}
               height={733}
               fetchPriority="high"
@@ -504,7 +501,7 @@ export function Landing() {
             <div className="mt-6 lg:mt-0 lg:absolute lg:-start-10 lg:-bottom-9 lg:w-[460px]">
               <LedgerFigureCard t={t} elevated />
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -541,19 +538,15 @@ export function Landing() {
             </p>
           </div>
           <div className="lg:col-span-8 grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {FEATURES.map((f, i) => (
-              <motion.div
+            {FEATURES.map((f) => (
+              <div
                 key={f.title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.04, duration: 0.35 }}
                 className="flex flex-col gap-3.5"
               >
                 <f.icon className="h-7 w-7 text-[var(--brand-blue-600)]" strokeWidth={1.6} />
                 <h3 className="text-foreground m-0" style={{ fontSize: "18px", fontWeight: 600 }}>{t(f.title, f.titleEn)}</h3>
                 <p className="text-content-secondary m-0" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>{t(f.desc, f.descEn)}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -607,26 +600,21 @@ export function Landing() {
               { icon: Database, title: "نسخ احتياطي يومي", titleEn: "Daily backups", desc: "نسخ احتياطي تلقائي كل يوم مع احتفاظ بالنسخ 14 يومًا — بياناتك قابلة للاستعادة عند الحاجة.", descEn: "Automatic backups every day with 14-day retention — your data stays recoverable when needed." },
               { icon: Shield, title: "عزل كامل للبيانات", titleEn: "Full data isolation", desc: "بيانات كل منشأة معزولة بالكامل مع صلاحيات وصول حسب أدوار المستخدمين وجلسات آمنة مشفّرة.", descEn: "Every organization's data is fully isolated, with role-based access and encrypted secure sessions." },
               { icon: FileText, title: "تصدير في أي وقت", titleEn: "Export anytime", desc: "بياناتك ملكك — صدّرها كاملة متى شئت، واحذف حسابك وبياناتك عند الطلب.", descEn: "Your data is yours — export it in full anytime, and delete your account and data on request." },
-            ].map((item, i) => (
-              <motion.div
+            ].map((item) => (
+              <div
                 key={item.title}
-                initial={{ opacity: 0, y: 16 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
                 className="flex flex-col gap-3.5"
               >
                 <item.icon className="h-7 w-7 text-[var(--brand-blue-600)]" strokeWidth={1.6} />
                 <h3 className="text-foreground m-0" style={{ fontSize: "18px", fontWeight: 600 }}>{t(item.title, item.titleEn)}</h3>
                 <p className="text-content-secondary m-0" style={{ fontSize: "15px", lineHeight: isEn ? 1.6 : 1.8 }}>{t(item.desc, item.descEn)}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Architecture strip */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+        <div
           className="mt-10 border-t border-border pt-8 flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-10"
         >
           <div className="flex flex-wrap items-center gap-3">
@@ -650,7 +638,7 @@ export function Landing() {
               "A modern cloud stack: Cloudflare for protection and speed, PostgreSQL for data, and Stripe for payments — card data never touches our servers."
             )}
           </p>
-        </motion.div>
+        </div>
       </section>
 
       {/* ─── Pricing teaser ─── */}
@@ -664,20 +652,16 @@ export function Landing() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-6 items-start">
-          {PRICING.map((plan, i) => (
-            <motion.div
+          {PRICING.map((plan) => (
+            <div
               key={plan.name}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
               className={`rounded-lg border p-7 sm:px-7 sm:py-8 flex flex-col gap-5 relative ${
                 plan.highlighted ? "bg-foreground border-foreground text-background" : "bg-card border-border"
               }`}
             >
               {plan.highlighted && (
                 <div className="absolute -top-3 start-7">
-                  <span className="rounded-full bg-[var(--brand-blue-600)] px-3 py-1 text-primary-foreground whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>{t("الأكثر شعبية", "Most popular")}</span>
+                  <span className="rounded-full bg-primary px-3 py-1 text-primary-foreground whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>{t("الأكثر شعبية", "Most popular")}</span>
                 </div>
               )}
               <div className="flex flex-col gap-1.5">
@@ -708,7 +692,7 @@ export function Landing() {
                     data-testid={`teaser-subscribe-${plan.nameEn.toLowerCase()}`}
                     className={
                       plan.highlighted
-                        ? "w-full rounded-full py-3.5 transition-opacity hover:opacity-90 cursor-pointer bg-[var(--brand-blue-600)] text-primary-foreground"
+                        ? "w-full rounded-full py-3.5 transition-opacity hover:opacity-90 cursor-pointer bg-primary text-primary-foreground"
                         : "w-full rounded-full py-3.5 transition-colors cursor-pointer bg-foreground text-background hover:bg-primary"
                     }
                     style={{ fontSize: "15px", fontWeight: 600 }}
@@ -753,14 +737,13 @@ export function Landing() {
                   );
                 })}
               </ul>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         {/* Offers · 2y+1y and the referral programme */}
         <div className="mt-10 grid md:grid-cols-2 gap-6">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          <div
             className="rounded-lg border border-border bg-card p-5 flex items-start gap-4"
           >
             <Gift className="h-5 w-5 text-[var(--brand-blue-600)] flex-none mt-0.5" strokeWidth={1.75} />
@@ -779,9 +762,8 @@ export function Landing() {
                 {t("فعّل العرض", "Activate offer")}
               </a>
             </div>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          </div>
+          <div
             className="rounded-lg border border-border bg-card p-5 flex items-start gap-4"
           >
             <Users className="h-5 w-5 text-[var(--brand-blue-600)] flex-none mt-0.5" strokeWidth={1.75} />
@@ -800,7 +782,7 @@ export function Landing() {
                 {t("صفحة الإحالات", "Referrals page")}
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -818,6 +800,7 @@ export function Landing() {
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full flex items-center justify-between gap-4 py-5 text-start hover:text-primary transition-colors cursor-pointer"
                   aria-expanded={openFaq === i}
+                  aria-controls={`landing-faq-${i}`}
                 >
                   <span className="text-foreground" style={{ fontSize: "16px", fontWeight: 600 }} data-faq-q>{faq.q}</span>
                   <ChevronDown
@@ -830,8 +813,8 @@ export function Landing() {
                   />
                 </button>
                 <div
-                  className="overflow-hidden transition-all duration-300"
-                  style={{ maxHeight: openFaq === i ? "260px" : "0px", opacity: openFaq === i ? 1 : 0 }}
+                  id={`landing-faq-${i}`}
+                  hidden={openFaq !== i}
                 >
                   <p className="text-content-secondary pb-5 m-0 max-w-[640px]" style={{ fontSize: "14px", lineHeight: 1.6 }} data-faq-a>{faq.a}</p>
                 </div>

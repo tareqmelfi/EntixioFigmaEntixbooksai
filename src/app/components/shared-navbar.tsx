@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router";
 import { Menu, X, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "./LanguageContext";
 import { EntixWordmark } from "./entix-brand";
 import { usePublicRoute } from "../lib/public-route";
@@ -112,6 +111,7 @@ export function SharedNavbar() {
                 <>
                   <button
                     onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
+                    aria-expanded={openDropdown === item.label}
                     className="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors cursor-pointer"
                     style={{ fontSize: "15px", fontWeight: 500 }}
                   >
@@ -122,13 +122,9 @@ export function SharedNavbar() {
                       }`}
                     />
                   </button>
-                  <AnimatePresence>
+                  <>
                     {openDropdown === item.label && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.15 }}
+                      <div
                         className="absolute top-full end-0 mt-2 w-[280px] bg-card rounded-lg shadow-popover border border-border overflow-hidden"
                       >
                         {item.dropdown.map((subItem, i) => (
@@ -149,9 +145,9 @@ export function SharedNavbar() {
                             )}
                           </button>
                         ))}
-                      </motion.div>
+                      </div>
                     )}
-                  </AnimatePresence>
+                  </>
                 </>
               ) : (
                 <Link
@@ -213,12 +209,9 @@ export function SharedNavbar() {
       </div>
 
       {/* Mobile Navigation */}
-      <AnimatePresence>
+      <>
         {mobileNav && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }} 
-            animate={{ opacity: 1, height: "auto" }} 
-            exit={{ opacity: 0, height: 0 }}
+          <div
             className="xl:hidden bg-card border-t border-border shadow-popover overflow-hidden"
           >
             <div className="px-4 py-4 space-y-2 max-h-[calc(100vh-68px)] overflow-y-auto">
@@ -280,9 +273,9 @@ export function SharedNavbar() {
                 {t("ابدأ مجانًا", "Start free")}
               </button>
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </>
     </nav>
 
     {/* Mobile fixed-bottom CTA · outside fixed nav so it stays anchored to viewport bottom */}

@@ -1,21 +1,15 @@
 # robots.txt · entix.io — real file, not SPA shell (REND-04)
+# The same public/private boundary applies to search and AI crawlers.
 User-agent: *
-Allow: /
-Disallow: /app
-Disallow: /portal
-Disallow: /print
-
-# AI crawlers explicitly welcome (REND-04)
 User-agent: GPTBot
-Allow: /
-
 User-agent: ClaudeBot
-Allow: /
-
 User-agent: PerplexityBot
-Allow: /
-
 User-agent: Google-Extended
 Allow: /
+Disallow: /app
+Disallow: /admin
+Disallow: /api
+Disallow: /portal
+Disallow: /print
 
 Sitemap: https://entix.io/sitemap.xml
