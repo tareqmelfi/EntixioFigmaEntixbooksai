@@ -44,6 +44,8 @@ for (const locale of ['en', 'ar']) {
     await expect(answer).toBeHidden()
     await page.getByRole('button', { name: locale === 'ar' ? 'فتح القائمة' : 'Open menu', exact: true }).click()
     await expect(page.getByRole('button', { name: locale === 'ar' ? 'إغلاق القائمة' : 'Close menu', exact: true })).toHaveAttribute('aria-expanded', 'true')
+    const country = page.locator('nav').getByRole('button', { name: /اختيار الدولة|Select country/ }).filter({ visible: true }).first()
+    await expect(country).toHaveAccessibleName(new RegExp((await country.innerText()).trim()))
   })
 }
 
