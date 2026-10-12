@@ -58,6 +58,7 @@ test.describe('Auth Flow', () => {
       route.fulfill({ status: 401, json: { message: 'Invalid credentials' } }),
     )
     await page.goto('/login')
+    await expect.poll(() => page.evaluate(() => typeof (window as any).__turnstileOptions?.callback)).toBe('function')
     await page.evaluate(() => (window as any).__turnstileOptions.callback('smoke-token'))
     await page.fill('input[type="email"]', 'test@nonexistent.com')
     await page.fill('input[type="password"]', 'wrongpassword123')

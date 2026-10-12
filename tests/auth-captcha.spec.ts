@@ -39,11 +39,19 @@ async function mockPublicAuth(page: Page) {
   })
 }
 
+async function waitForCaptcha(page: Page) {
+  // Auth routes are loaded on demand. Navigation completion alone does not
+  // mean the widget has mounted and registered its callbacks.
+  await expect(page.locator('[data-testid="turnstile-host"]')).toBeVisible()
+}
+
 async function solveCaptcha(page: Page, token = captchaToken) {
+  await waitForCaptcha(page)
   await page.evaluate(value => (window as any).__turnstileTest.options.callback(value), token)
 }
 
 async function triggerCaptcha(page: Page, callback: string, ...args: unknown[]) {
+  await waitForCaptcha(page)
   await page.evaluate(
     ({ name, callbackArgs }) => (window as any).__turnstileTest.options[name](...callbackArgs),
     { name: callback, callbackArgs: args },
@@ -259,6 +267,7 @@ test.describe('public auth CAPTCHA lifecycle', () => {
 
   test('stale error callback cannot reset the replacement widget', async ({ page }) => {
     await page.goto('/login')
+    await waitForCaptcha(page)
     const staleErrorCallback = await page.evaluateHandle(() => (window as any).__turnstileTest.options['error-callback'])
 
     await page.getByRole('button', { name: 'العربية' }).click()
@@ -304,6 +313,7 @@ test.describe('public auth CAPTCHA lifecycle', () => {
   test('widget options explicitly configure recovery and status callback may receive an error code', async ({ page }) => {
     await page.goto('/login')
 
+    await waitForCaptcha(page)
     const options = await page.evaluate(() => {
       const { retry, 'retry-interval': retryInterval, 'refresh-expired': refreshExpired, 'refresh-timeout': refreshTimeout } =
         (window as any).__turnstileTest.options

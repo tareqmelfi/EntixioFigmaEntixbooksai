@@ -195,6 +195,7 @@ function PreferenceRow({ icon, title, desc, on, locked, onToggle }: {
         <button
           onClick={onToggle}
           role="switch"
+          aria-label={title}
           aria-checked={on}
           className={`w-10 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${on ? "bg-primary" : "bg-border"}`}
         >

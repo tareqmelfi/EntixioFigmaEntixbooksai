@@ -373,7 +373,7 @@ function fontPreloadsFor(locale) {
   // pipeline above runs (same reason writeSitemap computes its tables at call time).
   return locale === 'ar'
     ? ['IBMPlexSansArabic-400-arabic', 'IBMPlexSansArabic-600-arabic', 'IBMPlexSansArabic-700-arabic', 'IBMPlexSansArabic-400-latin']
-    : ['IBMPlexSans-400-latin', 'IBMPlexSans-600-latin', 'InstrumentSerif-400i-latin', 'InstrumentSerif-400-latin']
+    : ['IBMPlexSans-400-latin', 'InstrumentSerif-400i-latin', 'InstrumentSerif-400-latin']
 }
 function rewriteFontPreloads(html, locale) {
   const stripped = html.replace(/<link\b(?=[^>]*\brel=["']preload["'])(?=[^>]*\bas=["']font["'])[^>]*>\s*/gi, '')
@@ -388,7 +388,7 @@ function rewriteFontPreloads(html, locale) {
 function writeEarlyHints() {
   const css = fs.readdirSync(path.join(DIST, 'assets')).filter((file) => /^index-[\w-]+\.css$/.test(file))
   if (css.length !== 1) throw new Error(`expected exactly one index-*.css in dist/assets, found ${css.length}`)
-  const header = `add_header Link "</assets/${css[0]}>; rel=preload; as=style" always;\n`
+  const header = `add_header Link "</assets/${css[0]}>; rel=preload; as=style; crossorigin" always;\n`
   fs.writeFileSync(path.resolve('nginx-early-hints.conf'), header)
   console.log(`  ✓ early hints → /assets/${css[0]}`)
 }

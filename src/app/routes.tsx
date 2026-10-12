@@ -9,10 +9,6 @@ const LegacyAdminRedirect = React.lazy(() => import("./layouts/admin").then((m) 
 import { AuthGuard } from "./components/auth-guard";
 import { ErrorBoundary, NotFound } from "./components/error-boundary";
 import { Landing } from "./pages/landing";
-import { Login } from "./pages/login";
-import { Register } from "./pages/register";
-import { ForgotPassword } from "./pages/forgot-password";
-import { ResetPassword } from "./pages/reset-password";
 import { RootLanding } from "./pages/market-locale-chooser";
 import { PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, localizedPath, type PublicPageKind } from "./public-site-manifest";
 
@@ -138,10 +134,10 @@ export const router = createBrowserRouter([
   { path: "/", element: <RootLanding />, errorElement: <ErrorBoundary /> },
   ...localizedPublicRoutes,
   // Legacy public subpages remain available without localized canonical claims.
-  { path: "/login", element: <Login />, errorElement: <ErrorBoundary /> },
-  { path: "/register", element: <Register />, errorElement: <ErrorBoundary /> },
-  { path: "/forgot-password", element: <ForgotPassword />, errorElement: <ErrorBoundary /> },
-  { path: "/reset-password", element: <ResetPassword />, errorElement: <ErrorBoundary /> },
+  { path: "/login", element: lazyElement(() => import("./pages/login"), "Login"), errorElement: <ErrorBoundary /> },
+  { path: "/register", element: lazyElement(() => import("./pages/register"), "Register"), errorElement: <ErrorBoundary /> },
+  { path: "/forgot-password", element: lazyElement(() => import("./pages/forgot-password"), "ForgotPassword"), errorElement: <ErrorBoundary /> },
+  { path: "/reset-password", element: lazyElement(() => import("./pages/reset-password"), "ResetPassword"), errorElement: <ErrorBoundary /> },
   { path: "/project-invite/:token", element: lazyElement(() => import("./pages/project-guest"), "ProjectGuest"), errorElement: <ErrorBoundary /> },
   { path: "/project-space/:id", element: lazyElement(() => import("./pages/project-guest"), "ProjectGuest"), errorElement: <ErrorBoundary /> },
   { path: "/invite/:token", element: lazyElement(() => import("./pages/invite"), "InvitePage"), errorElement: <ErrorBoundary /> },

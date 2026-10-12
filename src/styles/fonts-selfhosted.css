@@ -169,6 +169,8 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 /* ===== Ledger design system (2026-09) · IBM Plex Sans Arabic + IBM Plex Sans + Instrument Serif + JetBrains Mono ===== */
+/* The Latin 400/500/600 files are byte-identical variable fonts. Share one URL
+   so all three weights reuse the same browser download without changing type. */
 /* IBM Plex Sans 400 latin */
 @font-face {
   font-family: 'IBM Plex Sans';
@@ -184,7 +186,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url(/fonts/IBMPlexSans-500-latin.woff2) format('woff2');
+  src: url(/fonts/IBMPlexSans-400-latin.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 /* IBM Plex Sans 600 latin */
@@ -193,7 +195,7 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url(/fonts/IBMPlexSans-600-latin.woff2) format('woff2');
+  src: url(/fonts/IBMPlexSans-400-latin.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 /* IBM Plex Sans Arabic 400 arabic */
