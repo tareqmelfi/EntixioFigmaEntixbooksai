@@ -32,6 +32,12 @@ for (const locale of ['en', 'ar']) {
     const hero = page.locator('main section').first()
     await expect(hero.getByRole('heading', { level: 1 })).toBeVisible()
     await expect(hero.getByRole('link', { name: locale === 'ar' ? 'تسجيل الدخول' : 'Sign in', exact: true })).toHaveAttribute('href', '/login')
+    for (const code of ['ar', 'en']) {
+      const language = page.getByTestId(`public-language-${code}`).filter({ visible: true }).first()
+      await expect(language).toHaveAccessibleName(new RegExp(code.toUpperCase()))
+    }
+    const footerLanguage = page.locator('footer [data-public-preference-selector]').getByRole('button').last()
+    await expect(footerLanguage).toHaveAccessibleName(new RegExp(locale === 'ar' ? 'English' : 'Arabic'))
     const question = page.locator('#faq button').first()
     const answer = page.locator(`#${await question.getAttribute('aria-controls')}`)
     await expect(answer).toBeHidden()

@@ -52,7 +52,7 @@ export function PublicLanguageToggle({ variant = "light", className = "" }: { va
           data-testid={`public-language-${option.code}`}
           onClick={() => choose(option.code)}
           aria-pressed={language === option.code}
-          aria-label={option.full}
+          aria-label={`${option.label} — ${option.full}`}
           className={`min-h-[32px] min-w-[36px] rounded-full px-2.5 transition-colors cursor-pointer ${optionClass(language === option.code)}`}
           style={{ fontSize: "12px", fontWeight: 700, lineHeight: 1 }}
         >
@@ -194,7 +194,7 @@ export function PublicPreferenceSelector({ variant = "light" }: { variant?: "lig
         onClick={() => changeLanguage(language === "ar" ? "en" : "ar")}
         className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 transition-colors ${buttonClass}`}
         style={{ fontSize: "13px", fontWeight: 600 }}
-        aria-label={t("تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
+        aria-label={t("English — تغيير اللغة إلى الإنجليزية", "Switch language to Arabic")}
       >
         <Globe className="h-4 w-4" />
         <span>{language === "ar" ? "English" : "Arabic"}</span>
