@@ -239,6 +239,11 @@ export function AdminSupportInbox({ guard, push, children }: { children?: React.
                     </span>
                   )}
                   {tk.contactPhone && <span className="font-english text-[10px] text-muted-foreground">+{String(tk.contactPhone).replace(/\D/g, "")}</span>}
+                  {/* 2026-10-12 · three WhatsApp numbers share this inbox — show which one */}
+                  {tk.lineLabel && <span className="rounded border border-border px-1.5 py-0.5 text-[10px] text-foreground">{tk.lineLabel}</span>}
+                  {tk.agentMode === "human" && !["RESOLVED","CLOSED"].includes(tk.status) && (
+                    <span className="rounded bg-info-subtle px-1.5 py-0.5 text-[10px] text-info">{t("مستلمة بشرياً · الوكيل متوقف", "Human-owned · agent paused")}</span>
+                  )}
                 </div>
                 {tk.lastMessage && (
                   <div className="mt-1 truncate text-xs text-muted-foreground/80">
@@ -267,6 +272,9 @@ export function AdminSupportInbox({ guard, push, children }: { children?: React.
                 <div className="flex items-center gap-1.5 text-sm text-foreground" style={{ fontWeight: 600 }}>
                   <ChannelIcon channel={(thread as any).channel} />
                   {(thread as any).contactName || (thread as any).contactPhone || thread.subject}
+                  {rows.find((r: any) => r.id === thread.id)?.lineLabel && (
+                    <span className="rounded border border-border px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">{rows.find((r: any) => r.id === thread.id)?.lineLabel}</span>
+                  )}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2"><span className={`${badgeClass} ${statusTone[thread.status]}`}>{t(...(STATUS[thread.status] || STATUS.OPEN))}</span><span className={`${badgeClass} ${priorityTone[thread.priority]}`}>{t(...(PRIORITY[thread.priority] || PRIORITY.NORMAL))}</span></div>
                 <div className="mt-2 flex flex-wrap items-end gap-2 text-xs">

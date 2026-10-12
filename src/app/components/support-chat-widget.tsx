@@ -18,6 +18,26 @@ import { MessageCircle, X, Send, Loader2, User } from "lucide-react";
 import { API_BASE_URL } from "../lib/api";
 import { useLanguage } from "./LanguageContext";
 
+/** 2026-10-12 · one support persona on every channel (CEO decision): Elara. */
+const ELARA_AVATAR = "/brand/elara-avatar-96.webp";
+const ELARA_AVATAR_2X = "/brand/elara-avatar-192.webp";
+function ElaraAvatar({ size }: { size: number }) {
+  return (
+    <img
+      src={ELARA_AVATAR}
+      srcSet={`${ELARA_AVATAR} 1x, ${ELARA_AVATAR_2X} 2x`}
+      width={size}
+      height={size}
+      alt=""
+      aria-hidden="true"
+      loading="lazy"
+      decoding="async"
+      className="shrink-0 rounded-full object-cover"
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
 type Author = "you" | "agent" | "team";
 type Msg = { id: string; author: Author; body: string; createdAt?: string };
 
@@ -169,13 +189,16 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
 
   const shown: Msg[] = msgs.length
     ? msgs
-    : [{ id: "greet", author: "agent", body: greeting || t("مرحبًا بك في Entix Books. كيف يمكنني مساعدتك؟", "Welcome to Entix Books 👋 How can I help?") }];
+    : [{ id: "greet", author: "agent", body: greeting || t("حياك الله في Entix Books 👋 أنا إيلارا، المساعدة الذكية لفريق الدعم. وش أقدر أخدمك فيه؟", "Welcome to Entix Books 👋 I'm Elara, the support team's AI assistant. How can I help?") }];
 
   return (
     <>
       {!open && welcome && <div className="fixed bottom-20 end-4 z-40 max-w-[280px] rounded-xl border border-border bg-card p-3 shadow-raised" dir={language === "ar" ? "rtl" : "ltr"}>
         <button className="float-end p-1" aria-label={t("إخفاء الترحيب", "Dismiss welcome")} onClick={() => { setWelcome(false); try { sessionStorage.setItem("entix-support-welcome-dismissed", "1"); } catch {} }}><X className="h-3 w-3"/></button>
-        <p className="text-sm">{t("مرحبًا بك في Entix. أساعدك في اختيار الباقة أو الإجابة عن أسئلتك.", "Welcome to Entix. I can help you choose a plan or answer your questions.")}</p>
+        <div className="flex items-start gap-2">
+          <ElaraAvatar size={32} />
+          <p className="text-sm">{t("أهلًا، أنا إيلارا من دعم Entix Books. أساعدك تختار باقتك أو أجاوب أي سؤال.", "Hi, I'm Elara from Entix Books support. I can help you pick a plan or answer any question.")}</p>
+        </div>
         <button className="mt-2 text-sm font-semibold text-primary" onClick={() => { setOpen(true); setWelcome(false); }}>{t("ابدأ المحادثة", "Start conversation")}</button>
       </div>}
       {open && (
@@ -187,12 +210,15 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
           aria-label={t("دعم Entix", "Entix support")}
         >
           <div className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
-            <div className="min-w-0">
-              <div className="text-sm" style={{ fontWeight: 600 }}>{t("فريق دعم Entix", "Entix Support")}</div>
-              <div className="text-[11px] opacity-80">
-                {needsHuman
-                  ? t("طلبك وصل الفريق — الرد يظهر هنا", "Your request reached the team — the reply shows up here")
-                  : t("مساعد الدعم · والتحويل للفريق عند الحاجة", "Support assistant · team handoff when needed")}
+            <div className="flex min-w-0 items-center gap-2.5">
+              <ElaraAvatar size={36} />
+              <div className="min-w-0">
+                <div className="text-sm" style={{ fontWeight: 600 }}>{t("إيلارا · دعم Entix Books", "Elara · Entix Books Support")}</div>
+                <div className="text-[11px] opacity-80">
+                  {needsHuman
+                    ? t("طلبك وصل الفريق — الرد يظهر هنا", "Your request reached the team — the reply shows up here")
+                    : t("مساعدة ذكية · والفريق يستلم عند الحاجة", "AI assistant · the team steps in when needed")}
+                </div>
               </div>
             </div>
             <button onClick={() => setOpen(false)} aria-label={t("إغلاق", "Close")} className="rounded-lg p-1.5 hover:bg-white/10">
@@ -202,7 +228,8 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
 
           <div className="flex-1 space-y-2 overflow-y-auto bg-background px-3 py-3">
             {shown.map((m) => (
-              <div key={m.id} className={`flex ${m.author === "you" ? "justify-end" : "justify-start"}`}>
+              <div key={m.id} className={`flex items-end gap-1.5 ${m.author === "you" ? "justify-end" : "justify-start"}`}>
+                {m.author === "agent" && <ElaraAvatar size={22} />}
                 <div
                   className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3 py-2 text-[13px] leading-relaxed ${
                     m.author === "you"
@@ -264,9 +291,18 @@ export function SupportChatWidget({ path, onNavigate }: { path: string; onNaviga
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={t("محادثة الدعم", "Support chat")}
-        className="fixed bottom-4 end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-raised transition hover:opacity-90"
+        className="fixed bottom-4 end-4 z-50 flex h-12 w-12 items-center justify-center overflow-visible rounded-full bg-primary text-primary-foreground shadow-raised ring-2 ring-primary transition hover:opacity-90"
       >
-        {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        {open ? (
+          <X className="h-5 w-5" />
+        ) : (
+          <>
+            <ElaraAvatar size={48} />
+            <span className="absolute -bottom-0.5 -start-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary ring-2 ring-card">
+              <MessageCircle className="h-3 w-3" />
+            </span>
+          </>
+        )}
         {!open && unseen > 0 && (
           <span className="absolute -top-1 -end-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1 text-[10px] text-primary-foreground">
             {unseen}

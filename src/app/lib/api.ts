@@ -4098,7 +4098,9 @@ export interface AdminTeamMember { id: string; email: string; name: string | nul
 export interface AdminTeamInvite { id: string; email: string; role: { id: string; key: string; nameAr: string; nameEn: string }; invitedBy: string; expiresAt: string; createdAt: string }
 export interface AdminTicketRow { id: string; orgId: string | null; orgName?: string | null; userId: string | null; subject: string; status: string; priority: string; assignedAgentEmail: string | null; createdByEmail: string | null; createdAt: string; updatedAt: string; closedAt: string | null; lastMessage?: { authorType: string; authorEmail: string | null; body: string; createdAt: string } | null;
   // omni-channel support (2026-09-14) · WhatsApp + website chat land here too
-  channel?: string; category?: string; needsHuman?: boolean; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; summary?: string | null; lastCustomerAt?: string | null }
+  channel?: string; category?: string; needsHuman?: boolean; contactName?: string | null; contactPhone?: string | null; contactEmail?: string | null; summary?: string | null; lastCustomerAt?: string | null
+  // 2026-10-12 · which WhatsApp number (Entix · ENSIDEX SA · ENSIDEX US) and who owns the thread
+  line?: string | null; lineLabel?: string | null; agentMode?: "auto" | "human" }
 export interface AdminTicketDetail extends AdminTicketRow { messages: Array<{ id: string; authorType: string; authorEmail: string | null; body: string; createdAt: string }> }
 
 // ── External sheet sources (SPEC-06) ─────────────────────────────────────────
