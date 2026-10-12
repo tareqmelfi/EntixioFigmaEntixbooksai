@@ -27,7 +27,7 @@ const META = {
   '/': ['Entix Books · Arabic-first cloud accounting | ENTIX.IO', 'Arabic-first cloud accounting for businesses in Saudi Arabia and the United States — quotes, invoices, receipts, automatic journal entries, POS, inventory and projects. Start free, no card.'],
   '/features': ['Features — invoicing, expenses, banking, reports · Entix Books', 'Everything Entix Books does: quotes to invoices to journal entries, OCR expenses, bank reconciliation, payroll, inventory, projects and financial reports — in Arabic and English.'],
   '/pricing': ['Pricing — start free, pay as you grow · Entix Books', 'Entix Books plans for Saudi and US businesses: a free starter plan, one free month on paid plans, no card required. Monthly or annual billing.'],
-  '/referrals': ['Referral and partner program · Entix Books', 'Refer business owners to Entix Books: a discount for the new subscriber and a recurring commission for accredited partners and accountants.'],
+  '/referrals': ['Referral and partner program · Entix Books', 'Share the Entix Books website without an account, or register interest in paid referrals. Commission tracking and payouts are not active yet.'],
   '/about': ['About Entix Books — bilingual cloud accounting by ENSIDEX LLC', 'Entix Books is a bilingual (Arabic/English) cloud accounting platform for small and mid-sized businesses in Saudi Arabia and the United States, built by ENSIDEX LLC, Wyoming.'],
   '/contact': ['Contact the Entix Books team · ENTIX.IO', 'Sales and product support for Entix Books: support@entix.io, the in-app support portal, privacy and legal contacts.'],
   '/blog': ['Blog · Entix Books', 'Accounting and product articles from the Entix Books team, in Arabic and English.'],
