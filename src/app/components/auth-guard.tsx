@@ -21,7 +21,7 @@ import { api } from "../lib/api";
 // needs the switcher; keeping it static put ~66KB of org UI in the public entry chunk.
 const OrgSwitcher = lazy(() => import("./org-switcher").then((m) => ({ default: m.OrgSwitcher })));
 import { useLanguage } from "./LanguageContext";
-import { accountLocale, applyDocumentLocale, LANGUAGE_STORAGE_KEY } from "./public-preferences";
+import { preferredAppLanguage, applyDocumentLocale, LANGUAGE_STORAGE_KEY } from "./public-preferences";
 
 // localStorage (NOT sessionStorage) so the hint survives across tabs and browser restarts.
 // The hint is just a UX nicety — the auth-store still revalidates the actual session
@@ -88,7 +88,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   // 4. Authenticated → apply the already-fetched account locale before the shell mounts.
-  const locale = accountLocale(state.user?.locale);
+  const locale = preferredAppLanguage(state.user);
   if (locale) {
     try { localStorage.setItem(LANGUAGE_STORAGE_KEY, locale); } catch {}
     applyDocumentLocale(locale);

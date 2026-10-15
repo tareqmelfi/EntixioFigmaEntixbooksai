@@ -14,6 +14,8 @@ import { api, ApiError } from "../lib/api";
 import { useLanguage } from "../components/LanguageContext";
 import { SmartImportWizard } from "../components/smart-import-wizard";
 
+import { displayName } from "../lib/display-name";
+
 const IMAGE_STORE_KEY = "entix_product_images_v1";
 
 export function Products() {
@@ -140,8 +142,8 @@ export function Products() {
                       <td className="py-3 px-4 text-start">
                         <Link to={`/app/products/${p.id}`} onClick={(e) => e.stopPropagation()} className="block max-w-full truncate font-code text-sm text-foreground hover:underline underline-offset-4" dir="ltr" title={p.sku || ""}>{p.sku || "—"}</Link>
                       </td>
-                      <td className="py-3 px-4 text-sm text-foreground truncate" title={p.nameAr || p.name}>
-                        <Link to={`/app/products/${p.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:underline underline-offset-4"><bdi dir="auto">{p.nameAr || p.name}</bdi></Link>
+                      <td className="py-3 px-4 text-sm text-foreground truncate" title={displayName(p, language)}>
+                        <Link to={`/app/products/${p.id}`} onClick={(e) => e.stopPropagation()} className="font-medium hover:underline underline-offset-4"><bdi dir="auto">{displayName(p, language)}</bdi></Link>
                       </td>
                       <td className="py-3 px-4 text-xs">
                         <StatusBadge tone="info">

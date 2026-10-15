@@ -18,7 +18,7 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ToastStack, useToasts } from "../components/side-panel";
 import { api, ApiError, Account, type ProductBarcode } from "../lib/api";
-import { displayName } from "../lib/display-name";
+import { displayName, secondaryName } from "../lib/display-name";
 import { SearchableCombobox } from "../components/searchable-combobox";
 import { useLanguage } from "../components/LanguageContext";
 
@@ -41,7 +41,9 @@ const EMPTY_FORM = {
 };
 
 export function ProductDetail() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const translate = useRef(t);
+  translate.current = t;
   const { id } = useParams();
   const navigate = useNavigate();
   const isNew = !id || id === "new";
@@ -126,9 +128,9 @@ export function ProductDetail() {
         expenseAccountId: item.expenseAccountId || "",
       });
     } catch (e: any) {
-      setError(e instanceof ApiError ? e.message : t("فشل تحميل الصنف", "Failed to load item"));
+      setError(e instanceof ApiError ? e.message : translate.current("فشل تحميل الصنف", "Failed to load item"));
     } finally { setLoading(false); }
-  }, [id, isNew, t]);
+  }, [id, isNew]);
   useEffect(() => { load(); }, [load]);
 
   const saveLocalImage = (productId: string, imageUrl: string) => {
@@ -212,7 +214,7 @@ export function ProductDetail() {
             <ArrowRight className="h-3.5 w-3.5 ltr:rotate-180" strokeWidth={1.75} /> {t("المنتجات والمخزون", "Products & inventory")} · {t("العودة للمنتجات والخدمات", "Back to Products & Services")}
           </Link>
         )}
-        title={isNew ? t("صنف جديد", "New Item") : <bdi dir="auto">{form.nameAr || form.name || t("تعديل صنف", "Edit Item")}</bdi>}
+        title={isNew ? t("صنف جديد", "New Item") : <bdi dir="auto">{displayName(form, language) || t("تعديل صنف", "Edit Item")}</bdi>}
         description={isNew
           ? t("سجّل خدمة أو منتجاً واربطه بحساباته المحاسبية من البداية", "Register a service or product and link its accounts from day one")
           : t("تعديل بيانات الصنف وربطه المحاسبي", "Edit the item and its accounting links")}
@@ -318,7 +320,7 @@ export function ProductDetail() {
                   <SearchableCombobox
                     value={form.incomeAccountId}
                     onChange={(accountId) => { setForm({ ...form, incomeAccountId: accountId }); setSuggested((p) => ({ ...p, income: undefined })); }}
-                    items={accounts.filter(a => a.type === "REVENUE").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }))}
+                    items={accounts.filter(a => a.type === "REVENUE").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a, language)}`, sublabel: secondaryName(a, language) || undefined }))}
                     placeholder={t("اختر حساب الإيراد...", "Choose income account...")}
                   />
                   {form.type === "SERVICE" && !form.incomeAccountId && (
@@ -337,7 +339,7 @@ export function ProductDetail() {
                   <SearchableCombobox
                     value={form.expenseAccountId}
                     onChange={(accountId) => { setForm({ ...form, expenseAccountId: accountId }); setSuggested((p) => ({ ...p, expense: undefined })); }}
-                    items={accounts.filter(a => a.type === "EXPENSE" || a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${a.name}`, sublabel: a.nameAr || undefined }))}
+                    items={accounts.filter(a => a.type === "EXPENSE" || a.type === "ASSET").map(a => ({ id: a.id, label: `${a.code} · ${displayName(a, language)}`, sublabel: secondaryName(a, language) || undefined }))}
                     placeholder={t("اختر حساب المصروف...", "Choose expense account...")}
                   />
                   {expenseAccount?.type === "ASSET" && (
@@ -352,8 +354,8 @@ export function ProductDetail() {
                 </p>
                 {(incomeAccount || expenseAccount) && (
                   <div className="rounded-lg border border-success-border bg-success-subtle px-3 py-2 text-[11px] text-success space-y-0.5">
-                    {incomeAccount && <div>{t("البيع →", "Sale →")} <span className="font-english font-semibold" dir="ltr">{incomeAccount.code} · {displayName(incomeAccount)}</span></div>}
-                    {expenseAccount && <div>{t("الشراء →", "Purchase →")} <span className="font-english font-semibold" dir="ltr">{expenseAccount.code} · {displayName(expenseAccount)}</span></div>}
+                    {incomeAccount && <div>{t("البيع →", "Sale →")} <span className="font-english font-semibold" dir="ltr">{incomeAccount.code} · {displayName(incomeAccount, language)}</span></div>}
+                    {expenseAccount && <div>{t("الشراء →", "Purchase →")} <span className="font-english font-semibold" dir="ltr">{expenseAccount.code} · {displayName(expenseAccount, language)}</span></div>}
                   </div>
                 )}
               </CardContent>

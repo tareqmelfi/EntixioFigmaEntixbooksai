@@ -21,6 +21,30 @@ const summary = () => ({
   periodCompare:{thisMonth:{},lastMonth:{},yearAgo:{}},
 });
 
+test('dashboard refreshes server labels with the app language despite a public tab', async ({ page, context }) => {
+  await prepareVisualApp(page, 'ar');
+  const languages: string[] = [];
+  await page.route('**/api/dashboard/summary**', route => {
+    const language = route.request().headers()['accept-language'];
+    languages.push(language);
+    const data = summary();
+    return route.fulfill({ json: { ...data, profitLoss: data.profitLoss.map(point => ({ ...point, month: language.startsWith('en') ? 'September' : 'سبتمبر' })) } });
+  });
+  await page.goto('/app');
+  await expect(page.getByTestId('flow-profit-loss')).toContainText('سبتمبر');
+  await page.getByRole('button', { name: 'تغيير اللغة إلى الإنجليزية' }).first().click();
+  await expect(page.getByTestId('flow-profit-loss')).toContainText('September');
+  const publicTab = await context.newPage();
+  await prepareVisualApp(publicTab, 'ar');
+  await publicTab.goto('/sa/ar');
+  await expect(publicTab.locator('html')).toHaveAttribute('lang', 'ar');
+  const before = languages.length;
+  await page.getByLabel('Activity period', { exact: true }).selectOption('month');
+  await expect.poll(() => languages.length).toBeGreaterThan(before);
+  expect(languages.at(-1)).toMatch(/^en/);
+  await expect(page.getByTestId('flow-profit-loss')).toContainText('September');
+});
+
 test('matching requires equal net sales and costs, posted links, no drafts and a comparable currency', () => {
   const data = summary();
   const matches = (value: unknown) => dashboardTotalsMatch(value as Parameters<typeof dashboardTotalsMatch>[0]);

@@ -3,7 +3,8 @@ import { parsePublicPath } from "../public-site-manifest";
 import { authStore } from "./auth-store";
 import { displayDigits, getNumberingSystem, setNumberingSystem, NUMBERING_EVENT, NUMBERING_STORAGE_KEY, type NumberingSystem } from "../lib/number-display";
 import {
-  accountLocale,
+  appLanguageKey,
+  preferredAppLanguage,
   applyDocumentLocale,
   LANGUAGE_STORAGE_KEY,
   PUBLIC_LOCATION_EVENT,
@@ -51,8 +52,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setLanguageState(route.locale);
       return;
     }
+    const user = authStore.getState().user;
+    const isApp = /^\/(app|admin)(\/|$)/.test(window.location.pathname);
+    if (user && isApp) {
+      try { localStorage.setItem(appLanguageKey(user.id), next); } catch { /* private mode */ }
+    }
+    // Persist before notifying subscribers so no render reads the old locale.
+    try { localStorage.setItem(LANGUAGE_STORAGE_KEY, next); } catch { /* private mode */ }
+    applyDocumentLocale(next);
     setLanguageState(next);
-    void authStore.updateLocale(next);
+    if (isApp) void authStore.updateLocale(next);
   }, []);
 
   useEffect(() => {
@@ -62,11 +71,21 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
         setLanguageState(route.locale);
         return;
       }
-      if (!window.location.pathname.startsWith("/app") || state.loading || !state.isAuthenticated) return;
-      const locale = accountLocale(state.user?.locale);
-      if (locale) setLanguageState(locale);
+      if (!/^\/(app|admin)(\/|$)/.test(window.location.pathname) || state.loading || !state.isAuthenticated) return;
+      const locale = preferredAppLanguage(state.user);
+      if (locale) {
+        // Legacy name/number helpers must see the new locale during this render.
+        try { localStorage.setItem(LANGUAGE_STORAGE_KEY, locale); } catch { /* private mode */ }
+        applyDocumentLocale(locale);
+        setLanguageState(locale);
+      }
     };
     const syncLocation = () => syncCurrentPath();
+    const syncStorage = (event: StorageEvent) => {
+      const user = authStore.getState().user;
+      if (user && (event.key === appLanguageKey(user.id) || event.key === null)) syncCurrentPath();
+    };
+    window.addEventListener("storage", syncStorage);
     window.addEventListener("popstate", syncLocation);
     window.addEventListener(PUBLIC_LOCATION_EVENT, syncLocation);
     const unsubscribe = authStore.subscribe(syncCurrentPath);
@@ -74,12 +93,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("popstate", syncLocation);
       window.removeEventListener(PUBLIC_LOCATION_EVENT, syncLocation);
+      window.removeEventListener("storage", syncStorage);
       unsubscribe();
     };
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    try { localStorage.setItem(LANGUAGE_STORAGE_KEY, language); } catch { /* private mode */ }
     applyDocumentLocale(language);
   }, [language]);
 
@@ -87,10 +107,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLanguage(language === "ar" ? "en" : "ar");
   }, [language, setLanguage]);
 
-  const t = (ar: string, en?: string): string => {
+  const t = useCallback((ar: string, en?: string): string => {
     if (language === "en") return displayDigits(en || "");
     return displayDigits(ar || en || "");
-  };
+  }, [language, numberingSystem]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, t, numberingSystem, setNumberingSystem }}>
