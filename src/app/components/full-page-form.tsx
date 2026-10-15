@@ -48,6 +48,15 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
   const { t } = useLanguage();
   const dirty = !!draft?.dirty;
   const [closeRequested, setCloseRequested] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
+  const [discardFailed, setDiscardFailed] = useState(false);
+  const discardRecovery = async () => {
+    if (discarding || disableEscape) return;
+    setDiscarding(true); setDiscardFailed(false);
+    try { await draft?.discard(); }
+    catch { setDiscardFailed(true); }
+    finally { setDiscarding(false); }
+  };
 
   // Legacy editors keep recovery-only navigation; opted-in editors ask explicitly.
   const keepDraftToast = useCallback(() => {
@@ -139,9 +148,10 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
           <p className="text-sm">{t("توجد تعديلات محلية لم تُحفظ. المعروض الآن هو النسخة المحفوظة؛ هل تريد استعادة التعديلات؟", "Unsaved local changes are available. The saved version is shown; restore those changes?")}</p>
           <div className="flex gap-3">
             <button type="button" data-testid="draft-recover" onClick={draft.recover} className="text-sm font-medium text-primary">{t("استعادة التعديلات", "Restore changes")}</button>
-            <button type="button" onClick={draft.discard} className="text-sm font-medium">{t("تجاهل المسودة واستخدام المحفوظ", "Discard recovery copy and use saved version")}</button>
+            <button type="button" disabled={discarding || disableEscape} onClick={discardRecovery} className="text-sm font-medium">{t("تجاهل المسودة واستخدام المحفوظ", "Discard recovery copy and use saved version")}</button>
           </div>
         </div>}
+        {discardFailed && <p role="alert" className="px-4 py-2 text-sm text-danger">{t("تعذّر حذف نسخة الاستعادة. حاول مجددًا.", "Could not remove the recovery copy. Please retry.")}</p>}
         {/* Restored-draft banner · inline · dismiss = discard (back to the clean form) */}
         {draft?.restored && (
           <div className="px-4 sm:px-6 lg:px-8 py-2 border-t border-border bg-warning-subtle/60 flex items-center justify-between gap-3 flex-wrap">
@@ -152,7 +162,7 @@ export function FullPageForm({ title, subtitle, onClose, children, footer, toolb
                    `We restored an unsaved draft (${formatDraftTime(draft.restored, "en")}) — continue where you left off.`)}
               </span>
             </div>
-            <button type="button" onClick={draft.discard} className="text-xs font-medium text-muted-foreground hover:text-danger underline-offset-2 hover:underline">
+            <button type="button" disabled={discarding || disableEscape} onClick={discardRecovery} className="text-xs font-medium text-muted-foreground hover:text-danger underline-offset-2 hover:underline">
               {t("تجاهل المسودة والبدء من جديد", "Discard draft and start fresh")}
             </button>
           </div>

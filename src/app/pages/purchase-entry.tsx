@@ -83,23 +83,26 @@ export function PurchaseEntry() {
   const settlement = settlePurchase({ sourceCurrency: form.currency, baseCurrency: region.currency, actualPaidCurrency: paymentCurrency,
     sourceTotal: totals.total, actualPaidAmount: foreignPayment ? Number(normalizeDigits(form.actualPaidAmount)) : totals.total,
     exchangeRate: Number(normalizeDigits(form.exchangeRate)), treatment: 'MERGE_INTO_EXPENSE' });
-  const submitPayload = async (payload: any, paid: boolean) => {
+  const submitPayload = async (payload: any, paid: boolean, leave = true): Promise<boolean> => {
     if (getOrgId() !== scope) throw new Error(t('تغيرت الشركة؛ افتح النموذج من جديد.', 'Company changed; reopen the form.'));
     const saved = paid ? await api.expenses.create(payload) : await api.bills.create(payload);
     const next = getSimilarityReview(saved);
-    if (next) { setReview({ review: next, payload, paid }); return; }
+    if (next) { setReview({ review: next, payload, paid }); return false; }
     if (!saved?.id) throw new Error(t('لم يؤكد الخادم حفظ المستند.', 'The server did not confirm a saved document.'));
-    draft.clear(); fileDraft.clear(); navigate('/app/purchases/records');
+    await fileDraft.clear();
+    draft.clear();
+    if (leave) close();
+    return true;
   };
-  const save = async (asDraft: boolean) => {
-    if (saving.current) return;
+  const save = async (asDraft: boolean, leave = true): Promise<boolean> => {
+    if (saving.current || loading || !fileDraft.ready || loadError || !region.currency) return false;
     setError('');
     const valid = lines.filter(l => l.description.trim());
-    if (lines.some(l => !l.description.trim() && Number(normalizeDigits(l.unitPrice)) !== 0) || !valid.length || totals.total <= 0 || valid.some(l => Number(normalizeDigits(l.quantity)) <= 0 || Number(normalizeDigits(l.unitPrice)) < 0)) { setError(t('أدخل وصفًا وكمية وسعرًا صحيحًا للبنود.', 'Enter a description, quantity and price for each line.')); return; }
-    if (!form.paid && !form.contactId) { setError(t('اختر المورد للمبلغ المستحق.', 'Select the supplier for the payable.')); return; }
-    if (!form.date || (!form.paid && !form.dueDate)) { setError(t('حدد تاريخ المستند والاستحقاق عند الدفع لاحقًا.', 'Set the document date and the due date when paying later.')); return; }
-    if (needsRate && !asDraft && !(Number(normalizeDigits(form.exchangeRate)) > 0)) { setError(t('أدخل سعر التحويل إلى عملة الشركة.', 'Enter the rate to company currency.')); return; }
-    if (form.paid && foreignPayment && !(Number(normalizeDigits(form.actualPaidAmount)) > 0)) { setError(t('أدخل المبلغ المسحوب فعليًا بعملة الدفع.', 'Enter the actual amount charged in the payment currency.')); return; }
+    if (lines.some(l => !l.description.trim() && Number(normalizeDigits(l.unitPrice)) !== 0) || !valid.length || totals.total <= 0 || valid.some(l => Number(normalizeDigits(l.quantity)) <= 0 || Number(normalizeDigits(l.unitPrice)) < 0)) { setError(t('أدخل وصفًا وكمية وسعرًا صحيحًا للبنود.', 'Enter a description, quantity and price for each line.')); return false; }
+    if (!form.paid && !form.contactId) { setError(t('اختر المورد للمبلغ المستحق.', 'Select the supplier for the payable.')); return false; }
+    if (!form.date || (!form.paid && !form.dueDate)) { setError(t('حدد تاريخ المستند والاستحقاق عند الدفع لاحقًا.', 'Set the document date and the due date when paying later.')); return false; }
+    if (needsRate && !asDraft && !(Number(normalizeDigits(form.exchangeRate)) > 0)) { setError(t('أدخل سعر التحويل إلى عملة الشركة.', 'Enter the rate to company currency.')); return false; }
+    if (form.paid && foreignPayment && !(Number(normalizeDigits(form.actualPaidAmount)) > 0)) { setError(t('أدخل المبلغ المسحوب فعليًا بعملة الدفع.', 'Enter the actual amount charged in the payment currency.')); return false; }
     const supplier = contacts.find(c => c.id === form.contactId);
     const common = { contactId: form.contactId || null, currency: form.currency, notes: form.notes || null,
       branchId: form.branchId, projectId: form.projectId, attachments: files, sourceFileHash: form.sourceFileHash || undefined };
@@ -126,11 +129,21 @@ export function PurchaseEntry() {
       exchangeRate: form.currency === region.currency ? 1 : Number(normalizeDigits(form.exchangeRate)) || undefined,
       lines: normalized, paymentSplits: [] };
     saving.current = true; setBusy(true);
-    try { await submitPayload(payload, form.paid); } catch (e) { setError(humanizeError(e, language)); }
+    try { return await submitPayload(payload, form.paid, leave); } catch (e) { setError(humanizeError(e, language)); return false; }
     finally { saving.current = false; setBusy(false); }
   };
+  const discard = async () => {
+    setBusy(true); setError('');
+    try {
+      await fileDraft.discard();
+      draft.discard();
+    } finally { setBusy(false); }
+  };
+  const guardedDraft = { ...draft, dirty: draft.dirty || fileDraft.hasFiles(),
+    hasChanges: () => (draft.hasChanges?.() ?? draft.dirty) || fileDraft.hasFiles(),
+    discard };
   const field = (label: string, key: 'reference' | 'dueDate' | 'date' | 'exchangeRate' | 'actualPaidAmount', type = 'text') => <label className="block space-y-1 text-xs"><span>{label}</span>{type === 'date' ? <DateInput value={form[key]} onChange={v => setForm(f => ({ ...f, [key]: v }))} /> : <Input aria-label={label} value={form[key]} onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))} />}</label>;
-  return <><FullPageForm title={t('تسجيل شراء أو مصروف', 'Record a purchase or expense')} subtitle={t('أدخل البنود ثم اختر هل دفعت الآن أو ستدفع لاحقًا.', 'Enter the items and choose whether you paid now or will pay later.')} onClose={close} draft={{ ...draft, discard: () => { draft.discard(); setFiles([]); } }} disableEscape={busy} footer={<div className="flex flex-wrap gap-2"><Button disabled={busy || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(false)}>{form.paid ? t('حفظ كمدفوع', 'Save as paid') : t('حفظ كمستحق', 'Save as payable')}</Button><Button variant="outline" disabled={busy || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(true)}>{t('حفظ كمسودة', 'Save as draft')}</Button><Button variant="ghost" onClick={close} disabled={busy}>{t('إلغاء', 'Cancel')}</Button></div>}>
+  return <><FullPageForm title={t('تسجيل شراء أو مصروف', 'Record a purchase or expense')} subtitle={t('أدخل البنود ثم اختر هل دفعت الآن أو ستدفع لاحقًا.', 'Enter the items and choose whether you paid now or will pay later.')} onClose={close} draft={guardedDraft} onSaveBeforeLeave={() => save(true, false)} disableEscape={busy || !fileDraft.ready} footer={requestClose => <div className="flex flex-wrap gap-2"><Button disabled={busy || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(false)}>{form.paid ? t('حفظ كمدفوع', 'Save as paid') : t('حفظ كمستحق', 'Save as payable')}</Button><Button variant="outline" disabled={busy || loading || !fileDraft.ready || !!loadError || !region.currency} onClick={() => save(true)}>{t('حفظ كمسودة', 'Save as draft')}</Button><Button variant="ghost" onClick={requestClose} disabled={busy}>{t('إلغاء', 'Cancel')}</Button></div>}>
     <div className="space-y-4">
       {loadError && <div role="alert">{loadError} <Button variant="outline" onClick={() => setRevision(v => v + 1)}>{t('إعادة المحاولة', 'Retry')}</Button></div>}
       {error && <p role="alert" className="rounded-lg border border-danger p-3 text-danger">{error}</p>}

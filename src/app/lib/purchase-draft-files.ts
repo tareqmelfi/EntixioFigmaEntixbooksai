@@ -10,11 +10,13 @@ function access(key: string, files?: SourceFile[]): Promise<SourceFile[]> {
     open.onerror = () => reject(open.error);
     open.onsuccess = () => {
       const db = open.result;
-      const tx = db.transaction('files', files ? 'readwrite' : 'readonly');
-      const request = files ? (files.length ? tx.objectStore('files').put({ files, at: Date.now() }, key) : tx.objectStore('files').delete(key)) : tx.objectStore('files').get(key);
-      tx.oncomplete = () => { const saved = request.result; db.close(); resolve(files || (saved && Date.now() - saved.at < 14 * 86400000 ? saved.files : [])); };
-      tx.onerror = () => { db.close(); reject(tx.error); };
-      tx.onabort = () => { db.close(); reject(tx.error); };
+      try {
+        const tx = db.transaction('files', files ? 'readwrite' : 'readonly');
+        const request = files ? (files.length ? tx.objectStore('files').put({ files, at: Date.now() }, key) : tx.objectStore('files').delete(key)) : tx.objectStore('files').get(key);
+        tx.oncomplete = () => { const saved = request.result; db.close(); resolve(files || (saved && Date.now() - saved.at < 14 * 86400000 ? saved.files : [])); };
+        tx.onerror = () => { db.close(); reject(tx.error); };
+        tx.onabort = () => { db.close(); reject(tx.error); };
+      } catch (error) { db.close(); reject(error); }
     };
   });
 }
@@ -25,6 +27,7 @@ export function usePurchaseDraftFiles(scope: string | null) {
   const [failed, setFailed] = useState(false);
   const queue = useRef(Promise.resolve());
   const cleared = useRef(false);
+  const filesRef = useRef(files); filesRef.current = files;
   const key = `${scope || 'no-org'}:purchase:new`;
   useEffect(() => {
     let active = true;
@@ -37,7 +40,18 @@ export function usePurchaseDraftFiles(scope: string | null) {
   }, [files, ready, key]);
   const clear = () => {
     cleared.current = true;
+    filesRef.current = []; setFiles([]);
     queue.current = queue.current.then(() => access(key, [])).then(() => {}).catch(() => setFailed(true));
+    return queue.current;
   };
-  return { files, setFiles, ready, failed, clear };
+  // Wait for pending writes and the delete transaction before an explicit exit.
+  // Unlike clear-after-save, reset also permits caching subsequent new work.
+  const discard = async () => {
+    const deletion = queue.current.then(() => access(key, []));
+    queue.current = deletion.then(() => {}).catch(() => setFailed(true));
+    await deletion;
+    filesRef.current = []; setFiles([]);
+    setFailed(false);
+  };
+  return { files, setFiles, ready, failed, clear, discard, hasFiles: () => !cleared.current && filesRef.current.length > 0 };
 }
