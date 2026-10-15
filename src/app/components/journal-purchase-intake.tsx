@@ -65,13 +65,12 @@ export function JournalPurchaseIntake({ suppliers, onRegistered }: { suppliers: 
   if (loading) return <p role="status" className="text-sm text-muted-foreground">{t('جارٍ فحص القيود غير المرتبطة…', 'Checking unlinked journals…')}</p>;
   if (!items.length && !error && !offset && !journalId) return null;
   return <section aria-label={t('قيود المشتريات غير المرتبطة', 'Unlinked purchase journals')} className="rounded-lg border border-border bg-card p-4 space-y-4 min-w-0">
-    <details open={journalId || error ? true : undefined} className="space-y-4">
-      <summary className="cursor-pointer text-sm font-semibold">
-        {t('مراجعة القيود غير المرتبطة بالمشتريات', 'Review journals not linked to purchases')}
-        <span className="ms-2 text-muted-foreground font-normal">({items.length}{hasMore ? '+' : ''})</span>
-      </summary>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground flex-1 min-w-0">{t('هذه قيود مرّحلة تؤثر في التقارير. راجع نوع المستند وبياناته لربطه بالمشتريات دون تكرار القيد أو المبلغ.', 'These posted journals already affect reports. Review the document type and details to link purchases without duplicating the journal or amount.')}</p>
+    <h2 className="text-section font-semibold">
+      {t('القيود المحاسبية', 'Journal entries')}
+      <span className="ms-2 text-muted-foreground font-normal">({items.length}{hasMore ? '+' : ''})</span>
+    </h2>
+    <div className="flex flex-wrap items-start justify-between gap-3">
+      <p className="text-sm text-muted-foreground flex-1 min-w-0">{t('هذه قيود مرّحلة تتضمن مصروفات أو أصولًا، وأثرها موجود في دفتر الأستاذ. يمكنك عرض معلومات القيد ورفع الفاتورة عليه مباشرة؛ لا يلزم تحويله. إجمالي الفواتير أعلاه لا يشمل القيود التي لم يُحدد تصنيفها كمشتريات.', 'These posted journals include expense or asset lines already recorded in the ledger. Open a journal to view its details and attach the invoice directly; no conversion is required. The invoice total above excludes journals whose purchase classification has not been established.')}</p>
       <Button variant="outline" size="sm" disabled={busy} onClick={load}>{t('تحديث القيود', 'Refresh journals')}</Button>
     </div>
     {error && <p role="alert" className="text-destructive text-sm">{error} {duplicateId && <Link className="underline" to={`/app/purchases/bills/${duplicateId}`}>{t('مراجعة الفاتورة الموجودة', 'Review existing invoice')}</Link>}</p>}
@@ -80,11 +79,11 @@ export function JournalPurchaseIntake({ suppliers, onRegistered }: { suppliers: 
       <ul className="divide-y divide-border max-h-96 overflow-y-auto">{items.map(item => <li key={item.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1"><p className="text-sm font-medium break-words"><bdi>{item.number}</bdi> · {item.description}</p>
           <p className="text-xs text-muted-foreground"><bdi>{item.date.slice(0, 10)} · {item.currency} {Number(item.subtotal).toFixed(2)}</bdi> · {t('صافي البنود', 'Net lines')}</p>
-          {!item.eligible && <p className="text-xs text-muted-foreground">{t('القيد النقدي أو المركب، أو حساب الموردين غير المعيّن، يحتاج مراجعة نوع المستند قبل الربط.', 'Cash or compound journals, or an unmapped payable account, require document-type review before linking.')}</p>}
         </div>
-        <StatusBadge tone={item.eligible ? 'warning' : 'neutral'}>{item.eligible ? t('بانتظار بيانات الفاتورة', 'Awaiting invoice details') : t('يحتاج مراجعة', 'Needs review')}</StatusBadge>
-        {item.eligible && <Button size="sm" variant="outline" onClick={() => review(item)}>{t('استكمال وربط الفاتورة', 'Complete and link invoice')}</Button>}
-        <Link className="text-primary underline text-sm" to={`/app/journal-entries?entryId=${item.id}`}>{t('عرض القيد', 'View journal')}</Link>
+        <StatusBadge tone="info">{t('قيد محاسبي', 'Journal entry')}</StatusBadge>
+        <StatusBadge tone="success">{t('مرحّل', 'Posted')}</StatusBadge>
+        {journalId && item.eligible && <Button size="sm" variant="outline" onClick={() => review(item)}>{t('إضافة مستند مرتبط (اختياري)', 'Add linked document (optional)')}</Button>}
+        <Link className="text-primary underline text-sm" to={`/app/journal-entries?entryId=${item.id}`}>{t('المعلومات والمرفقات', 'Details and attachments')}</Link>
       </li>)}</ul>
       <div className="flex flex-wrap gap-2">{offset > 0 && <Button variant="outline" size="sm" onClick={() => setOffset(Math.max(0, offset - 50))}>{t('الأحدث', 'Newer')}</Button>}{hasMore && <Button variant="outline" size="sm" onClick={() => setOffset(offset + 50)}>{t('الأقدم', 'Older')}</Button>}</div>
     </> : <form className="space-y-4" onSubmit={e => { e.preventDefault(); void register(); }}>
@@ -107,6 +106,5 @@ export function JournalPurchaseIntake({ suppliers, onRegistered }: { suppliers: 
         <div className="flex flex-wrap gap-2"><Button type="submit" disabled={!contactId || !confirmed || busy}>{busy ? t('جارٍ الربط…', 'Linking…') : t('ربط بالقيد الموجود', 'Link to existing journal')}</Button><Button type="button" variant="outline" onClick={()=>{setSelected(null);setError('');}}>{t('إلغاء', 'Cancel')}</Button><Link className="self-center text-primary underline text-sm" to="/app/assets">{t('مراجعة الأصول', 'Review assets')}</Link></div>
       </fieldset>
     </form>}
-    </details>
   </section>;
 }
