@@ -83,8 +83,13 @@ export function parsePublicPath(pathname: string): {
 
 export const publicPageForPath = (pagePath: string) =>
   PUBLIC_PAGES.find((item) => item.path === normalizePagePath(pagePath));
+// The en-US landing's canonical is the root document (GSC 2026-10-15: Google
+// already chose `/` over `/us/en` — "Duplicate, Google chose different
+// canonical". Declaring it ourselves ends the conflict; /us/en still serves 200.)
 export const canonicalUrl = (market: PublicMarket, locale: PublicLocale, pagePath = "") =>
-  `${SITE_ORIGIN}${localizedPath(market, locale, pagePath)}`;
+  market === ROOT_MARKET && locale === ROOT_LOCALE && !normalizePagePath(pagePath)
+    ? `${SITE_ORIGIN}/`
+    : `${SITE_ORIGIN}${localizedPath(market, locale, pagePath)}`;
 export const marketRegion = (market: PublicMarket) => market === "sa" ? "SA" : "US";
 export const localeDirection = (locale: PublicLocale) => locale === "ar" ? "rtl" : "ltr";
 export const ogLocale = (market: PublicMarket, locale: PublicLocale) =>

@@ -328,7 +328,7 @@ function writeSitemap() {
   }
   const indexable = PUBLIC_PAGES.filter((page) => page.indexable)
   const localized = indexable.flatMap((page) =>
-    PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.map((locale) => [
+    PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.filter((locale) => canonicalUrl(market, locale, page.path) !== `${SITE_ORIGIN}/`).map((locale) => [
       '  <url>', `    <loc>${canonicalUrl(market, locale, page.path)}</loc>`,
       ...hreflangCluster(page.path),
       `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`,

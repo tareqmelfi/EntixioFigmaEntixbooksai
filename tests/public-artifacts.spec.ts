@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, localizedPath } from '../src/app/public-site-manifest'
+import { PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, canonicalUrl, localizedPath } from '../src/app/public-site-manifest'
 
 const dist = path.resolve('dist')
 const artifact = (urlPath: string) => path.join(dist, urlPath.replace(/^\//, ''), 'index.html')
@@ -28,7 +28,7 @@ for (const market of PUBLIC_MARKETS) {
       for (const page of PUBLIC_PAGES) {
         const route = localizedPath(market, locale, page.path)
         const html = await readFile(artifact(route), 'utf8')
-        const canonical = `https://entix.io${route}`
+        const canonical = canonicalUrl(market, locale, page.path)
         expect(html, route).toContain(`<html lang="${locale}" dir="${locale === 'ar' ? 'rtl' : 'ltr'}">`)
         expect(html, route).toContain(`<link rel="canonical" href="${canonical}">`)
         expect(html, route).toContain(`<meta property="og:url" content="${canonical}">`)
@@ -94,6 +94,14 @@ test('Arabic raw artifacts preload Arabic faces only', async () => {
   expect(html).not.toMatch(/rel="preload" as="font"[^>]*InstrumentSerif/)
 })
 
+test('/us/en canonicals to the root and is not listed separately (GSC duplicate-canonical fix · 2026-10-15)', async () => {
+  expect(await readFile(artifact('/us/en'), 'utf8')).toContain('<link rel="canonical" href="https://entix.io/">')
+  expect(await readFile(artifact('/us/en/features'), 'utf8').catch(() => '')).not.toContain('<link rel="canonical" href="https://entix.io/">')
+  const sitemap = await readFile(path.join(dist, 'sitemap.xml'), 'utf8')
+  expect(sitemap).not.toContain('<loc>https://entix.io/us/en</loc>')
+  expect(sitemap).not.toContain('href="https://entix.io/us/en" />')
+})
+
 test('sitemap x-default matches the HTML alternate set (root document)', async () => {
   const sitemap = await readFile(path.join(dist, 'sitemap.xml'), 'utf8')
   expect(sitemap).not.toContain('hreflang="x-default" href="https://entix.io/us/en"')
@@ -113,7 +121,7 @@ test('generated sitemap includes supported localized and industry pages without 
   const sitemap = await readFile(path.join(dist, 'sitemap.xml'), 'utf8')
   const locations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1])
   const expected = PUBLIC_MARKETS.flatMap((market) => PUBLIC_LOCALES.flatMap((locale) =>
-    PUBLIC_PAGES.filter((page) => page.indexable).map((page) => `https://entix.io${localizedPath(market, locale, page.path)}`),
+    PUBLIC_PAGES.filter((page) => page.indexable).map((page) => canonicalUrl(market, locale, page.path)),
   ))
   expect(new Set(locations).size).toBe(locations.length)
   for (const url of expected) expect(locations).toContain(url)
