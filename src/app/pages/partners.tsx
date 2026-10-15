@@ -16,6 +16,8 @@ import { partnerApi } from "../lib/partner-api";
 import { COUNTRIES } from "../lib/countries";
 import { useLanguage } from "../components/LanguageContext";
 import { humanizeError } from "../lib/error-messages";
+import { useAuthState } from "../components/use-auth-state";
+import { trackPartnerEvent } from "../lib/consent-analytics";
 
 const COMMISSION_STATUS: Record<string, { ar: string; en: string; cls: string }> = {
   pending: { ar: "قيد التعليق", en: "Pending", cls: "bg-warning/10 text-warning" },
@@ -28,13 +30,17 @@ const money = (v: any, currency = "SAR") =>
 
 export function Partners() {
   const { t, language } = useLanguage();
+  const auth = useAuthState();
   const { toasts, push, dismiss } = useToasts();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [registered, setRegistered] = useState(false);
   const [data, setData] = useState<{ partner: any; enrollment?: any; dashboard: any; clients: any[]; commissions: any[]; payouts: any[] } | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const [regForm, setRegForm] = useState({ name: "", phone: "", country: "", type: "FREELANCER" as "FREELANCER" | "FIRM" });
+  const [regForm, setRegForm] = useState({ name: auth.user?.name || "", phone: "", country: "", type: "FREELANCER" as "FREELANCER" | "FIRM" });
+
+  const [countryInput, setCountryInput] = useState("");
+  const [registrationError, setRegistrationError] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -45,7 +51,7 @@ export function Partners() {
       setRegistered(true);
 
     } catch (e: any) {
-      if (e?.status === 404 || /not_registered/.test(String(e?.message))) {
+      if (e?.status === 404 && e?.code === "not_registered") {
         setRegistered(false);
       } else {
         setLoadError(true);
@@ -59,13 +65,20 @@ export function Partners() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleRegister = async () => {
+    if (busy) return;
+    setRegistrationError("");
     setBusy(true);
     try {
       await partnerApi.register({ name: regForm.name.trim(), phone: regForm.phone || undefined, type: regForm.type, country: regForm.country });
+      trackPartnerEvent("partner_application_saved");
       push("success", t("تم حفظ طلب الشراكة للمراجعة", "Your partnership application is saved for review"));
       await refresh();
     } catch (e: any) {
-      push("error", humanizeError(e, language, { ar: "فشل التسجيل", en: "Registration failed" }));
+      const message = e?.code === "email_verification_required"
+        ? t("فعّل بريد حسابك من رسالة التحقق ثم أعد تقديم الطلب. لم يُحفظ الطلب بعد.", "Verify your account email using the verification message, then submit again. Your application has not been saved yet.")
+        : humanizeError(e, language, { ar: "تعذر حفظ الطلب. حاول مرة أخرى؛ لن يتكرر طلبك.", en: "Could not save the application. Try again; your application will not be duplicated." });
+      setRegistrationError(message);
+      push("error", message);
     } finally {
       setBusy(false);
     }
@@ -114,14 +127,14 @@ export function Partners() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-foreground">
               <HandCoins className="h-5 w-5 text-primary" />
-              {t("انضم إلى برنامج شركاء ENTIX", "Join the ENTIX Partner Program")}
+              {t("سجّل اهتمامك بالإحالات المدفوعة", "Register interest in paid referrals")}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm leading-6 text-muted-foreground">
               {t(
-                "للمسوّقين وصنّاع المحتوى والشركات. قدّم طلبك؛ تحدد الاتفاقية المعتمدة نسبة العمولة ومدتها قبل تفعيل الإحالات والصرف.",
-                "For marketers, creators and firms. Apply here; an approved agreement sets your commission and duration before referrals and payouts are activated.",
+                "ابدأ باسمك وبلد إقامتك فقط. لا تحتاج شركة أو عدد متابعين أو بيانات بنكية. المسار المدفوع قيد التجهيز؛ تقديم الطلب لا يفعّل العمولة بعد.",
+                "Start with your name and country of residence. No company, follower count or bank details required. Paid referrals are being prepared; applying does not activate commissions yet.",
               )}
             </p>
             <div className="space-y-1.5">
@@ -129,7 +142,22 @@ export function Partners() {
               <Input id="partner-name" maxLength={160} value={regForm.name} onChange={(e) => setRegForm({ ...regForm, name: e.target.value })} className="border-border" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="partner-phone" className="text-xs text-foreground/80">{t("الجوال", "Phone")}</Label>
+              <Label htmlFor="partner-country">{t("بلد الإقامة", "Country of residence")}</Label>
+              <Input id="partner-country" list="partner-countries" value={countryInput} maxLength={80} placeholder={t("ابحث باسم البلد أو أدخل رمزه", "Country name or two-letter code")}
+                onChange={e => {
+                  const input = e.target.value;
+                  setCountryInput(input);
+                  const normalized = input.trim().toLowerCase();
+                  const match = COUNTRIES.find(c => [c.code, c.nameAr, c.nameEn].some(value => value.toLowerCase() === normalized));
+                  setRegForm({ ...regForm, country: match?.code || (/^[a-z]{2}$/i.test(normalized) ? normalized.toUpperCase() : "") });
+                }} />
+              <datalist id="partner-countries">{COUNTRIES.map(c => <option key={c.code} value={language === 'ar' ? c.nameAr : c.nameEn}>{c.code}</option>)}</datalist>
+              <p className="text-xs text-muted-foreground">{t("اختر اسم البلد، أو أدخل رمزه من حرفين إن لم يظهر. تُراجع أهلية البلد والاستلام قبل تفعيل العمولات.", "Choose a country name, or enter its two-letter code if it is not listed. Country and payout eligibility are reviewed before commissions are activated.")}</p>
+            </div>
+            <details className="space-y-4">
+              <summary className="cursor-pointer text-sm font-medium">{t("تفاصيل إضافية · اختياري", "Additional details · optional")}</summary>
+            <div className="space-y-1.5">
+              <Label htmlFor="partner-phone" className="text-xs text-foreground/80">{t("الجوال · اختياري", "Phone · optional")}</Label>
               <Input id="partner-phone" maxLength={40} value={regForm.phone} onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })} dir="ltr" className="border-border font-english" />
             </div>
             <div className="space-y-1.5">
@@ -142,15 +170,10 @@ export function Partners() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="partner-country">{t("بلد الإقامة · رمز البلد", "Country of residence · country code")}</Label>
-              <Input id="partner-country" list="partner-countries" value={regForm.country} maxLength={2} dir="ltr" placeholder="US"
-                onChange={e => setRegForm({ ...regForm, country: e.target.value.toUpperCase().replace(/[^A-Z]/g, '') })} />
-              <datalist id="partner-countries">{COUNTRIES.map(c => <option key={c.code} value={c.code}>{language === 'ar' ? c.nameAr : c.nameEn}</option>)}</datalist>
-              <p className="text-xs text-muted-foreground">{t("يمكن إدخال رمز أي بلد. حفظ الطلب لا يعني الموافقة؛ تُراجع قيود البلدان والهوية ومزوّد الصرف قبل التفعيل.", "You can enter any country code. Saving an application is not approval; country restrictions, identity and payout eligibility are reviewed before activation.")}</p>
-            </div>
+            </details>
+            {registrationError && <p role="alert" className="text-sm text-destructive">{registrationError}</p>}
             <Button onClick={handleRegister} disabled={busy || regForm.name.trim().length < 2 || !/^[A-Z]{2}$/.test(regForm.country)} className="w-full bg-primary hover:bg-primary/90">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("تقديم طلب الشراكة", "Submit partnership application")}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("حفظ طلب الانضمام", "Save application")}
             </Button>
           </CardContent>
         </Card>
@@ -192,6 +215,11 @@ export function Partners() {
         <h2 className="font-semibold">{t("طلب محفوظ · التفعيل قيد المراجعة", "Application saved · activation under review")}</h2>
         <p className="text-sm text-muted-foreground">{t("يلزم اعتماد الاتفاقية والتحقق من الأهلية وحساب الاستلام. لا يوجد رابط إحالة مفعّل أو صرف تلقائي بعد. السجلات السابقة محفوظة وتُراجع وفق اتفاقياتها.", "An approved agreement, eligibility review and verified recipient account are required. Referral links and automatic payouts are not active yet. Existing records are retained for review under their agreements.")}</p>
         {data?.enrollment?.reference && <p className="text-sm break-all">{t("مرجع الطلب", "Application reference")}: <bdi>{data.enrollment.reference}</bdi></p>}
+      </section>
+
+      <section className="rounded-lg border border-border p-5 space-y-2">
+        <h2 className="font-semibold">{t("خطوتك التالية", "Your next step")}</h2>
+        <p className="text-sm leading-7 text-muted-foreground">{t("طلبك محفوظ، ولا تحتاج إلى إرساله مرة أخرى. يمكنك مشاركة رابط الموقع العام الآن؛ ستظهر شروط الإحالات المدفوعة قبل قبولها. لن تُحتسب المشاركات السابقة بأثر رجعي.", "Your application is saved; you do not need to resubmit it. You can share the general website link now. Paid referral terms will be shown before you accept them. Earlier shares will not earn retroactive credit.")}</p>
       </section>
 
       {/* Stats */}

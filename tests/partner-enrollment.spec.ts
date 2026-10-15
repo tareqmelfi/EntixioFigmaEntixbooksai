@@ -31,8 +31,8 @@ for (const language of ['en', 'ar']) {
     await page.goto('/partners');
     await page.getByRole('button', { name: language === 'en' ? 'Essential only' : 'الضرورية فقط', exact: true }).click();
     await page.locator('#partner-name').fill('Test Partner');
-    await page.locator('#partner-country').fill('EG');
-    await page.getByRole('button', { name: language === 'en' ? 'Submit partnership application' : 'تقديم طلب الشراكة' }).click();
+    await page.locator('#partner-country').fill(language === 'ar' ? 'مصر' : 'Egypt');
+    await page.getByRole('button', { name: language === 'en' ? 'Save application' : 'حفظ طلب الانضمام' }).click();
     await expect(page.getByText('EB-partner-row')).toBeVisible();
     await expect(page.getByRole('button', { name: language === 'en' ? 'Request payout of cleared commissions' : 'طلب سحب العمولات الجاهزة' })).toBeDisabled();
     expect(submissions).toEqual([{ name: 'Test Partner', type: 'FREELANCER', country: 'EG' }]);
@@ -47,12 +47,13 @@ for (const language of ['en', 'ar']) {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/referrals');
     await page.getByRole('button', { name: language === 'en' ? 'Essential only' : 'الضرورية فقط', exact: true }).click();
-    await expect(page.getByRole('link', { name: language === 'en' ? 'Create a partner account' : 'إنشاء حساب شريك' })).toBeVisible();
+    await expect(page.getByRole('link', { name: language === 'en' ? 'Register interest in paid referrals' : 'سجّل اهتمامك بالإحالات المدفوعة' })).toBeVisible();
     await page.screenshot({ path: `/tmp/entix-partner-public-${language}.png`, fullPage: true });
     await expect(page.getByText(/40%/)).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Generate code|أنشئ الكود/ })).toHaveCount(0);
-    await page.getByRole('link', { name: language === 'en' ? 'Create a partner account' : 'إنشاء حساب شريك' }).click();
+    await page.getByRole('link', { name: language === 'en' ? 'Register interest in paid referrals' : 'سجّل اهتمامك بالإحالات المدفوعة' }).click();
     await expect(page).toHaveURL(/register\?flow=partner/);
+    await expect(page.getByRole('heading', { name: language === 'en' ? 'Create your account.' : 'أنشئ حسابك.' })).toBeVisible();
     await page.getByRole('link', { name: language === 'en' ? 'Sign in' : 'تسجيل الدخول', exact: true }).click();
     await expect(page).toHaveURL(/login\?flow=partner/);
   });
@@ -98,3 +99,73 @@ test('partner signup preserves its destination in the verification email callbac
   await page.getByRole('button', { name: 'Go to sign in' }).click();
   await expect(page).toHaveURL(/login\?flow=partner/);
 });
+
+for (const language of ['en', 'ar']) {
+  test(`public sharing works without registration and does not claim commission (${language})`, async ({ page }) => {
+    let registrations = 0;
+    await mock(page, false, language);
+    await page.route('https://api.entix.io/api/partners/register', route => { registrations++; return route.abort(); });
+    await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (value: string) => { (window as any).__copiedLink = value; } } }));
+    await page.goto('/referrals');
+    await page.getByRole('button', { name: language === 'ar' ? 'الضرورية فقط' : 'Essential only', exact: true }).click();
+    await page.getByRole('button', { name: language === 'ar' ? 'نسخ الرابط' : 'Copy link', exact: true }).click();
+    expect(await page.evaluate(() => (window as any).__copiedLink)).toBe('https://entix.io/');
+    await expect(page.getByRole('link', { name: language === 'ar' ? 'افتح الموقع' : 'Open website' })).toHaveAttribute('href', 'https://entix.io/');
+    await expect(page.getByText(language === 'ar' ? /هذا رابط مشاركة عام/ : /This is a general sharing link/)).toBeVisible();
+    expect(registrations).toBe(0);
+  });
+}
+
+test('clipboard rejection leaves a selectable public link and honest feedback', async ({ page }) => {
+  await mock(page, false);
+  await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => { throw new Error('denied'); } } }));
+  await page.goto('/referrals');
+  await page.getByRole('button', { name: 'Essential only', exact: true }).click();
+  await page.getByRole('button', { name: 'Copy link', exact: true }).click();
+  await expect(page.getByText('Automatic copy failed. Select the link above and copy it manually.')).toBeVisible();
+  await expect(page.getByLabel('Public website link')).toHaveValue('https://entix.io/');
+  await expect(page.getByText('Website link copied.', { exact: true })).toHaveCount(0);
+});
+
+test('a failed submission keeps the form and never shows a saved reference', async ({ page }) => {
+  await mock(page, true);
+  await page.route('https://api.entix.io/api/partners/register', route => route.fulfill({ status: 503, json: { error: 'unavailable' } }));
+  await page.goto('/partners');
+  await page.locator('#partner-country').fill('Saudi Arabia');
+  await page.getByRole('button', { name: 'Save application', exact: true }).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.locator('#partner-name')).toHaveValue('Test Partner');
+  await expect(page.getByText('EB-partner-row')).toHaveCount(0);
+});
+
+test('unverified email explains why the application is not saved', async ({ page }) => {
+  await mock(page, true);
+  await page.route('https://api.entix.io/api/partners/register', route => route.fulfill({ status: 403, json: { error: 'email_verification_required' } }));
+  await page.goto('/partners');
+  await page.locator('#partner-country').fill('EG');
+  await page.getByRole('button', { name: 'Save application', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Your application has not been saved yet.');
+});
+
+for (const status of [200, 404]) {
+  test(`malformed profile response ${status} shows retry, not a new signup`, async ({ page }) => {
+    await mock(page, true);
+    await page.route('https://api.entix.io/api/partners/me', route => route.fulfill({ status, contentType: 'text/html', body: '<html>upstream unavailable</html>' }));
+    await page.goto('/partners');
+    await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
+    await expect(page.locator('#partner-name')).toHaveCount(0);
+  });
+}
+
+for (const consent of [false, true]) {
+  test(`partner copy event respects analytics consent: ${consent}`, async ({ page }) => {
+    await mock(page, false);
+    await page.route('https://www.googletagmanager.com/**', route => route.fulfill({ contentType: 'application/javascript', body: '' }));
+    await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async () => {} } }));
+    await page.goto('/referrals');
+    await page.getByRole('button', { name: consent ? 'Accept all' : 'Essential only', exact: true }).click();
+    await page.getByRole('button', { name: 'Copy link', exact: true }).click();
+    const events = await page.evaluate(() => ((window as any).dataLayer || []).map((event: any) => Array.from(event)).filter((event: any) => event[0] === 'event'));
+    expect(events).toEqual(consent ? [['event', 'partner_link_copied']] : []);
+  });
+}

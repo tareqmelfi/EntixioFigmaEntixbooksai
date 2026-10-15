@@ -32,3 +32,12 @@ export function setAnalyticsConsent(allowed: boolean) {
   if (document.readyState === 'complete') load();
   else window.addEventListener('load', load, { once: true });
 }
+
+/** Aggregate partner funnel events only after explicit analytics consent.
+ * No names, emails, application references or bank details are sent. */
+export function trackPartnerEvent(event: 'partner_link_copied' | 'partner_application_started' | 'partner_application_saved') {
+  if (typeof window === 'undefined') return;
+  const target = window as unknown as AnalyticsWindow;
+  if (target[`ga-disable-${MEASUREMENT_ID}`] !== false) return;
+  try { target.gtag?.('event', event); } catch { /* Optional analytics must not interrupt sharing or a saved application. */ }
+}
