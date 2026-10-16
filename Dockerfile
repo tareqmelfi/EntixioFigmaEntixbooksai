@@ -68,7 +68,15 @@ server {
   add_header X-Content-Type-Options "nosniff" always;
   add_header X-Frame-Options "SAMEORIGIN" always;
   add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-  add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+  # camera=(self): the SPA keeps the first document's policy after in-app
+  # navigation (login -> /app), and the app's barcode scanner needs the camera.
+  # Third-party frames stay blocked. Microphone/geolocation are unused: off.
+  add_header Permissions-Policy "camera=(self), microphone=(), geolocation=(), interest-cohort=()" always;
+  # CSP baseline (SEC-02 · 2026-10-16): only directives that cannot break the
+  # third-party scripts above — blocks plugin objects, <base> hijacking,
+  # cross-origin framing (same as X-Frame-Options) and mixed content.
+  # script-src/connect-src stay open until TD-SEC-CSP maps every provider.
+  add_header Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests" always;
 
   # Canonical host and HTTPS are fixed rather than derived from an untrusted Host
   # header or the container's internal HTTP scheme behind Cloudflare/Coolify.
@@ -255,6 +263,10 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # The signed-in app shell (/app, /admin, /portal …) lands here: same CSP
+    # baseline as public documents (SEC-02). NO camera Permissions-Policy here —
+    # the app's barcode scanner and receipt capture need the camera.
+    add_header Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests" always;
     add_header Pragma "no-cache";
   }
 }

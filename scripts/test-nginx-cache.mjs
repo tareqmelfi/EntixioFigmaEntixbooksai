@@ -61,6 +61,9 @@ try {
       assert.match(response.headers.get('cache-control') || '', /no-store/, route);
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff', route);
       assert.equal(response.headers.get('x-frame-options'), 'SAMEORIGIN', route);
+      if (route !== '/sw.js') assert.match(response.headers.get('content-security-policy') || '', /object-src 'none'.*frame-ancestors 'self'/, `${route} CSP`);
+      const pp = response.headers.get('permissions-policy');
+      if (pp) assert.match(pp, /camera=\(self\)/, `${route} camera must stay usable by the app`);
       if (route !== '/sw.js') assert.match(response.headers.get('link') || '', /rel=preload; as=style/, `${route} early-hints Link`);
     }
     const font = await fetch(`${base}/fonts/synthetic.woff2`);
