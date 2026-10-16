@@ -30,21 +30,12 @@ const META = {
   '/referrals': ['Referral and partner program · Entix Books', 'Refer business owners to Entix Books: a discount for the new subscriber and a recurring commission for accredited partners and accountants.'],
   '/about': ['About Entix Books — bilingual cloud accounting by ENSIDEX LLC', 'Entix Books is bilingual Arabic/English cloud accounting for small and mid-sized businesses in Saudi Arabia and the US, built by ENSIDEX LLC, Wyoming.'],
   '/contact': ['Contact the Entix Books team · ENTIX.IO', 'Sales and product support for Entix Books: support@entix.io, the in-app support portal, privacy and legal contacts.'],
-  '/blog': ['Blog · Entix Books', 'Accounting and product articles from the Entix Books team, in Arabic and English.'],
-  '/docs': ['Documentation · Entix Books', 'Step-by-step guides for Entix Books in Arabic and English.'],
   '/help': ['Help center — invoicing, payments, reports · Entix Books', 'Answers about invoicing, payments and reports in Entix Books. ZATCA Phase 2 integration is under validation and not enabled for production reliance.'],
-  '/videos': ['Video tutorials · Entix Books', 'Short video walkthroughs of Entix Books.'],
-  '/glossary': ['Accounting glossary (Arabic / English) · Entix Books', 'Accounting terms explained simply in Arabic and English.'],
-  '/case-studies': ['Customer stories · Entix Books', 'How businesses use Entix Books every day.'],
-  '/changelog': ['Changelog · Entix Books', 'Latest features and fixes in Entix Books.'],
-  '/careers': ['Careers · ENSIDEX', 'Join the team building Entix Books.'],
-  '/team': ['Team · ENSIDEX', 'The people behind Entix Books.'],
   '/integration': ['Integrations and security — banks, payments, API · Entix Books', 'Bank feeds, Stripe payments, e-signature, API keys and security controls in Entix Books. ZATCA Phase 2 integration is under validation.'],
   '/privacy': ['Privacy Policy · ENTIX.IO', 'How ENTIX.IO handles account, organization, iOS app, upload, AI/OCR, retention, and deletion data.'],
   '/support/ios': ['iOS Support · ENTIX.IO', 'Official ENTIX.IO support for iPhone and iPad on iOS 17 or later, including sign-in, permissions, AI/OCR, privacy, and account deletion help.'],
-  '/terms': ['Terms of Service · ENTIX.IO', 'Terms governing the use of the Entix Books platform by ENSIDEX LLC.'],
-  '/refund': ['Refund policy · Entix Books', 'Refund terms for Entix Books subscriptions.'],
-  '/sla': ['Service level agreement · Entix Books', 'Availability and support commitments for Entix Books.'],
+  '/terms': ['Terms of Service · Entix Books', 'Terms for using Entix Books, owned and operated by ENSIDEX LLC: accounts, payments, refunds, data ownership, security and liability.'],
+  '/refund': ['Refund and cancellation policy · Entix Books', 'Entix Books refunds: a 30-day money-back guarantee on your first paid subscription, cancel anytime, and full refunds for billing errors.'],
   '/solutions/small-business': ['Accounting for Small Businesses · Entix Books', 'Run invoices, expenses, banking, and reports in one bilingual workspace, with Saudi and US market guidance.'],
   '/solutions/accountants': ['Accounting Workspace for Accountants · Entix Books', 'Review client documents, entries and controls, with Saudi VAT and US sales-tax reports, in one bilingual workspace. ZATCA Phase 2 is under validation.'],
   '/solutions/enterprises': ['Enterprise Accounting Controls · Entix Books', 'Organize branches, cost centers, user access, and exportable financial reports in a bilingual workspace.'],
@@ -61,7 +52,7 @@ const META = {
 // "Coming soon" documents: real 200 pages for visitors, but kept out of the index and
 // the sitemap until they carry real content (thin-content rule). /roadmap and
 // /partners are 308 redirects in nginx (they rendered /features and /referrals).
-const PLACEHOLDER_ROUTES = new Set(['/blog', '/docs', '/videos', '/glossary', '/case-studies', '/changelog', '/careers', '/team', '/refund', '/sla'])
+const PLACEHOLDER_ROUTES = new Set([]) // all retired 2026-10-16: 308 to real pages in nginx
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.woff2': 'font/woff2', '.json': 'application/json', '.txt': 'text/plain', '.xml': 'application/xml', '.ico': 'image/x-icon' }
 const server = http.createServer((req, res) => {

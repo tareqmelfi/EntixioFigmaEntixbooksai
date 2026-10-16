@@ -21,8 +21,7 @@ export function SharedFooter() {
       { label: "التكامل والأمان", labelEn: "Integration & security", href: "/integration" },
       { label: "التسعير", labelEn: "Pricing", href: "/pricing" },
       { label: "برنامج الإحالة", labelEn: "Referral program", href: "/referrals" },
-      { label: "التحديثات", labelEn: "Changelog", href: "/changelog" },
-      { label: "خارطة الطريق", labelEn: "Roadmap", href: "/roadmap" },
+      { label: "اربط Claude بدفاترك", labelEn: "Connect Claude", href: "/connect" },
     ],
     solutions: [
       { label: "للمحاسبين", labelEn: "For accountants", href: "/solutions/accountants" },
@@ -32,26 +31,19 @@ export function SharedFooter() {
       { label: "للتجارة الإلكترونية", labelEn: "E-commerce", href: "/solutions/ecommerce" },
     ],
     resources: [
-      { label: "المدونة", labelEn: "Blog", href: "/blog" },
       { label: "مركز المساعدة", labelEn: "Help center", href: "/help" },
+      // Arabic illustrated guide — Saudi market only (Fatoora onboarding).
+      ...(isSA ? [{ label: "دليل الربط بمنصة فاتورة", labelEn: "Fatoora onboarding guide (Arabic)", href: "/guides/zatca-onboarding-ar.html", external: true }] : []),
       { label: "دعم تطبيق iOS", labelEn: "iOS app support", href: "/support/ios" },
-      { label: "التوثيق", labelEn: "Docs", href: "/docs" },
-      { label: "الفيديوهات التعليمية", labelEn: "Videos", href: "/videos" },
-      { label: "دراسات الحالة", labelEn: "Case studies", href: "/case-studies" },
-      { label: "قاموس المحاسبة", labelEn: "Accounting glossary", href: "/glossary" },
     ],
     company: [
       { label: "عن ENTIX.IO", labelEn: "About ENTIX.IO", href: "/about" },
-      { label: "الفريق", labelEn: "Team", href: "/team" },
-      { label: "الوظائف", labelEn: "Careers", href: "/careers" },
       { label: "اتصل بنا", labelEn: "Contact", href: "/contact" },
-      { label: "الشركاء", labelEn: "Partners", href: "/partners" },
     ],
     legal: [
       { label: "سياسة الخصوصية", labelEn: "Privacy", href: "/privacy" },
       { label: "الشروط والأحكام", labelEn: "Terms", href: "/terms" },
-      { label: "سياسة الاسترجاع", labelEn: "Refund policy", href: "/refund" },
-      { label: "اتفاقية مستوى الخدمة", labelEn: "SLA", href: "/sla" },
+      { label: "سياسة الاسترداد", labelEn: "Refund policy", href: "/refund" },
     ],
   };
 
@@ -83,9 +75,9 @@ export function SharedFooter() {
                 <Mail className="w-4 h-4 text-primary transition-colors" />
                 <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" }}>support@entix.io</span>
               </a>
-              <a href="tel:+1442444410" className="flex items-center gap-2.5 text-content-secondary hover:text-foreground transition-colors group cursor-pointer">
+              <a href="tel:+14424444410" className="flex items-center gap-2.5 text-content-secondary hover:text-foreground transition-colors group cursor-pointer">
                 <Phone className="w-4 h-4 text-primary transition-colors" />
-                <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr" }}>+1 (442) 444-410</span>
+                <span style={{ fontSize: "13px", fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif", direction: "ltr", unicodeBidi: "isolate" }}>+1 (442) 444-4410</span>
               </a>
               <div className="flex items-start gap-2.5 text-content-secondary">
                 <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
@@ -137,13 +129,20 @@ export function SharedFooter() {
             <ul className="space-y-2.5">
               {footerLinks.resources.map((link) => (
                 <li key={link.label}>
-                  <Link 
-                    to={href(link.href)}
-                    className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
-                    style={{ fontSize: "13px" }}
-                  >
-                    {t(link.label, link.labelEn)}
-                  </Link>
+                  {"external" in link ? (
+                    // Static document (not a router route) — plain anchor.
+                    <a href={link.href} className="text-content-secondary hover:text-foreground transition-colors cursor-pointer" style={{ fontSize: "13px" }}>
+                      {t(link.label, link.labelEn)}
+                    </a>
+                  ) : (
+                    <Link
+                      to={href(link.href)}
+                      className="text-content-secondary hover:text-foreground transition-colors cursor-pointer"
+                      style={{ fontSize: "13px" }}
+                    >
+                      {t(link.label, link.labelEn)}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

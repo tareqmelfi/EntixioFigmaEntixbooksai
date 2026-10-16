@@ -17,10 +17,10 @@ const enSections = [
   {
     icon: FileText,
     title: "2. Accounting and AI outputs",
-    body: "ENTIX.IO provides tools for invoices, expenses, reports, OCR, reconciliation, and AI-assisted workflows. Outputs must be reviewed before use.",
+    body: "Entix Books provides tools for invoices, expenses, reports, OCR, reconciliation, and AI-assisted workflows. Outputs must be reviewed before use.",
     items: [
       "AI, OCR, categorization, tax, and reconciliation suggestions may be incomplete or incorrect.",
-      "ENTIX.IO is not a law firm, CPA firm, tax advisor, or financial advisor.",
+      "Entix Books is not a law firm, CPA firm, tax advisor, or financial advisor.",
       "You are responsible for final filings, tax positions, books, payments, and records.",
     ],
   },
@@ -40,13 +40,13 @@ const enSections = [
     body: "You may cancel paid services according to your plan terms. We aim to support reasonable data export before deletion or account closure.",
     items: [
       "Cancellation does not automatically erase records that must be retained for legal, accounting, security, or dispute purposes.",
-      "Refunds, if available, are handled according to the applicable plan, checkout terms, or written agreement.",
+      "Refunds follow our Refund Policy at entix.io/refund, including a 30-day money-back guarantee on your first paid subscription.",
     ],
   },
   {
     icon: AlertTriangle,
     title: "5. Acceptable use",
-    body: "Do not misuse ENTIX.IO, interfere with the service, upload unlawful content, abuse automation, or attempt unauthorized access.",
+    body: "Do not misuse Entix Books, interfere with the service, upload unlawful content, abuse automation, or attempt unauthorized access.",
     items: [
       "Do not process payment, bank, identity, or customer data without proper authority.",
       "Do not reverse engineer, scrape, overload, or bypass product limits.",
@@ -56,7 +56,7 @@ const enSections = [
   {
     icon: Scale,
     title: "6. Governing entity and contact",
-    body: "ENTIX.IO is owned by شركة سبيك بروز للاستثمار, CR 3400010090, and operated and powered by ENSIDEX LLC. These terms may be supplemented for local markets when required.",
+    body: "Entix Books is owned and operated by ENSIDEX LLC, a Wyoming limited liability company, 30 N Gould St Ste R, Sheridan, WY 82801, United States. Purchases made through an authorized reseller are also subject to that reseller's sales terms.",
     items: [
       "Questions: legal@entix.io.",
       "Privacy questions: privacy@entix.io.",
@@ -96,7 +96,7 @@ const enSections = [
   {
     icon: HandCoins,
     title: "10. Limitation of liability",
-    body: "To the maximum extent permitted by law, ENTIX.IO, its owners, and its operators are not liable for indirect, incidental, special, consequential, or punitive damages, lost profits, lost data, lost filings, penalties, or business interruption.",
+    body: "To the maximum extent permitted by law, Entix Books, its owners, and its operators are not liable for indirect, incidental, special, consequential, or punitive damages, lost profits, lost data, lost filings, penalties, or business interruption.",
     items: [
       "Our total aggregate liability for any claim is capped at the amounts you paid us for the service in the 12 months before the event giving rise to the claim (or USD 100 if you paid nothing).",
       "Nothing limits liability that cannot legally be limited (willful misconduct, gross negligence, or non-waivable consumer rights).",
@@ -109,7 +109,7 @@ const enSections = [
     body: "We may suspend or terminate access for non-payment, abuse, security risk, unlawful use, or repeated terms violations — with notice when reasonably possible.",
     items: [
       "You may terminate at any time from the billing portal; access continues until the end of the paid period.",
-      "On termination we stop charging; already-incurred fees are non-refundable except where required by law or expressly stated.",
+      "On termination we stop charging; already-incurred fees are non-refundable except where required by law or under the Refund Policy.",
       "We may retain and use anonymized, aggregated data that no longer identifies you or your customers.",
     ],
   },
@@ -121,6 +121,15 @@ const enSections = [
       "The parties first attempt to resolve disputes amicably within 30 days of written notice.",
       "For US customers: exclusive venue is the state and federal courts of Wyoming. For Saudi establishments: the competent courts of Saudi Arabia, unless the parties agree otherwise in writing.",
       "If any provision is held unenforceable, the rest of these terms stays in force.",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "13. Changes to these terms",
+    body: "We may update these terms as the product and the law change. The date at the top of this page always shows the current version.",
+    items: [
+      "Material changes are announced by email or in-app before they take effect.",
+      "Continuing to use Entix Books after a change takes effect means you accept the updated terms; if you do not agree, you can cancel and export your data.",
     ],
   },
 ];
@@ -139,10 +148,10 @@ const arSections = [
   {
     icon: FileText,
     title: "2. المحاسبة ومخرجات الذكاء الاصطناعي",
-    body: "يوفر ENTIX.IO أدوات للفواتير والمصروفات والتقارير وOCR والتسوية والذكاء الاصطناعي، ويجب مراجعة المخرجات قبل الاعتماد عليها.",
+    body: "يوفر Entix Books أدوات للفواتير والمصروفات والتقارير وOCR والتسوية والذكاء الاصطناعي، ويجب مراجعة المخرجات قبل الاعتماد عليها.",
     items: [
       "اقتراحات الذكاء والتصنيف والضرائب والتسوية قد تكون ناقصة أو غير صحيحة.",
-      "ENTIX.IO ليس مكتب محاماة أو محاسب قانوني أو مستشار ضريبي أو مالي.",
+      "Entix Books ليس مكتب محاماة أو محاسب قانوني أو مستشار ضريبي أو مالي.",
       "أنت مسؤول عن الإقرارات والدفاتر والمدفوعات والسجلات النهائية.",
     ],
   },
@@ -162,13 +171,13 @@ const arSections = [
     body: "يمكنك إلغاء الخدمات المدفوعة حسب شروط الباقة، ونسعى لدعم تصدير البيانات بشكل معقول قبل الحذف أو إغلاق الحساب.",
     items: [
       "الإلغاء لا يعني حذف السجلات المطلوبة قانونياً أو محاسبياً أو أمنياً أو للنزاعات.",
-      "الاسترداد، إن وجد، يخضع لشروط الباقة أو الدفع أو الاتفاقية المكتوبة.",
+      "الاسترداد يخضع لسياسة الاسترداد على entix.io/refund، ومنها ضمان استرداد خلال 30 يومًا لأول اشتراك مدفوع.",
     ],
   },
   {
     icon: AlertTriangle,
     title: "5. الاستخدام المقبول",
-    body: "لا تستخدم ENTIX.IO بطريقة تسيء للخدمة أو تعطلها أو تخالف الأنظمة أو تتجاوز الصلاحيات.",
+    body: "لا تستخدم Entix Books بطريقة تسيء للخدمة أو تعطلها أو تخالف الأنظمة أو تتجاوز الصلاحيات.",
     items: [
       "لا تعالج بيانات دفع أو بنك أو هوية أو عملاء بدون صلاحية.",
       "لا تحاول عكس الهندسة أو السحب الآلي أو تجاوز حدود المنتج.",
@@ -178,7 +187,7 @@ const arSections = [
   {
     icon: Scale,
     title: "6. الكيان والتواصل",
-    body: "ENTIX.IO مملوك لشركة سبيك بروز للاستثمار، سجل تجاري 3400010090، وتتم إدارته وتشغيله بواسطة ENSIDEX LLC. قد تضاف ملاحق محلية لهذه الشروط عند الحاجة.",
+    body: "Entix Books مملوكة لشركة ENSIDEX LLC وتديرها، وهي شركة ذات مسؤولية محدودة مسجلة في ولاية وايومنغ، 30 N Gould St Ste R, Sheridan, WY 82801، الولايات المتحدة. وتخضع المشتريات عبر موزّع معتمد أيضًا لشروط البيع الخاصة بذلك الموزّع.",
     items: [
       "الأسئلة القانونية: legal@entix.io.",
       "أسئلة الخصوصية: privacy@entix.io.",
@@ -218,7 +227,7 @@ const arSections = [
   {
     icon: HandCoins,
     title: "10. حدود المسؤولية",
-    body: "بالقدر الذي يسمح به النظام، لا تتحمل ENTIX.IO ومالكوها ومشغلوها أي أضرار غير مباشرة أو عرضية أو خاصة أو تبعية أو عقابية، أو فقدان أرباح أو بيانات أو إقرارات، أو غرامات، أو توقف أعمال.",
+    body: "بالقدر الذي يسمح به النظام، لا تتحمل Entix Books ومالكوها ومشغلوها أي أضرار غير مباشرة أو عرضية أو خاصة أو تبعية أو عقابية، أو فقدان أرباح أو بيانات أو إقرارات، أو غرامات، أو توقف أعمال.",
     items: [
       "سقف مسؤوليتنا الإجمالية عن أي مطالبة هو ما دفعته لنا عن الخدمة خلال الاثني عشر شهرًا السابقة للحدث محل المطالبة (أو 100 دولار أمريكي إن لم تدفع شيئًا).",
       "لا تحد هذه الشروط مسؤولية لا يجوز تحديدها نظامًا (سوء النية المتعمد، الإهمال الجسيم، حقوق مستهلك غير قابلة للتنازل).",
@@ -231,7 +240,7 @@ const arSections = [
     body: "يجوز لنا تعليق أو إنهاء الوصول لعدم السداد أو إساءة الاستخدام أو خطر أمني أو استخدام غير نظامي أو مخالفات متكررة — مع إشعار متى أمكن.",
     items: [
       "يمكنك الإنهاء في أي وقت من بوابة الفوترة؛ ويستمر الوصول حتى نهاية الفترة المدفوعة.",
-      "عند الإنهاء نوقف التحصيل؛ والرسوم المستحقة سابقًا غير قابلة للاسترداد إلا إذا أوجب النظام أو نُصّ صراحة.",
+      "عند الإنهاء نوقف التحصيل؛ والرسوم المستحقة سابقًا غير قابلة للاسترداد إلا إذا أوجب النظام أو وفق سياسة الاسترداد.",
       "يجوز لنا الاحتفاظ ببيانات مجمعة مجهولة الهوية لا تُعرّف بك أو بعملائك واستخدامها.",
     ],
   },
@@ -243,6 +252,15 @@ const arSections = [
       "يحاول الطرفان حل أي نزاع وديًا خلال 30 يومًا من إشعار كتابي.",
       "لعملاء أمريكا: الاختصاص الحصري لمحاكم وايومنغ. للمنشآت السعودية: المحاكم المختصة في السعودية، ما لم يتفق كتابيًا على غير ذلك.",
       "إن بُطل حكم من هذه الشروط، يبقى الباقي نافذًا.",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "13. تعديل هذه الشروط",
+    body: "قد نحدّث هذه الشروط مع تطور المنتج والأنظمة، والتاريخ أعلى الصفحة يوضح النسخة السارية دائمًا.",
+    items: [
+      "نُعلن التعديلات الجوهرية بالبريد أو داخل التطبيق قبل سريانها.",
+      "استمرارك في استخدام Entix Books بعد سريان التعديل يعني قبولك له، وإن لم توافق يمكنك الإلغاء وتصدير بياناتك.",
     ],
   },
 ];
@@ -264,18 +282,18 @@ export function Terms() {
               <Scale className="w-7 h-7 text-primary-foreground" />
             </div>
             <h1 className="text-foreground mb-3" style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800 }}>
-              {isAr ? "الشروط والأحكام" : "ENTIX.IO Terms of Service"}
+              {isAr ? "الشروط والأحكام" : "Entix Books Terms of Service"}
             </h1>
             <p className="text-muted-foreground" style={{ fontSize: "0.95rem" }}>
-              {isAr ? "آخر تحديث: 4 يونيو 2026" : "Last updated: June 4, 2026"}
+              {isAr ? "آخر تحديث: 16 أكتوبر 2026" : "Last updated: October 16, 2026"}
             </p>
           </div>
 
           <div className="bg-surface-subtle rounded-lg p-6 mb-8 border border-border">
             <p className="text-foreground/80 m-0" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
               {isAr
-                ? "باستخدامك ENTIX.IO، فإنك توافق على هذه الشروط. إذا كنت تستخدم الخدمة نيابة عن منشأة، فأنت تؤكد أن لديك الصلاحية لإلزامها بهذه الشروط."
-                : "By using ENTIX.IO, you agree to these Terms. If you use the service on behalf of a company, you confirm that you are authorized to bind that company to these Terms."}
+                ? "باستخدامك Entix Books، فإنك توافق على هذه الشروط. إذا كنت تستخدم الخدمة نيابة عن منشأة، فأنت تؤكد أن لديك الصلاحية لإلزامها بهذه الشروط."
+                : "By using Entix Books, you agree to these Terms. If you use the service on behalf of a company, you confirm that you are authorized to bind that company to these Terms."}
             </p>
           </div>
 
@@ -303,16 +321,6 @@ export function Terms() {
             })}
           </div>
 
-          <div className="bg-muted/40 rounded-lg p-6 mt-12 border border-border">
-            <h3 className="text-foreground mb-3" style={{ fontSize: "1.1rem", fontWeight: 700 }}>
-              {isAr ? "ملاحظة مهمة" : "Important note"}
-            </h3>
-            <p className="text-foreground/80" style={{ fontSize: "0.95rem", lineHeight: 1.8 }}>
-              {isAr
-                ? "هذه الصفحة نسخة تشغيلية مبدئية للمنتج ويجب مراجعتها قانونياً قبل إطلاق عام واسع أو عقود مؤسسية."
-                : "This is an operational product draft and should be reviewed by counsel before broad public launch or enterprise agreements."}
-            </p>
-          </div>
         </div>
       </div>
       </main>

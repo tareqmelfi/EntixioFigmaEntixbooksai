@@ -14,6 +14,13 @@ import { PUBLIC_LOCALES, PUBLIC_MARKETS, PUBLIC_PAGES, localizedPath, type Publi
 
 // Route-level code splitting · every app/marketing page loads its own chunk on
 // first visit instead of shipping one 2MB bundle (PERF rescue · original Bible §3.4)
+// Static documents served by nginx (e.g. /connect) are not SPA routes. A client-side
+// navigation to one must become a full page load, never the in-app 404 (2026-10-16).
+function StaticDocument() {
+  React.useEffect(() => { window.location.replace(window.location.pathname + window.location.search + window.location.hash); }, []);
+  return <RouteFallback />;
+}
+
 function RouteFallback() {
   return (
     <div className="flex items-center justify-center h-96">
@@ -153,11 +160,11 @@ export const router = createBrowserRouter([
   { path: "/privacy", element: lazyElement(() => import("./pages/privacy"), "Privacy"), errorElement: <ErrorBoundary /> },
   { path: "/support/ios", element: lazyElement(() => import("./pages/ios-support"), "IosSupport"), errorElement: <ErrorBoundary /> },
   { path: "/terms", element: lazyElement(() => import("./pages/terms"), "Terms"), errorElement: <ErrorBoundary /> },
-  { path: "/blog", element: lazyElement(() => import("./pages/blog"), "Blog"), errorElement: <ErrorBoundary /> },
+  { path: "/blog", element: <Navigate to="/help" replace />, errorElement: <ErrorBoundary /> },
   { path: "/payment-result", element: lazyElement(() => import("./pages/payment-result"), "PaymentResult"), errorElement: <ErrorBoundary /> },
   { path: "/help", element: lazyElement(() => import("./pages/help"), "Help"), errorElement: <ErrorBoundary /> },
-  { path: "/docs", element: lazyElement(() => import("./pages/docs"), "Docs"), errorElement: <ErrorBoundary /> },
-  { path: "/videos", element: lazyElement(() => import("./pages/videos"), "Videos"), errorElement: <ErrorBoundary /> },
+  { path: "/docs", element: <Navigate to="/help" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/videos", element: <Navigate to="/help" replace />, errorElement: <ErrorBoundary /> },
   { path: "/about", element: lazyElement(() => import("./pages/about"), "About"), errorElement: <ErrorBoundary /> },
   { path: "/solutions/accountants", element: lazyElement(() => import("./pages/solutions"), "SolutionsAccountants"), errorElement: <ErrorBoundary /> },
   { path: "/solutions/small-business", element: lazyElement(() => import("./pages/solutions"), "SolutionsSmallBusiness"), errorElement: <ErrorBoundary /> },
@@ -167,16 +174,17 @@ export const router = createBrowserRouter([
   { path: "/solutions/freelancers", element: lazyElement(() => import("./pages/solutions"), "SolutionsFreelancers"), errorElement: <ErrorBoundary /> },
   { path: "/solutions/agencies", element: lazyElement(() => import("./pages/solutions"), "SolutionsAgencies"), errorElement: <ErrorBoundary /> },
   { path: "/solutions/ecommerce", element: lazyElement(() => import("./pages/solutions"), "SolutionsEcommerce"), errorElement: <ErrorBoundary /> },
-  { path: "/team", element: lazyElement(() => import("./pages/other-pages"), "Team"), errorElement: <ErrorBoundary /> },
-  { path: "/careers", element: lazyElement(() => import("./pages/other-pages"), "Careers"), errorElement: <ErrorBoundary /> },
+  { path: "/team", element: <Navigate to="/about" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/careers", element: <Navigate to="/about" replace />, errorElement: <ErrorBoundary /> },
   { path: "/contact", element: lazyElement(() => import("./pages/other-pages"), "Contact"), errorElement: <ErrorBoundary /> },
-  { path: "/partners", element: lazyElement(() => import("./pages/other-pages"), "Partners"), errorElement: <ErrorBoundary /> },
-  { path: "/changelog", element: lazyElement(() => import("./pages/other-pages"), "Changelog"), errorElement: <ErrorBoundary /> },
-  { path: "/roadmap", element: lazyElement(() => import("./pages/other-pages"), "Roadmap"), errorElement: <ErrorBoundary /> },
-  { path: "/case-studies", element: lazyElement(() => import("./pages/other-pages"), "CaseStudies"), errorElement: <ErrorBoundary /> },
-  { path: "/glossary", element: lazyElement(() => import("./pages/other-pages"), "Glossary"), errorElement: <ErrorBoundary /> },
-  { path: "/refund", element: lazyElement(() => import("./pages/other-pages"), "Refund"), errorElement: <ErrorBoundary /> },
-  { path: "/sla", element: lazyElement(() => import("./pages/other-pages"), "SLA"), errorElement: <ErrorBoundary /> },
+  { path: "/partners", element: <Navigate to="/referrals" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/changelog", element: <Navigate to="/features" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/roadmap", element: <Navigate to="/features" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/case-studies", element: <Navigate to="/features" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/glossary", element: <Navigate to="/help" replace />, errorElement: <ErrorBoundary /> },
+  { path: "/connect", element: <StaticDocument />, errorElement: <ErrorBoundary /> },
+  { path: "/refund", element: lazyElement(() => import("./pages/refund"), "Refund"), errorElement: <ErrorBoundary /> },
+  { path: "/sla", element: <Navigate to="/terms" replace />, errorElement: <ErrorBoundary /> },
   // POS cashier — full-screen, no app sidebar (approved mockup is a dedicated
   // cashier workstation screen; every pixel counts on touch terminals).
   {

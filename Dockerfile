@@ -96,6 +96,25 @@ server {
   location = /roadmap/ { return 308 /features$is_args$args; }
   location = /partners { return 308 /referrals$is_args$args; }
   location = /partners/ { return 308 /referrals$is_args$args; }
+  # Retired "coming soon" placeholders (2026-10-16): each goes to its nearest real page.
+  location = /blog { return 308 /help$is_args$args; }
+  location = /blog/ { return 308 /help$is_args$args; }
+  location = /docs { return 308 /help$is_args$args; }
+  location = /docs/ { return 308 /help$is_args$args; }
+  location = /videos { return 308 /help$is_args$args; }
+  location = /videos/ { return 308 /help$is_args$args; }
+  location = /glossary { return 308 /help$is_args$args; }
+  location = /glossary/ { return 308 /help$is_args$args; }
+  location = /case-studies { return 308 /features$is_args$args; }
+  location = /case-studies/ { return 308 /features$is_args$args; }
+  location = /changelog { return 308 /features$is_args$args; }
+  location = /changelog/ { return 308 /features$is_args$args; }
+  location = /team { return 308 /about$is_args$args; }
+  location = /team/ { return 308 /about$is_args$args; }
+  location = /careers { return 308 /about$is_args$args; }
+  location = /careers/ { return 308 /about$is_args$args; }
+  location = /sla { return 308 /terms$is_args$args; }
+  location = /sla/ { return 308 /terms$is_args$args; }
 
   # Canonical localized URLs have no trailing slash. Relative redirects retain
   # the browser's external HTTPS origin even though Nginx receives proxy HTTP.
