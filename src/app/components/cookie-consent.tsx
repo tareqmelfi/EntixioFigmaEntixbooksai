@@ -84,9 +84,9 @@ export function CookieConsent() {
               <Cookie className="w-5 h-5 text-primary" />
             </span>
             <div className="flex-1 min-w-0">
-              <h3 className="text-foreground mb-1" style={{ fontSize: "15px", fontWeight: 700 }}>
+              <h2 className="text-foreground mb-1" style={{ fontSize: "15px", fontWeight: 700, lineHeight: 1.5 }}>
                 {t("نحترم خصوصيتك", "We respect your privacy")}
-              </h3>
+              </h2>
               <p className="text-muted-foreground" style={{ fontSize: "13px", lineHeight: 1.8 }}>
                 {t(
                   "نستخدم ملفات ضرورية لتشغيل الموقع (تسجيل الدخول والأمان) — وهي تعمل دائمًا. وبموافقتك فقط نستخدم كوكيز تحليلية لتحسين التجربة. لا نبيع بياناتك أبدًا.",

@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle, X, Send, Loader2, User } from "lucide-react";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL } from "../lib/api-base";
 import { useLanguage } from "./LanguageContext";
 
 /** 2026-10-12 · one support persona on every channel (CEO decision): Elara. */

@@ -24,11 +24,11 @@ const PLACEHOLDER_SIGNATURES = [/قريباً/i, /قريبًا/i, /coming soon/i
 // SEO-02 2026-10-11). Placeholder ("coming soon") routes are prerendered for a clean
 // 200 but carry noindex and are excluded from the sitemap until real content ships.
 const META = {
-  '/': ['Entix Books · Arabic-first cloud accounting | ENTIX.IO', 'Arabic-first cloud accounting for businesses in Saudi Arabia and the United States — quotes, invoices, receipts, automatic journal entries, POS, inventory and projects. Start free, no card.'],
-  '/features': ['Features — invoicing, expenses, banking, reports · Entix Books', 'Everything Entix Books does: quotes to invoices to journal entries, OCR expenses, bank reconciliation, payroll, inventory, projects and financial reports — in Arabic and English.'],
+  '/': ['Entix Books · Arabic-first cloud accounting | ENTIX.IO', 'Arabic-first cloud accounting for Saudi and US businesses: quotes, invoices, receipts, automatic journal entries, POS and inventory. Start free, no card.'],
+  '/features': ['Features — invoicing, expenses, banking, reports · Entix Books', 'Quotes to invoices to journal entries, OCR expenses, bank reconciliation, payroll, inventory, projects and financial reports — in Arabic and English.'],
   '/pricing': ['Pricing — start free, pay as you grow · Entix Books', 'Entix Books plans for Saudi and US businesses: a free starter plan, one free month on paid plans, no card required. Monthly or annual billing.'],
   '/referrals': ['Referral and partner program · Entix Books', 'Refer business owners to Entix Books: a discount for the new subscriber and a recurring commission for accredited partners and accountants.'],
-  '/about': ['About Entix Books — bilingual cloud accounting by ENSIDEX LLC', 'Entix Books is a bilingual (Arabic/English) cloud accounting platform for small and mid-sized businesses in Saudi Arabia and the United States, built by ENSIDEX LLC, Wyoming.'],
+  '/about': ['About Entix Books — bilingual cloud accounting by ENSIDEX LLC', 'Entix Books is bilingual Arabic/English cloud accounting for small and mid-sized businesses in Saudi Arabia and the US, built by ENSIDEX LLC, Wyoming.'],
   '/contact': ['Contact the Entix Books team · ENTIX.IO', 'Sales and product support for Entix Books: support@entix.io, the in-app support portal, privacy and legal contacts.'],
   '/blog': ['Blog · Entix Books', 'Accounting and product articles from the Entix Books team, in Arabic and English.'],
   '/docs': ['Documentation · Entix Books', 'Step-by-step guides for Entix Books in Arabic and English.'],
@@ -39,21 +39,21 @@ const META = {
   '/changelog': ['Changelog · Entix Books', 'Latest features and fixes in Entix Books.'],
   '/careers': ['Careers · ENSIDEX', 'Join the team building Entix Books.'],
   '/team': ['Team · ENSIDEX', 'The people behind Entix Books.'],
-  '/integration': ['Integrations and security — banks, payments, API · Entix Books', 'Bank feeds, Stripe payments, e-signature, API keys and security controls in Entix Books. ZATCA Phase 2 integration is under validation and not enabled for production reliance.'],
+  '/integration': ['Integrations and security — banks, payments, API · Entix Books', 'Bank feeds, Stripe payments, e-signature, API keys and security controls in Entix Books. ZATCA Phase 2 integration is under validation.'],
   '/privacy': ['Privacy Policy · ENTIX.IO', 'How ENTIX.IO handles account, organization, iOS app, upload, AI/OCR, retention, and deletion data.'],
   '/support/ios': ['iOS Support · ENTIX.IO', 'Official ENTIX.IO support for iPhone and iPad on iOS 17 or later, including sign-in, permissions, AI/OCR, privacy, and account deletion help.'],
   '/terms': ['Terms of Service · ENTIX.IO', 'Terms governing the use of the Entix Books platform by ENSIDEX LLC.'],
   '/refund': ['Refund policy · Entix Books', 'Refund terms for Entix Books subscriptions.'],
   '/sla': ['Service level agreement · Entix Books', 'Availability and support commitments for Entix Books.'],
   '/solutions/small-business': ['Accounting for Small Businesses · Entix Books', 'Run invoices, expenses, banking, and reports in one bilingual workspace, with Saudi and US market guidance.'],
-  '/solutions/accountants': ['Accounting Workspace for Accountants · Entix Books', 'Review client documents, entries, controls, and Saudi VAT or US sales-tax reports. ZATCA Phase 2 integration remains under validation and unavailable for production reliance.'],
+  '/solutions/accountants': ['Accounting Workspace for Accountants · Entix Books', 'Review client documents, entries and controls, with Saudi VAT and US sales-tax reports, in one bilingual workspace. ZATCA Phase 2 is under validation.'],
   '/solutions/enterprises': ['Enterprise Accounting Controls · Entix Books', 'Organize branches, cost centers, user access, and exportable financial reports in a bilingual workspace.'],
   '/solutions/restaurants': ['Accounting for Restaurants and Cafés · Entix Books', 'Review restaurant sales, purchases, operating expenses, inventory movements, and financial reports.'],
   '/solutions/contracting': ["Contracting and engineering · Entix Books", "Track design and construction quotes, project progress, expenses and contractors in one workspace."],
   '/solutions/freelancers': ["Freelancers and consultants · Entix Books", "Organize service quotes, clients, projects and expenses, with Arabic or English documents and transaction currencies."],
   '/solutions/agencies': ["Agencies and services · Entix Books", "Connect campaign, design and development quotes with project delivery, tool and freelancer costs, and reports."],
   '/solutions/ecommerce': ['Accounting for Ecommerce · Entix Books', 'Organize store sales, payment fees, inventory, bank reconciliation, and profitability reporting.'],
-  '/login': ['Sign in · Entix Books', 'Sign in to your Entix Books account.'],
+  '/login': ['Sign in · Entix Books', 'Sign in to Entix Books — bilingual cloud accounting for invoices, expenses, banking and reports in Arabic and English.'],
   '/register': ['Create your account · Entix Books', 'Start your free month of Entix Books — no card required.'],
   '/forgot-password': ['Reset your password · Entix Books', 'Recover access to your Entix Books account.'],
   '/reset-password': ['Choose a new password · Entix Books', 'Set a new password for your Entix Books account.'],
@@ -200,7 +200,7 @@ async function renderNeutralRoot() {
     let html = cleanPublicSeo(await page.content())
     html = setHtmlLanguage(html, 'en', 'ltr')
     html = replaceTitle(html, 'Entix Books · Arabic-first cloud accounting | ENTIX.IO')
-    html = replaceMeta(html, 'name', 'description', 'Arabic-first cloud accounting for businesses in Saudi Arabia and the United States — quotes, invoices, receipts, automatic journal entries, POS, inventory and projects. Start free, no card.')
+    html = replaceMeta(html, 'name', 'description', 'Arabic-first cloud accounting for Saudi and US businesses: quotes, invoices, receipts, automatic journal entries, POS and inventory. Start free, no card.')
     html = replaceMeta(html, 'property', 'og:title', 'Entix Books · Arabic-first cloud accounting')
     html = replaceMeta(html, 'property', 'og:description', 'Quotes → invoices → receipts → automatic journal entries · POS · inventory · projects. Built for Saudi Arabia and the United States. Start free — no card.')
     html = replaceMeta(html, 'name', 'twitter:title', 'Entix Books · Arabic-first cloud accounting')
@@ -352,7 +352,7 @@ function writeSitemap() {
     })
   // Static public documents that live in public/ (not prerendered routes).
   // /connect = "Connect Claude to Entix Books" (MCP connector guide · 2026-10-05).
-  const staticDocs = [['/connect', 'monthly', '0.6']].map(([route, changefreq, priority]) => [
+  const staticDocs = [['/connect', 'monthly', '0.6'], ['/guides/zatca-onboarding-ar.html', 'monthly', '0.5']].map(([route, changefreq, priority]) => [
     '  <url>', `    <loc>${SITE_ORIGIN}${route}</loc>`,
     `    <lastmod>${SITEMAP_LASTMOD}</lastmod>`,
     `    <changefreq>${changefreq}</changefreq>`, `    <priority>${priority}</priority>`, '  </url>',

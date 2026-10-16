@@ -23,11 +23,9 @@ export interface HistoricalReportRecord {
 
 export type { DuplicateDecision, DuplicateDecisionAction, SimilarityReview } from './similarity-review'
 
-const API_BASE =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_API_URL) ||
-  'https://api.entix.io'
-
-export const API_BASE_URL = API_BASE
+import { API_BASE_URL, clientErrorRef } from './api-base'
+export { API_BASE_URL, clientErrorRef }
+const API_BASE = API_BASE_URL
 
 // ── Org state ────────────────────────────────────────────────────────────────
 let orgId: string | null = null
@@ -143,9 +141,6 @@ export class ApiError extends Error {
 /** Client-side error reference — generated whenever the server didn't provide
  * one (old API versions, network failures). Displayed to the user and logged
  * with full context so support can correlate: "R-<time36>-<rand>". */
-export function clientErrorRef(): string {
-  return 'R-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 7).toUpperCase()
-}
 
 // ── Core fetch ────────────────────────────────────────────────────────────────
 type FetchOpts = {

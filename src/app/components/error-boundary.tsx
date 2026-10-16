@@ -1,7 +1,7 @@
 import { useRouteError, isRouteErrorResponse, Link } from "react-router";
 import { AlertTriangle, Home, ArrowRight } from "lucide-react";
 import { Button } from "./ui/button";
-import { clientErrorRef } from "../lib/api";
+import { clientErrorRef } from "../lib/api-base";
 import { useLanguage } from "./LanguageContext";
 
 export function ErrorBoundary() {

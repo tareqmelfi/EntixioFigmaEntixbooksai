@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { API_BASE_URL } from "../lib/api";
+import { API_BASE_URL } from "../lib/api-base";
 import { ROOT_LOCALE, ROOT_MARKET, localizedPath, type PublicLocale, type PublicMarket } from "../public-site-manifest";
 import { Landing } from "./landing";
 

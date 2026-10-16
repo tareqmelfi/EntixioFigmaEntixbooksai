@@ -421,16 +421,16 @@ export function PricingPage() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 start-7">
-                    <span className="rounded-full bg-[var(--brand-blue-600)] px-3 py-1 text-primary-foreground whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>
+                    <span className="rounded-full bg-[var(--brand-blue-700)] px-3 py-1 text-primary-foreground whitespace-nowrap" style={{ fontSize: "11px", fontWeight: 600 }}>
                       {t("الأكثر شعبية", "Most popular")}
                     </span>
                   </div>
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <h3 className={plan.popular ? "text-background m-0" : "text-foreground m-0"} style={{ fontSize: "18px", fontWeight: 600 }}>
+                  <h2 className={plan.popular ? "text-background m-0" : "text-foreground m-0"} style={{ fontSize: "18px", fontWeight: 600, lineHeight: 1.5 }}>
                     {isAr ? plan.name.ar : plan.name.en}
-                  </h3>
+                  </h2>
                   <p className={plan.popular ? "text-background/70 m-0" : "text-content-secondary m-0"} style={{ fontSize: "14px", lineHeight: 1.5 }}>
                     {isAr ? plan.desc.ar : plan.desc.en}
                   </p>
@@ -493,7 +493,7 @@ export function PricingPage() {
                     data-testid={`plan-subscribe-${plan.tier}`}
                     className={`w-full rounded-full py-3.5 transition-colors cursor-pointer disabled:opacity-60 ${
                       plan.popular
-                        ? "bg-[var(--brand-blue-600)] text-primary-foreground hover:opacity-90"
+                        ? "bg-[var(--brand-blue-700)] text-primary-foreground hover:opacity-90"
                         : "bg-foreground text-background hover:bg-primary"
                     }`}
                     style={{ fontSize: "15px", fontWeight: 600 }}

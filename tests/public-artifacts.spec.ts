@@ -13,7 +13,7 @@ const LEGACY_PRERENDER_ROUTES = [
   '/solutions/restaurants', '/solutions/ecommerce', '/solutions/contracting', '/solutions/freelancers', '/solutions/agencies',
   '/login', '/register', '/forgot-password', '/reset-password',
 ] as const
-const STATIC_PUBLIC_ROUTES = ['/connect'] as const
+const STATIC_PUBLIC_ROUTES = ['/connect', '/guides/zatca-onboarding-ar.html'] as const
 
 test('static connect document is published with its own canonical URL', async () => {
   const html = await readFile(artifact('/connect'), 'utf8')

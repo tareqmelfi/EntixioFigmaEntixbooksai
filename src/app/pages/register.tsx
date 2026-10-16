@@ -274,7 +274,8 @@ export function Register() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute end-3.5 top-1/2 -translate-y-1/2 text-content-secondary hover:text-foreground cursor-pointer"
+                  aria-label={showPassword ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")}
+                  className="absolute end-2 top-1/2 -translate-y-1/2 p-1.5 text-content-secondary hover:text-foreground cursor-pointer"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -291,9 +292,9 @@ export function Register() {
               <input type="checkbox" id="terms" className="mt-1 accent-[var(--foreground)]" required />
               <label htmlFor="terms" className="text-content-secondary" style={{ fontSize: "13px", lineHeight: 1.6, fontWeight: 400 }}>
                 {t("بإنشاء حساب فأنت توافق على", "By creating an account you agree to our")}{" "}
-                <Link to="/terms" className="text-primary hover:underline">{t("الشروط والأحكام", "Terms")}</Link>
+                <Link to="/terms" className="text-primary underline underline-offset-2">{t("الشروط والأحكام", "Terms")}</Link>
                 {" "}{t("و", "and")}{" "}
-                <Link to="/privacy" className="text-primary hover:underline">{t("سياسة الخصوصية", "Privacy Policy")}</Link>
+                <Link to="/privacy" className="text-primary underline underline-offset-2">{t("سياسة الخصوصية", "Privacy Policy")}</Link>
               </label>
             </div>
 
